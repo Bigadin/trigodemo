@@ -1137,23 +1137,55 @@
             outline-offset: 2px;
             border-color: rgba(16,176,249,0.55);
         }
-        /* Indicateur live permanent (inset) selon statut de la carte: Vide=bleu, Occupé=rouge */
-        .zone-card.presence-empty .zone-preview-box:not(.active) {
-            border-color: rgba(16,176,249,0.45);
-            box-shadow:
-                inset 0 0 0 2px rgba(16,176,249,0.18),
-                inset 0 0 16px rgba(16,176,249,0.12);
-        }
-        .zone-card.presence-occupied .zone-preview-box:not(.active) {
-            border-color: rgba(239,68,68,0.48);
-            box-shadow:
-                inset 0 0 0 2px rgba(239,68,68,0.16),
-                inset 0 0 16px rgba(239,68,68,0.10);
-        }
         .zone-card.selected {
             border-color: rgba(16,176,249,0.55);
             box-shadow: 0 0 0 3px rgba(16,176,249,0.15);
         }
+
+        /* LOV selects (dropdown) — give room for arrow and consistent padding */
+        .lov-select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            padding-right: 38px !important; /* space for arrow */
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5' fill='none' stroke='%23aab0c6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center; /* margin-right for arrow */
+            background-size: 14px 14px;
+        }
+        .lov-select:focus { outline: none; }
+
+        /* Line zones (counting line) — activity UI */
+        .line-metrics {
+            margin-top: var(--space-3);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-2);
+            font-family: 'Courier New', monospace;
+            font-size: var(--text-xs);
+            color: var(--color-text);
+            opacity: 0.95;
+        }
+        .line-metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 8px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            background: rgba(255,255,255,0.03);
+        }
+        .line-spark {
+            margin-top: var(--space-2);
+            height: 26px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            background: rgba(0,0,0,0.02);
+            overflow: hidden;
+        }
+        .line-spark svg { width: 100%; height: 100%; display: block; }
+        .line-spark .base { stroke: rgba(255,255,255,0.18); stroke-width: 1; }
+        .line-spark .wave { stroke: #10B0F9; stroke-width: 2; fill: none; }
 
         /* =========================================================
            Drawing Editor (modal) — “paint-like”
@@ -1816,11 +1848,11 @@
                                 </div>
                                 <div class="form-group" style="flex:1; min-width:200px;">
                                     <label class="form-label">Vidéo</label>
-                                    <select id="newCamVideo" style="width:100%;"></select>
+                                    <select id="newCamVideo" class="lov-select" style="width:100%;"></select>
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Hint (optionnel)</label>
+                                <label class="form-label">Description (optionnel)</label>
                                 <input id="newCamHint" type="text" placeholder="Ex: Déchargement & présence" style="width:100%;">
                             </div>
                             <div style="display:flex; gap: var(--space-3);">
@@ -2018,6 +2050,16 @@
         const zoneLiveTimersByVideo = {};  // { [videoName]: { lastTs:number, zones:{[zone]:{occ:number, abs:number}} } }
         const zonesCacheByVideo = {};      // { [videoName]: zonesWithPolygons } (définitions)
         let zonesCacheRefreshTs = 0;
+        const linePassByVideo = {};        // { [videoName]: { [zoneName]: { count:number, lastOcc:boolean, series:number[] } } }
+        const zonesDefsFetchTsByVideo = {}; // { [videoName]: epochMs } pour throttle /api/zones/{video}
+        const zonesDefsFetchedByVideo = {}; // { [videoName]: boolean } pour distinguer "0 zones" vs "pas encore fetch"
+        const presenceOkTsByVideo = {};     // { [videoName]: epochMs } dernier /api/presence OK (anti-stale)
+        let loadZonesInFlight = false;
+        let loadZonesLoopTimer = null;
+        const PRESENCE_POLL_ACTIVE_MS = 350;
+        const PRESENCE_POLL_IDLE_MS = 1000;
+        const ZONES_DEF_TTL_MS = 2500;
+        const PRESENCE_STALE_MS = 1400; // si on n'a pas eu de /presence OK depuis trop longtemps, ne pas afficher "Occupé"
 
         function markVideoRunStart(video) {
             if (!video) return;
@@ -2104,6 +2146,51 @@
             const v = zoneLiveTimersByVideo[video];
             if (v?.zones?.[zoneName]) v.zones[zoneName] = { occ: 0, abs: 0 };
             // ne touche pas lastTs: le tick continue si détection tourne
+            try {
+                const lp = linePassByVideo?.[video]?.[zoneName];
+                if (lp) { lp.count = 0; lp.series = []; lp.lastOcc = false; }
+            } catch {}
+        }
+
+        function ensureLinePass(video) {
+            if (!linePassByVideo[video]) linePassByVideo[video] = {};
+            return linePassByVideo[video];
+        }
+
+        function updateLinePass(video, presenceZones, isLineZoneFn) {
+            if (!video || !presenceZones) return;
+            const store = ensureLinePass(video);
+            for (const [zoneName, info] of Object.entries(presenceZones || {})) {
+                if (!isLineZoneFn(zoneName)) continue;
+                if (!store[zoneName]) store[zoneName] = { count: 0, lastOcc: false, series: [] };
+                const cur = !!info?.is_occupied;
+                if (cur && !store[zoneName].lastOcc) store[zoneName].count += 1;
+                store[zoneName].lastOcc = cur;
+                store[zoneName].series.push(cur ? 1 : 0);
+                if (store[zoneName].series.length > 80) store[zoneName].series.splice(0, store[zoneName].series.length - 80);
+            }
+        }
+
+        function buildSparklineSvg(series) {
+            const s = Array.isArray(series) ? series : [];
+            const n = s.length;
+            const w = 120, h = 26;
+            if (n < 2) {
+                return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><line class="base" x1="0" y1="${h-4}" x2="${w}" y2="${h-4}" /></svg>`;
+            }
+            const padY = 4;
+            const xStep = w / (n - 1);
+            const pts = s.map((v, i) => {
+                const x = i * xStep;
+                const y = (h - padY) - (v ? 14 : 0);
+                return `${x.toFixed(1)},${y.toFixed(1)}`;
+            }).join(' ');
+            return `
+                <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+                    <line class="base" x1="0" y1="${h-4}" x2="${w}" y2="${h-4}" />
+                    <polyline class="wave" points="${pts}" />
+                </svg>
+            `;
         }
 
         async function refreshZonesCacheForSite(force = false) {
@@ -2138,8 +2225,9 @@
             let totalDen = 0;
             for (const v of videos) {
                 const z = zoneLiveTimersByVideo?.[v]?.zones || {};
-                // Inclure toutes les zones définies (même si jamais vues) => denom 0, n'impacte pas
-                const names = new Set([...Object.keys(zonesCacheByVideo[v] || {}), ...Object.keys(z)]);
+                // Important: ne calculer QUE sur les zones existantes (définitions),
+                // sinon une zone supprimée peut continuer à polluer la moyenne via les timers locaux.
+                const names = Object.keys(zonesCacheByVideo[v] || {});
                 for (const name of names) {
                     const occ = Number(z?.[name]?.occ || 0);
                     const abs = Number(z?.[name]?.abs || 0);
@@ -2323,6 +2411,7 @@
             polygonIdx: null,
             mode: 'idle', // idle | creating | editing
             points: [],
+            lineDirEnd: null, // [x,y] canvas coords: extrémité de la flèche (brouillon ligne)
             drag: null, // { kind: 'vertex'|'poly', vIdx?:number, start?:[x,y] }
             undo: [],
             zones: {}, // from /api/zones/{video}
@@ -2348,11 +2437,12 @@
             toolCountLineBtn.classList.toggle('active', tool === 'line');
             toolIncludeBtn.classList.toggle('active', tool === 'include');
             toolExcludeBtn.classList.toggle('active', tool === 'exclude');
+            editorState.lineDirEnd = null;
             editorGuide.textContent =
                 tool === 'select'
                     ? 'Sélection: cliquez un point (hit zone large) puis glissez pour déplacer. Shift + clic près d’une arête = ajouter un point.'
                     : tool === 'line'
-                        ? 'Ligne de comptage: 2 clics pour placer départ/arrivée, puis Sauver.'
+                        ? 'Ligne de comptage: 2 clics pour placer départ/arrivée. Ensuite tirez la flèche depuis le centre pour le sens. Puis Sauver.'
                         : tool === 'exclude'
                             ? 'Zone d’exclusion: cliquez pour placer des points (3+), puis Sauver.'
                             : 'Zone d’inclusion: cliquez pour placer des points (3+), puis Sauver.';
@@ -2387,6 +2477,7 @@
             editorState.points = [];
             editorState.drag = null;
             editorState.polygonIdx = null;
+            editorState.lineDirEnd = null;
             editorRender();
         }
 
@@ -2418,7 +2509,7 @@
             try { await refreshMainAfterEditor(); } catch {}
         }
 
-        async function editorPostNewPolygon(type, poly) {
+        async function editorPostNewPolygon(type, poly, extraMeta = null) {
             if (!currentVideo || !editorState.zone) return;
             const zoneName = editorState.zone;
             const prevCount = (editorState.zones?.[zoneName]?.polygons || []).length;
@@ -2429,6 +2520,9 @@
             });
             if (!res.ok) throw new Error('POST zone failed');
             setDrawType(currentVideo, zoneName, prevCount, type);
+            if (type === 'line' && extraMeta) {
+                setLineMeta(currentVideo, zoneName, prevCount, extraMeta);
+            }
             // refresh editor state from server
             const [zonesRes, presenceRes] = await Promise.all([
                 fetch(`/api/zones/${encodeURIComponent(currentVideo)}`),
@@ -2586,26 +2680,61 @@
             // clear
             editorCtx.clearRect(0, 0, editorCanvas.width, editorCanvas.height);
 
-            // draw existing polygons for selected zone
-            const zoneName = editorState.zone;
-            if (zoneName && editorState.zones?.[zoneName]?.polygons) {
-                const polys = editorState.zones[zoneName].polygons;
+            // draw existing drawings for all zones (selected zone full, others ghosted)
+            const selectedZone = editorState.zone;
+            const zonesObj = editorState.zones || {};
+            const zoneKeys = Object.keys(zonesObj).sort((a, b) => a.localeCompare(b));
+            zoneKeys.forEach((zoneName) => {
+                const polys = zonesObj?.[zoneName]?.polygons || [];
+                const isGhost = !!(selectedZone && zoneName !== selectedZone);
+                const prevAlpha = editorCtx.globalAlpha;
+                editorCtx.globalAlpha = isGhost ? 0.22 : 1;
+
                 polys.forEach((poly, idx) => {
                     if (!poly || poly.length < 3) return;
-                    const isActive = editorState.polygonIdx === idx;
+                    const isActive = (!isGhost) && (editorState.polygonIdx === idx);
                     const type = getDrawType(currentVideo, zoneName, idx);
                     const c = colorsForType(type, isActive);
-                    editorCtx.beginPath();
-                    editorCtx.moveTo(poly[0][0], poly[0][1]);
-                    for (let i = 1; i < poly.length; i++) editorCtx.lineTo(poly[i][0], poly[i][1]);
-                    editorCtx.closePath();
-                    editorCtx.fillStyle = c.fill;
-                    editorCtx.fill();
-                    editorCtx.strokeStyle = c.stroke;
-                    editorCtx.lineWidth = isActive ? 4 : 2;
-                    editorCtx.stroke();
+
+                    if (type === 'line' && poly.length === 4) {
+                        // Render backend quadrilateral as a center line (editor view)
+                        const a = [(poly[0][0] + poly[1][0]) / 2, (poly[0][1] + poly[1][1]) / 2];
+                        const b = [(poly[2][0] + poly[3][0]) / 2, (poly[2][1] + poly[3][1]) / 2];
+                        editorCtx.beginPath();
+                        editorCtx.moveTo(a[0], a[1]);
+                        editorCtx.lineTo(b[0], b[1]);
+                        editorCtx.strokeStyle = c.stroke;
+                        editorCtx.lineWidth = isActive ? 4 : (isGhost ? 1.6 : 2);
+                        editorCtx.setLineDash([]);
+                        editorCtx.stroke();
+
+                        // Arrow: show on active line with handle; show ghost arrow without handle
+                        const meta = getLineMeta(currentVideo, zoneName, idx);
+                        const arrow = computeLineArrowFromMeta(meta, poly);
+                        if (arrow?.mid && arrow?.end) {
+                            drawArrow(
+                                editorCtx,
+                                arrow.mid,
+                                arrow.end,
+                                c.stroke,
+                                { shaftWidth: isGhost ? 1.4 : 2, dashed: false, head: 22, wing: 13, outline: true, handle: !isGhost }
+                            );
+                        }
+                    } else {
+                        editorCtx.beginPath();
+                        editorCtx.moveTo(poly[0][0], poly[0][1]);
+                        for (let i = 1; i < poly.length; i++) editorCtx.lineTo(poly[i][0], poly[i][1]);
+                        editorCtx.closePath();
+                        editorCtx.fillStyle = c.fill;
+                        editorCtx.fill();
+                        editorCtx.strokeStyle = c.stroke;
+                        editorCtx.lineWidth = isActive ? 4 : (isGhost ? 1.6 : 2);
+                        editorCtx.stroke();
+                    }
                 });
-            }
+
+                editorCtx.globalAlpha = prevAlpha;
+            });
 
             // draw current temp tool
             if (editorState.points.length) {
@@ -2627,10 +2756,17 @@
                         editorCtx.moveTo(p1[0], p1[1]);
                         editorCtx.lineTo(p2[0], p2[1]);
                         editorCtx.strokeStyle = '#10B0F9';
-                        editorCtx.lineWidth = 3;
-                        editorCtx.setLineDash([8, 6]);
+                        editorCtx.lineWidth = 2; /* plus fin */
+                        editorCtx.setLineDash([]); /* continu */
                         editorCtx.stroke();
                         editorCtx.setLineDash([]);
+                    }
+                    // Flèche de direction depuis le centre (seulement quand on a 2 points)
+                    if (p1 && p2) {
+                        const mid = [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
+                        const def = getLineDraftMidAndDefaultDir();
+                        const end = editorState.lineDirEnd || def?.end;
+                        if (end) drawArrow(editorCtx, mid, end, '#10B0F9', { shaftWidth: 2, dashed: false, head: 22, wing: 13, outline: true });
                     }
                 } else if (editorState.tool === 'include' || editorState.tool === 'exclude') {
                     const pts = editorState.points;
@@ -2893,9 +3029,35 @@
             const p = editorEventPoint(e);
 
             if (editorState.tool === 'line') {
+                // Ligne de comptage: 2 points strict.
+                // - si déjà 2 points: clic sur la poignée flèche => drag direction, sinon redémarre une nouvelle ligne
+                if (editorState.points.length === 2) {
+                    const p1 = editorState.points[0];
+                    const p2 = editorState.points[1];
+                    const mid = [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
+                    const def = getLineDraftMidAndDefaultDir();
+                    const end = editorState.lineDirEnd || def?.end;
+                    if (end && lineHandleHit(p, end)) {
+                        editorState.drag = { kind: 'lineDir' };
+                        editorState.didDrag = false;
+                        editorCanvas.setPointerCapture(e.pointerId);
+                        editorRender();
+                        return;
+                    }
+                    // redémarre
+                    editorPushUndo();
+                    editorState.points = [p];
+                    editorState.lineDirEnd = null;
+                    editorRender();
+                    return;
+                }
                 editorPushUndo();
-                if (editorState.points.length >= 2) editorState.points = [];
                 editorState.points.push(p);
+                // dès qu'on a 2 points, initialise une direction par défaut
+                if (editorState.points.length === 2) {
+                    const def = getLineDraftMidAndDefaultDir();
+                    if (def?.end) editorState.lineDirEnd = def.end;
+                }
                 editorRender();
                 return;
             }
@@ -2921,6 +3083,19 @@
             hideHoverBar();
 
             const poly = editorState.zones[zoneName].polygons[idx];
+            // Ligne de comptage sélectionnée: drag la flèche de direction (sans toucher aux points)
+            if (getDrawType(currentVideo, zoneName, idx) === 'line') {
+                const meta = getLineMeta(currentVideo, zoneName, idx);
+                const arrow = computeLineArrowFromMeta(meta, poly);
+                if (arrow?.end && lineHandleHit(p, arrow.end)) {
+                    editorPushUndo();
+                    editorState.drag = { kind: 'lineDirSaved', zoneName, idx, mid: arrow.mid };
+                    editorState.didDrag = false;
+                    editorCanvas.setPointerCapture(e.pointerId);
+                    editorRender();
+                    return;
+                }
+            }
             const vIdx = editorNearestVertex(poly, p, 34);
             if (vIdx >= 0) {
                 editorPushUndo();
@@ -2952,6 +3127,38 @@
                 editorUpdateHoverUI(e);
                 return;
             }
+            if (editorState.drag.kind === 'lineDir' && editorState.tool === 'line' && editorState.points.length === 2) {
+                const p = editorEventPoint(e);
+                const p1 = editorState.points[0];
+                const p2 = editorState.points[1];
+                const mid = [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
+                const v = sub(p, mid);
+                // évite une flèche trop courte
+                if (Math.hypot(v[0], v[1]) > 8) {
+                    editorState.lineDirEnd = p;
+                    editorState.didDrag = true;
+                }
+                editorRender();
+                return;
+            }
+            if (editorState.drag.kind === 'lineDirSaved') {
+                const p = editorEventPoint(e);
+                const zoneName = editorState.drag.zoneName;
+                const idx = editorState.drag.idx;
+                const mid = editorState.drag.mid;
+                if (!zoneName || typeof idx !== 'number' || !mid) return;
+                const v = sub(p, mid);
+                if (Math.hypot(v[0], v[1]) > 8) {
+                    const d = norm(v);
+                    const meta = getLineMeta(currentVideo, zoneName, idx) || {};
+                    // conserve p1/p2 si déjà présents
+                    meta.dir = d;
+                    setLineMeta(currentVideo, zoneName, idx, meta);
+                    editorState.didDrag = true;
+                }
+                editorRender();
+                return;
+            }
             const zoneName = editorState.zone;
             if (!zoneName || typeof editorState.polygonIdx !== 'number') return;
             const p = editorEventPoint(e);
@@ -2980,10 +3187,14 @@
 
         editorCanvas.addEventListener('pointerup', () => {
             if (!editorState.open) return;
+            const dragKind = editorState.drag?.kind;
             editorState.drag = null;
             if (editorState.didDrag) {
                 editorState.didDrag = false;
-                editorScheduleAutosave();
+                // Ne pas autosave (PUT) quand on ne fait que tirer la flèche direction (meta localStorage).
+                if (dragKind !== 'lineDir' && dragKind !== 'lineDirSaved') {
+                    editorScheduleAutosave();
+                }
             }
         });
 
@@ -3010,10 +3221,18 @@
 
             // Si un tracé est en cours, on le commit (auto-save “manuel”)
             if (editorState.tool === 'line' && editorState.points.length === 2) {
-                const poly = lineToPolygon(editorState.points[0], editorState.points[1], 12);
+                const p1 = editorState.points[0];
+                const p2 = editorState.points[1];
+                const poly = lineToPolygon(p1, p2, 12);
+                // Direction = vecteur depuis le centre de la ligne vers la flèche
+                const mid = [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
+                const end = editorState.lineDirEnd || getLineDraftMidAndDefaultDir()?.end || add(mid, [0, -60]);
+                const d = norm(sub(end, mid));
+                const meta = { p1, p2, dir: d };
                 editorState.points = [];
+                editorState.lineDirEnd = null;
                 editorRender();
-                await editorPostNewPolygon('line', poly);
+                await editorPostNewPolygon('line', poly, meta);
             } else if ((editorState.tool === 'include' || editorState.tool === 'exclude') && editorState.points.length >= 3) {
                 const poly = clonePoints(editorState.points);
                 const type = editorState.tool === 'exclude' ? 'exclude' : 'include';
@@ -3166,6 +3385,82 @@
             return dx * dx + dy * dy;
         }
 
+        function norm(v) {
+            const l = Math.hypot(v[0], v[1]) || 1;
+            return [v[0] / l, v[1] / l];
+        }
+
+        function add(a, b) { return [a[0] + b[0], a[1] + b[1]]; }
+        function sub(a, b) { return [a[0] - b[0], a[1] - b[1]]; }
+        function mul(a, k) { return [a[0] * k, a[1] * k]; }
+
+        function drawArrow(ctx, from, to, color = '#10B0F9', opts = {}) {
+            const v = sub(to, from);
+            const u = norm(v);
+            const head = Number(opts.head ?? 22);
+            const wing = Number(opts.wing ?? 13);
+            const shaftWidth = Number(opts.shaftWidth ?? 2);
+            const dashed = !!opts.dashed;
+            const outline = opts.outline !== false; // default true
+            const handle = opts.handle !== false;  // default true
+            // shaft
+            ctx.beginPath();
+            ctx.moveTo(from[0], from[1]);
+            ctx.lineTo(to[0], to[1]);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = shaftWidth;
+            ctx.setLineDash(dashed ? [6, 4] : []);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // head
+            const left = add(to, add(mul(u, -head), mul([-u[1], u[0]], wing)));
+            const right = add(to, add(mul(u, -head), mul([u[1], -u[0]], wing)));
+            ctx.beginPath();
+            ctx.moveTo(to[0], to[1]);
+            ctx.lineTo(left[0], left[1]);
+            ctx.lineTo(right[0], right[1]);
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+            if (outline) {
+                ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            // handle
+            if (handle) {
+                ctx.beginPath();
+                ctx.arc(to[0], to[1], 7, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.globalAlpha = 0.9;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
+        function getLineDraftMidAndDefaultDir() {
+            if (editorState.tool !== 'line') return null;
+            if (editorState.points.length !== 2) return null;
+            const p1 = editorState.points[0];
+            const p2 = editorState.points[1];
+            const mid = [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
+            const v = sub(p2, p1);
+            const u = norm(v);
+            // default direction = perp to line
+            const perp = [-u[1], u[0]];
+            const end = add(mid, mul(perp, 60));
+            return { mid, end };
+        }
+
+        function lineHandleHit(p, handleEnd) {
+            return dist2(p, handleEnd) <= (12 * 12);
+        }
+
         function getCanvasPointFromEvent(e) {
             const rect = drawCanvas.getBoundingClientRect();
             const scaleX = drawCanvas.width / rect.width;
@@ -3244,7 +3539,7 @@
                 body: JSON.stringify({ polygons })
             });
             if (!res.ok) {
-                alert('Erreur sauvegarde (PUT zone).');
+                uiAlert('Erreur sauvegarde (PUT zone).', 'Zones');
                 return;
             }
             await loadZones();
@@ -3453,7 +3748,7 @@
                     loadSites();
                     await selectSiteByName(name);
                 } catch (e) {
-                    alert(`Erreur création site: ${e?.message || e}`);
+                    uiAlert(`Erreur création site: ${e?.message || e}`, 'Sites');
                 }
             }
             createSiteBtn?.addEventListener('click', handleCreateSite);
@@ -3489,7 +3784,7 @@
                 const video = (newCamVideo?.value || '').trim();
                 const hint = (newCamHint?.value || '').trim();
                 if (!name || !video) {
-                    alert('Nom et vidéo requis.');
+                    uiAlert('Nom et vidéo requis.', 'Caméras');
                     return;
                 }
                 try {
@@ -3504,7 +3799,7 @@
                     if (!currentVideo) selectCamera(id);
                     await loadZones();
                 } catch (e) {
-                    alert(`Erreur ajout caméra: ${e?.message || e}`);
+                    uiAlert(`Erreur ajout caméra: ${e?.message || e}`, 'Caméras');
                 }
             });
 
@@ -3537,7 +3832,17 @@
             // DEMO: always start on home; refresh resets sites to DEMO_SITES
             setView('home');
 
-            setInterval(loadZones, 1000);
+            function startLoadZonesLoop() {
+                if (loadZonesLoopTimer) clearTimeout(loadZonesLoopTimer);
+                const tick = async () => {
+                    const isDetecting = !!(currentVideo && activeVideoStreams.has(currentVideo));
+                    const nextMs = isDetecting ? PRESENCE_POLL_ACTIVE_MS : PRESENCE_POLL_IDLE_MS;
+                    try { await loadZones(); } catch {}
+                    loadZonesLoopTimer = setTimeout(tick, nextMs);
+                };
+                tick();
+            }
+            startLoadZonesLoop();
             setInterval(updateActiveStreams, 2000);
         }
 
@@ -3705,6 +4010,9 @@
         }
 
         async function loadZones() {
+            if (loadZonesInFlight) return;
+            loadZonesInFlight = true;
+            try {
             if (currentView !== 'tracker') return;
             if (!currentVideo) {
                 const cams = getActiveCameras();
@@ -3727,22 +4035,49 @@
             // refresh cache zones pour le site (toutes caméras)
             await refreshZonesCacheForSite(false);
 
-            const zonesRes = await fetch(`/api/zones/${encodeURIComponent(currentVideo)}`);
-            const zonesData = await zonesRes.json();
-            const zonesWithPolygons = zonesData.zones || {};
-            zonesCacheByVideo[currentVideo] = zonesWithPolygons;
+            // Définitions zones: ne pas re-fetch à chaque tick (sinon on sature quand on augmente la cadence)
+            let zonesWithPolygons = zonesCacheByVideo[currentVideo] || {};
+            const nowDefs = Date.now();
+            const needDefs =
+                !zonesDefsFetchedByVideo[currentVideo] ||
+                (nowDefs - Number(zonesDefsFetchTsByVideo[currentVideo] || 0)) > ZONES_DEF_TTL_MS;
+            if (needDefs) {
+                const zonesRes = await fetch(`/api/zones/${encodeURIComponent(currentVideo)}`);
+                const zonesData = await zonesRes.json();
+                zonesWithPolygons = zonesData.zones || {};
+                zonesCacheByVideo[currentVideo] = zonesWithPolygons;
+                zonesDefsFetchTsByVideo[currentVideo] = nowDefs;
+                zonesDefsFetchedByVideo[currentVideo] = true;
+            }
+
+            const isLineZone = (zoneName) => {
+                const polys = zonesWithPolygons?.[zoneName]?.polygons || [];
+                for (let i = 0; i < polys.length; i++) {
+                    if (getDrawType(currentVideo, zoneName, i) === 'line') return true;
+                }
+                return false;
+            };
 
             // Présence:
             // - si détection active: on fetch et on met à jour le snapshot
             // - sinon: on gèle sur le dernier snapshot (ou 0 si jamais lancé)
             let zones = {};
             if (isDetecting) {
-                const presenceRes = await fetch(`/api/presence/${encodeURIComponent(currentVideo)}`);
-                const presenceData = await presenceRes.json();
-                zones = presenceData.zones || {};
-                lastPresenceByVideo[currentVideo] = zones;
-                // Met à jour les compteurs locaux (occupation/absence) selon is_occupied
-                updateZoneLiveTimers(currentVideo, zones);
+                try {
+                    const presenceRes = await fetch(`/api/presence/${encodeURIComponent(currentVideo)}`);
+                    const presenceData = await presenceRes.json();
+                    zones = presenceData.zones || {};
+                    lastPresenceByVideo[currentVideo] = zones;
+                    presenceOkTsByVideo[currentVideo] = Date.now();
+                    // Met à jour les compteurs locaux (occupation/absence) selon is_occupied
+                    updateZoneLiveTimers(currentVideo, zones);
+                    // Line zones: compte les passages + série
+                    updateLinePass(currentVideo, zones, isLineZone);
+                } catch (e) {
+                    // Anti "état figé": si /presence échoue, ne pas conserver un ancien "Occupé"
+                    zones = {};
+                    presenceOkTsByVideo[currentVideo] = 0;
+                }
             } else {
                 zones = (videoHasRunByVideo[currentVideo] ? (lastPresenceByVideo[currentVideo] || {}) : {});
             }
@@ -3761,9 +4096,11 @@
             recapDrawings.textContent = `${drawingsCount}`;
             recapDrawingsSub.textContent = 'Dessins sur cette caméra';
 
-            const activeCount = isDetecting ? Object.values(zones).filter(z => z.is_occupied).length : 0;
+            const lastOk = Number(presenceOkTsByVideo[currentVideo] || 0);
+            const stale = isDetecting ? (!lastOk || ((Date.now() - lastOk) > PRESENCE_STALE_MS)) : false;
+            const activeCount = (isDetecting && !stale) ? Object.values(zones).filter(z => z.is_occupied).length : 0;
             recapActive.textContent = `${activeCount}`;
-            recapActiveSub.textContent = isDetecting ? 'Zones occupées' : (videoHasRunByVideo[currentVideo] ? 'Détection en pause' : 'Lancez la détection');
+            recapActiveSub.textContent = isDetecting ? (stale ? 'Sync…' : 'Zones occupées') : (videoHasRunByVideo[currentVideo] ? 'Détection en pause' : 'Lancez la détection');
 
             if (Object.keys(zonesWithPolygons).length === 0) {
                 zonesGrid.innerHTML = '<div class="no-zones">Aucune zone définie pour cette vidéo</div>';
@@ -3778,8 +4115,11 @@
 
             for (const name of Object.keys(zonesWithPolygons).sort()) {
                 const info = zones[name] || { formatted_time: '00:00:00', is_occupied: false, total_time: 0 };
-                const statusClass = isDetecting ? (info.is_occupied ? 'occupied' : 'empty') : 'empty';
-                const statusLabel = isDetecting ? (info.is_occupied ? 'Occupé' : 'Vide') : (videoHasRunByVideo[currentVideo] ? 'Pause' : 'Prêt');
+                const lastOk = Number(presenceOkTsByVideo[currentVideo] || 0);
+                const stale = isDetecting ? (!lastOk || ((Date.now() - lastOk) > PRESENCE_STALE_MS)) : false;
+                const uiOcc = isDetecting && !stale && !!info.is_occupied;
+                const statusClass = isDetecting ? (stale ? 'empty' : (uiOcc ? 'occupied' : 'empty')) : 'empty';
+                const statusLabel = isDetecting ? (stale ? 'Sync…' : (uiOcc ? 'Occupé' : 'Vide')) : (videoHasRunByVideo[currentVideo] ? 'Pause' : 'Prêt');
                 const polys = (zonesWithPolygons[name]?.polygons || []);
                 const drawings = polys.length;
 
@@ -3806,9 +4146,13 @@
                 const absPct = denom > 0 ? Math.max(0, 100 - occPct) : 0;
                 const secFmt = (s) => `${Math.max(0, Math.floor(Number(s) || 0))} s`;
 
-                const presenceToneClass = (statusLabel === 'Occupé') ? 'presence-occupied' : 'presence-empty';
+                const isLine = isLineZone(name);
+                const linePass = linePassByVideo?.[currentVideo]?.[name] || { count: 0, series: [] };
+                const uptime = denom; // temps total où la détection tournait (par zone)
+                const passageTime = occSec; // temps "actif" sur la ligne (proxy passage)
+
                 zonesGrid.innerHTML += `
-                    <div class="zone-card ${presenceToneClass} ${isSelected ? 'selected' : ''}" data-zone="${encodeURIComponent(String(name))}">
+                    <div class="zone-card ${isSelected ? 'selected' : ''}" data-zone="${encodeURIComponent(String(name))}">
                         <div class="zone-card-header">
                             <div>
                                 <div class="zone-name-pill">${name}</div>
@@ -3819,22 +4163,31 @@
                         <div class="zone-previews">
                             ${previewBoxes}
                         </div>
-                        <div class="occ-bars">
-                            <div>
-                                <div class="occ-head">
-                                    <span><strong>Occupation</strong> • <span class="pct">${occPct.toFixed(0)}%</span></span>
-                                    <span class="secs">${secFmt(occSec)}</span>
-                                </div>
-                                <div class="occ-track"><div class="occ-fill" style="width:${occPct.toFixed(2)}%"></div></div>
+                        ${isLine ? `
+                            <div class="line-metrics">
+                                <div class="line-metric"><span>Passages</span><span>${Number(linePass.count || 0)}</span></div>
+                                <div class="line-metric"><span>Uptime</span><span>${formatHMS(uptime)}</span></div>
+                                <div class="line-metric" style="grid-column:1 / -1;"><span>Temps passage</span><span>${secFmt(passageTime)}</span></div>
                             </div>
-                            <div>
-                                <div class="occ-head">
-                                    <span><strong>Absence</strong> • <span class="pct">${absPct.toFixed(0)}%</span></span>
-                                    <span class="secs">${secFmt(absSec)}</span>
+                            <div class="line-spark">${buildSparklineSvg(linePass.series)}</div>
+                        ` : `
+                            <div class="occ-bars">
+                                <div>
+                                    <div class="occ-head">
+                                        <span><strong>Occupation</strong> • <span class="pct">${occPct.toFixed(0)}%</span></span>
+                                        <span class="secs">${secFmt(occSec)}</span>
+                                    </div>
+                                    <div class="occ-track"><div class="occ-fill" style="width:${occPct.toFixed(2)}%"></div></div>
                                 </div>
-                                <div class="occ-track"><div class="occ-fill red" style="width:${absPct.toFixed(2)}%"></div></div>
+                                <div>
+                                    <div class="occ-head">
+                                        <span><strong>Absence</strong> • <span class="pct">${absPct.toFixed(0)}%</span></span>
+                                        <span class="secs">${secFmt(absSec)}</span>
+                                    </div>
+                                    <div class="occ-track"><div class="occ-fill red" style="width:${absPct.toFixed(2)}%"></div></div>
+                                </div>
                             </div>
-                        </div>
+                        `}
                         <div class="zone-card-actions">
                             <button class="btn btn-ghost btn-icon" onclick="resetZoneTimer('${name}')" title="Reset">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3853,6 +4206,9 @@
             // Render explorer tree
             renderAssetTree(zones, zonesWithPolygons);
             updateHeaderStepsKpis();
+            } finally {
+                loadZonesInFlight = false;
+            }
         }
 
         function updateDrawPanelZones(zonesWithPolygons) {
@@ -3879,6 +4235,57 @@
             try {
                 localStorage.setItem(`drawmeta:${video}:${zone}:${idx}`, type);
             } catch {}
+        }
+
+        function setLineMeta(video, zone, idx, meta) {
+            try {
+                localStorage.setItem(`linemeta:${video}:${zone}:${idx}`, JSON.stringify(meta || {}));
+            } catch {}
+        }
+
+        function getLineMeta(video, zone, idx) {
+            try {
+                const raw = localStorage.getItem(`linemeta:${video}:${zone}:${idx}`);
+                if (!raw) return null;
+                return JSON.parse(raw);
+            } catch {
+                return null;
+            }
+        }
+
+        function computeLineArrowFromMeta(meta, polyFallback) {
+            // Retourne { mid:[x,y], end:[x,y] } en coords canvas
+            let mid = null;
+            let dir = null;
+            if (meta?.p1 && meta?.p2 && Array.isArray(meta.p1) && Array.isArray(meta.p2)) {
+                mid = [(meta.p1[0] + meta.p2[0]) / 2, (meta.p1[1] + meta.p2[1]) / 2];
+                if (meta?.dir && Array.isArray(meta.dir)) dir = meta.dir;
+                else {
+                    const u = norm(sub(meta.p2, meta.p1));
+                    dir = [-u[1], u[0]];
+                }
+            }
+            if (!mid && polyFallback?.length) {
+                // fallback grossier: centre du polygone + direction selon la plus longue arête
+                let cx = 0, cy = 0;
+                for (const p of polyFallback) { cx += p[0]; cy += p[1]; }
+                cx /= polyFallback.length; cy /= polyFallback.length;
+                mid = [cx, cy];
+                let best = { d: 0, v: [1, 0] };
+                for (let i = 0; i < polyFallback.length; i++) {
+                    const a = polyFallback[i];
+                    const b = polyFallback[(i + 1) % polyFallback.length];
+                    const v = sub(b, a);
+                    const d = v[0] * v[0] + v[1] * v[1];
+                    if (d > best.d) best = { d, v };
+                }
+                const u = norm(best.v);
+                dir = [-u[1], u[0]];
+            }
+            if (!mid) return null;
+            const udir = norm(dir || [0, -1]);
+            const end = add(mid, mul(udir, 60));
+            return { mid, end, dir: udir };
         }
 
         function buildPolyPreviewSvg(poly) {
@@ -3934,8 +4341,16 @@
                             const drawings = zonesWithPolygons[zoneName]?.polygons || [];
                             const dotClass = info.is_occupied ? 'occupied' : '';
                             const live = zoneLiveTimersByVideo?.[currentVideo]?.zones?.[zoneName] || { occ: 0, abs: 0 };
+                            const isLine = (() => {
+                                const polys = zonesWithPolygons?.[zoneName]?.polygons || [];
+                                for (let i = 0; i < polys.length; i++) {
+                                    if (getDrawType(currentVideo, zoneName, i) === 'line') return true;
+                                }
+                                return false;
+                            })();
+                            const uptime = Number(live.occ || 0) + Number(live.abs || 0);
                             const metaTime = (videoHasRunByVideo[currentVideo] || activeVideoStreams.has(currentVideo))
-                                ? formatHMS(live.occ || 0)
+                                ? formatHMS(isLine ? uptime : (live.occ || 0))
                                 : '00:00:00';
                             return `
                                 <div class="tree-row" onclick="selectZone('${zoneName}')">
@@ -4192,16 +4607,16 @@
 
         editSelectedBtn.addEventListener('click', () => {
             if (!selectedAsset || !selectedAsset.zone || typeof selectedAsset.idx !== 'number') {
-                alert('Sélectionnez un dessin dans la sidebar (Source > Zone > Dessin).');
+                uiAlert('Sélectionnez un dessin dans la sidebar (Source > Zone > Dessin).', 'Edition');
                 return;
             }
             if (isCurrentVideoStreaming) {
-                alert('Arrêtez la détection avant d’éditer.');
+                uiAlert('Mettez la détection en pause avant d’éditer.', 'Edition');
                 return;
             }
             const poly = cachedZones?.[selectedAsset.zone]?.polygons?.[selectedAsset.idx];
             if (!poly) {
-                alert('Dessin introuvable.');
+                uiAlert('Dessin introuvable.', 'Edition');
                 return;
             }
             editPoints = clonePoints(poly);
@@ -4214,7 +4629,7 @@
         addPointBtn.addEventListener('click', () => {
             if (!editMode || !editPoints) return;
             // Ajout via prochain clic sur une arête (message)
-            alert('Cliquez près d’une arête pour insérer un point.');
+            uiAlert('Maintenez Shift puis cliquez près d’une arête pour insérer un point.', 'Edition');
             // Le clic canvas gère l’insertion si editMode et pas sur un point
         });
 
@@ -4222,7 +4637,7 @@
             if (!editMode || !editPoints) return;
             if (editDragging && typeof editDragging.idx === 'number') {
                 if (editPoints.length <= 3) {
-                    alert('Un polygone doit avoir au moins 3 points.');
+                    uiAlert('Un polygone doit avoir au moins 3 points.', 'Edition');
                     return;
                 }
                 editPoints.splice(editDragging.idx, 1);
@@ -4230,7 +4645,7 @@
                 redrawCanvas();
                 return;
             }
-            alert('Sélectionnez un point (cliquez dessus) puis supprimez-le.');
+            uiAlert('Sélectionnez un point (cliquez dessus) puis supprimez-le.', 'Edition');
         });
 
         saveEditBtn.addEventListener('click', async () => {
@@ -4240,23 +4655,23 @@
 
         startDrawBtn.addEventListener('click', () => {
             if (!currentVideo) {
-                alert('Sélectionnez d\'abord une vidéo');
+                uiAlert('Sélectionnez d\'abord une vidéo.', 'Dessin');
                 return;
             }
             if (isCurrentVideoStreaming) {
-                alert('Arrêtez la détection avant de dessiner');
+                uiAlert('Mettez la détection en pause avant de dessiner.', 'Dessin');
                 return;
             }
 
             let zoneNameSelected = drawZoneSelect.value;
             if (!zoneNameSelected) {
-                alert('Choisissez une zone (ou créez-en une)');
+                uiAlert('Choisissez une zone (ou créez-en une).', 'Dessin');
                 return;
             }
             if (zoneNameSelected === '__new__') {
                 zoneNameSelected = drawZoneName.value.trim();
                 if (!zoneNameSelected) {
-                    alert('Entrez un nom de zone');
+                    uiAlert('Entrez un nom de zone.', 'Dessin');
                     drawZoneName.focus();
                     return;
                 }
@@ -4362,6 +4777,16 @@
                     drawMode === 'line' ? 'line' : 'include'
                 );
             } catch {}
+            // Ligne: mémorise aussi une direction par défaut pour afficher la flèche hors éditeur
+            if (drawMode === 'line') {
+                try {
+                    const p1 = drawPoints[0];
+                    const p2 = drawPoints[1];
+                    const u = norm(sub(p2, p1));
+                    const perp = [-u[1], u[0]];
+                    setLineMeta(currentVideo, zoneName, prevCount, { p1, p2, dir: perp });
+                } catch {}
+            }
 
             // Recharge et prépare un autre dessin pour la même zone (append)
             await loadZones();
@@ -4527,20 +4952,40 @@
                         selectedAsset.zone === name &&
                         typeof selectedAsset.idx !== 'number';
 
-                    ctx.beginPath();
-                    ctx.moveTo(polygon[0][0], polygon[0][1]);
-                    for (let i = 1; i < polygon.length; i++) {
-                        ctx.lineTo(polygon[i][0], polygon[i][1]);
-                    }
-                    ctx.closePath();
-
                     const type = getDrawType(currentVideo, name, idx);
                     const c = colorsForType(type, (isSelectedDrawing || isSelectedZone));
-                    ctx.fillStyle = c.fill;
-                    ctx.fill();
-                    ctx.strokeStyle = c.stroke;
-                    ctx.lineWidth = isSelectedDrawing ? 4 : (isSelectedZone ? 3 : 2);
-                    ctx.stroke();
+                    if (type === 'line' && polygon.length === 4) {
+                        // Le backend stocke une ligne comme un quadrilatère fin: on la rend comme une vraie ligne + flèche
+                        const a = [(polygon[0][0] + polygon[1][0]) / 2, (polygon[0][1] + polygon[1][1]) / 2];
+                        const b = [(polygon[2][0] + polygon[3][0]) / 2, (polygon[2][1] + polygon[3][1]) / 2];
+                        ctx.beginPath();
+                        ctx.moveTo(a[0], a[1]);
+                        ctx.lineTo(b[0], b[1]);
+                        ctx.strokeStyle = c.stroke;
+                        ctx.lineWidth = isSelectedDrawing ? 4 : (isSelectedZone ? 3 : 2);
+                        ctx.setLineDash([]);
+                        ctx.stroke();
+
+                        // Flèche de sens (UI normale): visible, sans poignée
+                        const meta = getLineMeta(currentVideo, name, idx);
+                        const arrow = computeLineArrowFromMeta(meta, polygon);
+                        if (arrow?.mid && arrow?.end) {
+                            drawArrow(ctx, arrow.mid, arrow.end, c.stroke, { shaftWidth: 1.6, dashed: false, head: 22, wing: 13, outline: true, handle: false });
+                        }
+                    } else {
+                        ctx.beginPath();
+                        ctx.moveTo(polygon[0][0], polygon[0][1]);
+                        for (let i = 1; i < polygon.length; i++) {
+                            ctx.lineTo(polygon[i][0], polygon[i][1]);
+                        }
+                        ctx.closePath();
+
+                        ctx.fillStyle = c.fill;
+                        ctx.fill();
+                        ctx.strokeStyle = c.stroke;
+                        ctx.lineWidth = isSelectedDrawing ? 4 : (isSelectedZone ? 3 : 2);
+                        ctx.stroke();
+                    }
 
                     ctx.fillStyle = '#fff';
                     ctx.font = 'bold 14px Manrope, system-ui';
@@ -4556,6 +5001,7 @@
 
             isCurrentVideoStreaming = true;
             activeVideoStreams.add(currentVideo);
+            presenceOkTsByVideo[currentVideo] = 0;
             markVideoRunStart(currentVideo);
             // Init local zone timers tick to avoid a big dt spike at first poll
             ensureZoneLive(currentVideo).lastTs = Date.now();
@@ -4581,6 +5027,7 @@
 
             isCurrentVideoStreaming = false;
             activeVideoStreams.delete(currentVideo);
+            presenceOkTsByVideo[currentVideo] = 0;
             markVideoRunStop(currentVideo);
             // stop tick (freeze)
             if (zoneLiveTimersByVideo?.[currentVideo]) zoneLiveTimersByVideo[currentVideo].lastTs = 0;
@@ -4611,6 +5058,7 @@
             markAllRunsStop();
             // freeze all local ticks
             try { Object.values(zoneLiveTimersByVideo).forEach(v => { if (v) v.lastTs = 0; }); } catch {}
+            try { Object.keys(presenceOkTsByVideo).forEach(v => presenceOkTsByVideo[v] = 0); } catch {}
             activeVideoStreams.clear();
 
             if (currentVideo) {
@@ -4679,6 +5127,25 @@
             const ok = await uiConfirm(`Supprimer la zone "${name}" de cette vidéo ?`, 'Suppression');
             if (!ok) return;
             await fetch(`/api/zones/${encodeURIComponent(currentVideo)}/${encodeURIComponent(name)}`, { method: 'DELETE' });
+
+            // Invalider caches + purger états locaux pour recalculer les KPI (conformité interzone) sur les zones restantes
+            try {
+                // force refetch définitions zones
+                zonesDefsFetchedByVideo[currentVideo] = false;
+                zonesDefsFetchTsByVideo[currentVideo] = 0;
+                delete zonesCacheByVideo[currentVideo];
+                zonesCacheRefreshTs = 0;
+
+                // purge timers/présence locaux pour la zone supprimée (évite pollution des moyennes)
+                const v = zoneLiveTimersByVideo?.[currentVideo];
+                if (v?.zones && name in v.zones) delete v.zones[name];
+                const lp = linePassByVideo?.[currentVideo];
+                if (lp && name in lp) delete lp[name];
+                const pr = lastPresenceByVideo?.[currentVideo];
+                if (pr && name in pr) delete pr[name];
+                if (selectedAsset?.zone === name) selectedAsset = null;
+            } catch {}
+
             await loadZones();
             drawExistingZones();
         }
