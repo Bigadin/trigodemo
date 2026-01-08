@@ -649,6 +649,37 @@
             color: var(--color-text-subtle);
         }
 
+        .camera-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .camera-item-delete {
+            width: 20px;
+            height: 20px;
+            border: none;
+            background: transparent;
+            color: var(--color-text-subtle);
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .camera-item:hover .camera-item-delete {
+            opacity: 1;
+        }
+
+        .camera-item-delete:hover {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--color-danger);
+        }
+
         /* Forms */
         .form-group {
             display: flex;
@@ -2516,12 +2547,12 @@
             editorState.lineDirEnd = null;
             editorGuide.textContent =
                 tool === 'select'
-                    ? 'Sélection: cliquez un point (hit zone large) puis glissez pour déplacer. Shift + clic près d’une arête = ajouter un point.'
+                    ? "Sélection: cliquez un point (hit zone large) puis glissez pour déplacer. Shift + clic près d'une arête = ajouter un point."
                     : tool === 'line'
-                        ? 'Ligne de comptage: 2 clics pour placer départ/arrivée. Ensuite tirez la flèche depuis le centre pour le sens. Puis Sauver.'
+                        ? "Ligne de comptage: 2 clics pour placer départ/arrivée. Ensuite tirez la flèche depuis le centre pour le sens. Puis Sauver."
                         : tool === 'exclude'
-                            ? 'Zone d’exclusion: cliquez pour placer des points (3+), puis Sauver.'
-                            : 'Zone d’inclusion: cliquez pour placer des points (3+), puis Sauver.';
+                            ? "Zone d'exclusion: cliquez pour placer des points (3+), puis Sauver."
+                            : "Zone d'inclusion: cliquez pour placer des points (3+), puis Sauver.";
         }
 
         function editorPushUndo() {
@@ -2767,11 +2798,25 @@
             };
         }
 
-        function editorClose() {
+        async function editorClose() {
+            // Auto-save before closing: commit any draft shape and save all
+            try {
+                // If there's a shape being drawn, commit it first
+                if (editorState.points && editorState.points.length >= 2) {
+                    await editorCommitDraftShape();
+                }
+                // Save all changes
+                if (currentVideo && editorState.zone) {
+                    await editorPutNow();
+                }
+            } catch (e) {
+                console.warn('Auto-save on close failed:', e);
+            }
+
             editorOverlay.classList.add('hidden');
             editorState.open = false;
             editorClearTemp();
-            // Important: quand on quitte l'éditeur, on force un refresh visuel (évite l'impression que les anciennes formes “persistaient”)
+            // Important: quand on quitte l'éditeur, on force un refresh visuel (évite l'impression que les anciennes formes "persistaient")
             refreshMainAfterEditor(true).catch(() => {});
         }
 
@@ -3125,6 +3170,7 @@
 
         editorCanvas.addEventListener('pointerdown', (e) => {
             if (!editorState.open) return;
+
             const p = editorEventPoint(e);
 
             if (editorState.tool === 'line') {
@@ -4017,18 +4063,50 @@
                 const statusText = videoExists ? (isActive ? 'En ligne' : 'Prête') : 'Manquante';
 
                 cameraGrid.innerHTML += `
-                    <div class="camera-item ${isCurrent ? 'active' : ''}" data-camera="${cam.id}" onclick="selectCamera('${cam.id}')">
-                        <div class="camera-item-name">${cam.name}</div>
-                        <div class="camera-item-status ${videoExists ? (isActive ? 'online' : 'offline') : 'offline'}">
-                            <span class="camera-status-dot" style="width:6px;height:6px;border-radius:50%;background:currentColor;"></span>
-                            <span class="camera-status-text">${statusText}</span>
-                        </div>
-                        <div style="margin-top: var(--space-2); font-size: var(--text-xs); color: var(--color-text-muted);">
-                            ${(cam.hint || '')} • <span style="font-family: 'Courier New', monospace;">${cam.video}</span>
+                    <div class="camera-item ${isCurrent ? 'active' : ''}" data-camera="${cam.id}">
+                        <div class="camera-item-header">
+                            <div onclick="selectCamera('${cam.id}')" style="flex:1;cursor:pointer;">
+                                <div class="camera-item-name">${cam.name}</div>
+                                <div class="camera-item-status ${videoExists ? (isActive ? 'online' : 'offline') : 'offline'}">
+                                    <span class="camera-status-dot" style="width:6px;height:6px;border-radius:50%;background:currentColor;"></span>
+                                    <span class="camera-status-text">${statusText}</span>
+                                </div>
+                                <div style="margin-top: var(--space-2); font-size: var(--text-xs); color: var(--color-text-muted);">
+                                    ${(cam.hint || '')} • <span style="font-family: 'Courier New', monospace;">${cam.video}</span>
+                                </div>
+                            </div>
+                            <button class="camera-item-delete" onclick="event.stopPropagation(); deleteCamera('${cam.id}')" title="Supprimer cette caméra">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 `;
             });
+
+            // Add "Dessiner zones" button after grid
+            renderDrawZonesButton();
+        }
+
+        function renderDrawZonesButton() {
+            let btn = document.getElementById('globalDrawZonesBtn');
+            if (!btn) {
+                btn = document.createElement('button');
+                btn.id = 'drawFab';
+                btn.className = 'btn btn-secondary';
+                btn.style.cssText = 'width: 100%; margin-top: var(--space-3);';
+                btn.innerHTML = `
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    Dessiner zones
+                `;
+                // Same behavior as drawFab - always enabled
+                btn.onclick = () => editorOpen();
+                cameraGrid.parentNode.appendChild(btn);
+            }
         }
 
         function selectVideo(videoName) {
@@ -4041,6 +4119,46 @@
             if (!cam) return;
             currentCameraId = cameraId;
             selectVideo(cam.video);
+        }
+
+        async function deleteCamera(cameraId) {
+            const cam = getCameraById(cameraId);
+            if (!cam) return;
+
+            const confirmed = await uiConfirm(`Supprimer la caméra "${cam.name}" ?`, 'Suppression');
+            if (!confirmed) return;
+
+            // Remove from currentSite.cameras
+            if (currentSite && Array.isArray(currentSite.cameras)) {
+                const idx = currentSite.cameras.findIndex(c => c.id === cameraId);
+                if (idx >= 0) {
+                    currentSite.cameras.splice(idx, 1);
+                }
+            }
+
+            // If this was the current camera, clear selection
+            if (currentCameraId === cameraId) {
+                currentCameraId = null;
+                currentVideo = null;
+                videoSelect.value = '';
+                placeholder.classList.remove('hidden');
+                videoFrame.classList.add('hidden');
+                videoStream.classList.add('hidden');
+                drawCanvas.classList.add('hidden');
+            }
+
+            await loadVideos(); // This calls renderCameraGrid internally
+            await loadZones();
+        }
+
+        async function openDrawZones() {
+            if (!currentVideo) {
+                uiAlert('Sélectionnez d\'abord une caméra.', 'Dessin');
+                return;
+            }
+
+            // Open the editor overlay
+            await editorOpen();
         }
 
         async function updateActiveStreams() {
@@ -4706,11 +4824,35 @@
         // Panneau dessin (remplacé par l'éditeur “paint-like”)
         // (le toggle du panneau legacy est désactivé)
 
+        function updateStartDrawBtnState() {
+            const zoneVal = drawZoneSelect.value;
+            const isNewZone = zoneVal === '__new__';
+            const newZoneName = drawZoneName.value.trim();
+
+            // Disable if no zone selected, or if new zone but no name entered
+            const canDraw = zoneVal && (!isNewZone || newZoneName);
+            startDrawBtn.disabled = !canDraw;
+
+            if (!canDraw) {
+                startDrawBtn.title = 'Sélectionnez d\'abord une zone';
+            } else {
+                startDrawBtn.title = '';
+            }
+        }
+
         drawZoneSelect.addEventListener('change', () => {
             const v = drawZoneSelect.value;
             drawZoneNameGroup.classList.toggle('hidden', v !== '__new__');
             if (v === '__new__') drawZoneName.focus();
+            updateStartDrawBtnState();
         });
+
+        drawZoneName.addEventListener('input', () => {
+            updateStartDrawBtnState();
+        });
+
+        // Initial state
+        updateStartDrawBtnState();
 
         toolPolyBtn.addEventListener('click', () => setTool('poly'));
         toolLineBtn.addEventListener('click', () => setTool('line'));
