@@ -1,11 +1,14 @@
 {
   "Zone A": {
-    "total_time": 0
+    "total_time": 413.70970940589905
   },
   "Contr\u00f4le Pi\u00e8ces": {
     "total_time": 0
   },
-  "Zone 1": {
+  "Zone  B": {
+    "total_time": 287.4015476703644
+  },
+  "Zone C": {
     "total_time": 0
   }
 }

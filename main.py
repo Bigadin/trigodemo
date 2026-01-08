@@ -92,6 +92,13 @@ def save_presence():
 load_data()
 
 
+def _list_video_files() -> list[str]:
+    videos: list[str] = []
+    for ext in ["*.mp4", "*.avi", "*.mov", "*.mkv", "*.MP4", "*.AVI", "*.MOV", "*.MKV"]:
+        videos.extend([f.name for f in VIDEOS_DIR.glob(ext)])
+    return sorted(list(set(videos)))
+
+
 class ZoneCreate(BaseModel):
     name: str
     polygons: list
@@ -110,10 +117,7 @@ async def root():
 
 @app.get("/api/videos")
 async def list_videos():
-    videos = []
-    for ext in ["*.mp4", "*.avi", "*.mov", "*.mkv", "*.MP4", "*.AVI", "*.MOV", "*.MKV"]:
-        videos.extend([f.name for f in VIDEOS_DIR.glob(ext)])
-    return {"videos": list(set(videos))}
+    return {"videos": _list_video_files()}
 
 
 @app.post("/api/videos/upload")

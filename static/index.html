@@ -264,8 +264,22 @@
             opacity: 0.7;
         }
 
+        .nav-icon-img {
+            width: 20px;
+            height: 20px;
+            opacity: 0.7;
+            display: inline-block;
+            flex: 0 0 auto;
+            filter: invert(1);
+        }
+
         .nav-item.active .nav-icon,
         .nav-item:hover .nav-icon {
+            opacity: 1;
+        }
+
+        .nav-item.active .nav-icon-img,
+        .nav-item:hover .nav-icon-img {
             opacity: 1;
         }
 
@@ -499,6 +513,37 @@
             align-items: center;
             justify-content: center;
         }
+
+        .video-fab {
+            position: absolute;
+            right: 14px;
+            bottom: 14px;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.16);
+            background: rgba(17, 24, 37, 0.65);
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 5;
+            backdrop-filter: blur(6px);
+        }
+
+        .video-fab:hover {
+            background: rgba(17, 24, 37, 0.78);
+        }
+
+        .video-fab img {
+            width: 20px;
+            height: 20px;
+            filter: invert(1);
+            opacity: 0.92;
+        }
+
+        /* Le panneau "drawPanel" reste interne (on déclenche via l'éditeur modal). */
 
         .video-container {
             position: relative;
@@ -799,6 +844,93 @@
             gap: var(--space-2);
         }
 
+        /* =========================================================
+           Occupation / Absence (style "pro" inspiré Win98)
+           ========================================================= */
+        .zone-name-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            background: #0F172A;
+            color: #F8FAFC;
+            font-weight: 800;
+            font-size: var(--text-sm);
+            letter-spacing: 0.2px;
+        }
+
+        .zone-forms-count {
+            margin-top: 8px;
+            font-size: var(--text-xs);
+            color: var(--color-text-muted);
+        }
+
+        .occ-bars {
+            margin-top: var(--space-4);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .occ-head {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 10px;
+            font-size: var(--text-xs);
+            color: var(--color-text-muted);
+        }
+
+        .occ-head strong {
+            color: var(--color-text);
+            font-weight: 800;
+        }
+
+        .occ-head .pct {
+            font-family: 'Courier New', monospace;
+            font-weight: 800;
+            color: var(--color-text);
+        }
+
+        .occ-head .secs {
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+            color: var(--color-text-muted);
+            white-space: nowrap;
+        }
+
+        .occ-track {
+            width: 100%;
+            height: 14px;
+            border-radius: 4px;
+            background: rgba(15, 23, 42, 0.10);
+            border: 1px solid rgba(15, 23, 42, 0.30);
+            box-shadow:
+                inset 1px 1px 0 rgba(255,255,255,0.85),
+                inset -1px -1px 0 rgba(15,23,42,0.18);
+            overflow: hidden;
+        }
+
+        .occ-fill {
+            height: 100%;
+            width: 0%;
+            background: rgba(16,176,249,0.95); /* bleu */
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25);
+        }
+
+        .occ-fill.red {
+            background: rgba(127, 29, 29, 0.92); /* rouge foncé */
+        }
+
+        :root[data-theme="dark"] .occ-track {
+            background: rgba(255,255,255,0.06);
+            border-color: rgba(255,255,255,0.14);
+            box-shadow:
+                inset 1px 1px 0 rgba(255,255,255,0.10),
+                inset -1px -1px 0 rgba(0,0,0,0.35);
+        }
+
         .no-zones {
             grid-column: 1 / -1;
             text-align: center;
@@ -924,6 +1056,7 @@
             border-radius: var(--radius-sm);
             cursor: pointer;
             border: 1px solid transparent;
+            position: relative;
         }
 
         .tree-row:hover {
@@ -956,14 +1089,70 @@
 
         .tree-children {
             margin-left: 18px;
+            padding-left: 12px;
             display: flex;
             flex-direction: column;
             gap: var(--space-1);
+            border-left: 1px solid rgba(255,255,255,0.22); /* repère hiérarchie */
+        }
+
+        .tree-children .tree-row::before {
+            content: "";
+            position: absolute;
+            left: -12px;
+            top: 50%;
+            width: 10px;
+            height: 1px;
+            background: rgba(255,255,255,0.22); /* petite branche */
+            transform: translateY(-50%);
         }
 
         .tree-leaf .label {
             color: var(--sidebar-text-muted);
             font-size: var(--text-xs);
+        }
+
+        /* Zone cards: previews + selection */
+        .zone-previews {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: var(--space-2);
+        }
+        .zone-preview-box {
+            width: 92px;
+            height: 58px;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 1px solid var(--color-border);
+            background: rgba(0,0,0,0.02);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+        }
+        .zone-preview-box svg { display:block; width:100%; height:100%; }
+        .zone-preview-box.active {
+            outline: 2px solid rgba(16,176,249,0.85);
+            outline-offset: 2px;
+            border-color: rgba(16,176,249,0.55);
+        }
+        /* Indicateur live permanent (inset) selon statut de la carte: Vide=bleu, Occupé=rouge */
+        .zone-card.presence-empty .zone-preview-box:not(.active) {
+            border-color: rgba(16,176,249,0.45);
+            box-shadow:
+                inset 0 0 0 2px rgba(16,176,249,0.18),
+                inset 0 0 16px rgba(16,176,249,0.12);
+        }
+        .zone-card.presence-occupied .zone-preview-box:not(.active) {
+            border-color: rgba(239,68,68,0.48);
+            box-shadow:
+                inset 0 0 0 2px rgba(239,68,68,0.16),
+                inset 0 0 16px rgba(239,68,68,0.10);
+        }
+        .zone-card.selected {
+            border-color: rgba(16,176,249,0.55);
+            box-shadow: 0 0 0 3px rgba(16,176,249,0.15);
         }
 
         /* =========================================================
@@ -1051,12 +1240,13 @@
             border: 1px solid rgba(255,255,255,0.12);
             backdrop-filter: blur(10px);
             box-shadow: 0 14px 50px rgba(0,0,0,0.35);
-            pointer-events: none; /* ne bloque pas le drag canvas */
+            pointer-events: auto; /* hoverbar cliquable */
         }
 
         .editor-hoverbtn {
             width: 34px;
             height: 34px;
+            padding: 0;
             border-radius: 10px;
             border: 1px solid rgba(255,255,255,0.12);
             background: rgba(255,255,255,0.06);
@@ -1074,6 +1264,7 @@
 
         .editor-hoverbtn:hover { background: rgba(16,176,249,0.14); border-color: rgba(16,176,249,0.35); }
         .editor-hoverbtn.danger:hover { background: rgba(239,68,68,0.18); border-color: rgba(239,68,68,0.35); }
+        .editor-hoverbtn span { display: none; }
 
         .editor-canvas-wrap img {
             max-width: 100%;
@@ -1087,6 +1278,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
+            touch-action: none; /* drag plus réactif (pas de gesture/scroll) */
         }
 
         .editor-right {
@@ -1204,6 +1396,13 @@
         .tool-btn.green { background: rgba(34,197,94,0.18); border-color: rgba(34,197,94,0.35); }
         .tool-btn.yellow { background: rgba(240,131,33,0.18); border-color: rgba(240,131,33,0.35); }
         .tool-btn.red { background: rgba(239,68,68,0.18); border-color: rgba(239,68,68,0.35); }
+        .tool-btn.save {
+            background: rgba(16,176,249,0.92);
+            border-color: rgba(16,176,249,1);
+            color: #0B0F14;
+            box-shadow: 0 10px 26px rgba(16,176,249,0.18);
+        }
+        .tool-btn.save:hover { filter: brightness(1.03); }
         .tool-btn.active { outline: 2px solid rgba(16,176,249,0.55); }
 
         .editor-guide {
@@ -1293,7 +1492,7 @@
             display: flex;
             align-items: center;
             gap: var(--space-2);
-            padding: var(--space-2) var(--space-4);
+            padding: 6px 10px;
             background: var(--color-surface-2);
             border-radius: var(--radius-lg);
             font-size: var(--text-sm);
@@ -1315,21 +1514,27 @@
         }
 
         .step-num {
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            background: currentColor;
-            color: var(--color-bg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-family: 'Courier New', monospace;
             font-size: var(--text-xs);
-            font-weight: 700;
+            font-weight: 900;
+            line-height: 1;
+            padding: 0;
+            margin-left: 2px;
+            color: rgba(255,255,255,0.92); /* chiffres bien lisibles (dark) */
         }
 
-        .step.active .step-num,
-        .step.done .step-num {
-            background: currentColor;
+        :root[data-theme="light"] .step-num { color: rgba(15,23,42,0.92); }
+
+        .step-icon-img {
+            width: 14px;
+            height: 14px;
+            display: inline-block;
+            filter: invert(1);
+            opacity: 0.9;
+        }
+        :root[data-theme="light"] .step-icon-img {
+            filter: none;
+            opacity: 0.85;
         }
 
         /* Scrollbar styling */
@@ -1391,10 +1596,12 @@
             <div class="sidebar-section">
                 <div class="sidebar-label">General</div>
                 <nav class="sidebar-nav">
-                    <a class="nav-item active">
-                        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                        </svg>
+                    <a class="nav-item active" id="navSites">
+                        <img class="nav-icon-img" src="/static/assets_youn/SvIcons/folder-svgrepo-com.svg" alt="">
+                        Sites
+                    </a>
+                    <a class="nav-item" id="navTracker">
+                        <img class="nav-icon-img" src="/static/assets_youn/SvIcons/desktop-svgrepo-com.svg" alt="">
                         Zone Tracker
                     </a>
                 </nav>
@@ -1417,22 +1624,22 @@
             <!-- Header -->
             <header class="header-bar">
                 <div>
-                    <h1 class="page-title">Zone Presence Tracker</h1>
-                    <p class="page-subtitle">Surveillance et analyse du temps de présence</p>
+                    <h1 class="page-title" id="pageTitle">Zone Presence Tracker</h1>
+                    <p class="page-subtitle" id="pageSubtitle">Surveillance et analyse du temps de présence</p>
                 </div>
                 <div class="header-actions">
                     <div class="steps">
-                        <div class="step" id="step1">
+                        <div class="step" id="step1" title="Caméra">
+                            <img class="step-icon-img" src="/static/assets_youn/SvIcons/video-camera-svgrepo-com.svg" alt="">
                             <span class="step-num">1</span>
-                            <span>Caméra</span>
                         </div>
-                        <div class="step" id="step2">
+                        <div class="step" id="step2" title="Zones">
+                            <img class="step-icon-img" src="/static/assets_youn/SvIcons/includezone.svg" alt="">
                             <span class="step-num">2</span>
-                            <span>Zones</span>
                         </div>
-                        <div class="step" id="step3">
+                        <div class="step" id="step3" title="Détection">
+                            <img class="step-icon-img" src="/static/assets_youn/SvIcons/checkmark-svgrepo-com.svg" alt="">
                             <span class="step-num">3</span>
-                            <span>Détection</span>
                         </div>
                     </div>
                     <div class="status-indicator ready" id="statusBadge">
@@ -1442,6 +1649,28 @@
                 </div>
             </header>
 
+            <!-- Home (Sites) -->
+            <section class="zones-section" id="homeView">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-subtitle">Multi-site</div>
+                            <div class="card-title">Sites</div>
+                        </div>
+                    </div>
+                    <div style="padding: var(--space-4); border-top: 1px solid var(--color-border); display:flex; gap: var(--space-3); align-items:center; flex-wrap:wrap;">
+                        <input id="newSiteName" type="text" placeholder="Nom du site (ex: Entrepôt Lyon)" style="flex:1; min-width: 260px; padding: 12px 14px; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: var(--color-surface-2); color: var(--color-text); outline: none;">
+                        <button class="btn btn-primary" id="createSiteBtn" type="button">Créer le site</button>
+                    </div>
+                    <div style="padding: var(--space-4);">
+                        <div class="zones-grid" id="sitesGrid" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
+                            <div class="no-zones">Aucun site. Créez-en un pour commencer.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div id="trackerView" class="hidden">
             <!-- Video Section -->
             <section class="video-section">
                 <div class="video-card">
@@ -1473,7 +1702,9 @@
                             </div>
                         </div>
                         <div class="video-placeholder" id="placeholder">
-                            <div class="video-placeholder-icon">📹</div>
+                            <div class="video-placeholder-icon">
+                                <img src="/static/assets_youn/SvIcons/video-camera-svgrepo-com.svg" alt="" style="width:44px;height:44px;opacity:0.55;">
+                            </div>
                             <div>Sélectionnez une vidéo pour commencer</div>
                         </div>
                         <div class="video-container" id="videoContainer">
@@ -1481,6 +1712,11 @@
                             <img id="videoStream" class="hidden" alt="Video stream">
                             <canvas id="drawCanvas" class="hidden"></canvas>
                         </div>
+
+                        <!-- Dessin: bouton overlay (bas-droite) -->
+                        <button class="video-fab" id="drawFab" title="Dessin" type="button">
+                            <img src="/static/assets_youn/SvIcons/draw.svg" alt="">
+                        </button>
                     </div>
 
                     <div class="video-toolbar">
@@ -1493,7 +1729,7 @@
                         </div>
 
                         <div class="form-row">
-                            <button class="btn btn-secondary" id="toggleDrawPanelBtn">
+                            <button class="btn btn-secondary hidden" id="toggleDrawPanelBtn">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                 </svg>
@@ -1552,15 +1788,9 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>
                                 </svg>
-                                Arrêter
+                                Pause
                             </button>
                             <button class="btn btn-danger hidden" id="stopAllBtn" style="width: 100%;">Arrêter tout</button>
-                            <button class="btn btn-secondary" id="resetTimersBtn" style="width: 100%;">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                </svg>
-                                Reset timers
-                            </button>
                             <button class="btn btn-secondary" id="toggleBlurBtn" style="width: 100%;">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
@@ -1575,6 +1805,27 @@
                             <div>
                                 <div class="card-subtitle">Vidéos disponibles</div>
                                 <div class="card-title">Caméras</div>
+                            </div>
+                            <button class="btn btn-secondary btn-icon" id="addCameraBtn" title="Ajouter une caméra" type="button">+</button>
+                        </div>
+                        <div class="hidden" id="addCameraForm" style="padding: var(--space-4); border-top: 1px solid var(--color-border); display:flex; flex-direction:column; gap: var(--space-3);">
+                            <div style="display:flex; gap: var(--space-3); flex-wrap:wrap;">
+                                <div class="form-group" style="flex:1; min-width:200px;">
+                                    <label class="form-label">Nom caméra</label>
+                                    <input id="newCamName" type="text" placeholder="Ex: Entrepôt" style="width:100%;">
+                                </div>
+                                <div class="form-group" style="flex:1; min-width:200px;">
+                                    <label class="form-label">Vidéo</label>
+                                    <select id="newCamVideo" style="width:100%;"></select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Hint (optionnel)</label>
+                                <input id="newCamHint" type="text" placeholder="Ex: Déchargement & présence" style="width:100%;">
+                            </div>
+                            <div style="display:flex; gap: var(--space-3);">
+                                <button class="btn btn-primary" id="saveCamBtn" type="button">Ajouter</button>
+                                <button class="btn btn-secondary" id="cancelCamBtn" type="button">Annuler</button>
                             </div>
                         </div>
                         <div class="camera-grid" id="cameraGrid">
@@ -1594,10 +1845,13 @@
                         </div>
                         <button class="btn btn-danger" id="deleteAllZonesBtn">
                             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                             </svg>
-                            Supprimer tout
+                            Reset timers
                         </button>
+                    </div>
+                    <div class="zones-grid" id="zonesGrid">
+                        <div class="no-zones">Aucune zone définie pour cette vidéo</div>
                     </div>
                     <div class="recap-grid" id="recapGrid" style="display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: var(--space-4); padding: var(--space-4); border-top: 1px solid var(--color-border);">
                         <div class="card" style="background: transparent; border: 0; box-shadow: none; padding: 0;">
@@ -1621,11 +1875,9 @@
                             <div style="color: var(--color-text-muted); font-size: var(--text-xs);" id="recapActiveSub">—</div>
                         </div>
                     </div>
-                    <div class="zones-grid" id="zonesGrid">
-                        <div class="no-zones">Aucune zone définie pour cette vidéo</div>
-                    </div>
                 </div>
             </section>
+            </div>
         </main>
     </div>
 
@@ -1650,13 +1902,12 @@
                         <img id="editorFrame" alt="Frame">
                         <canvas id="editorCanvas"></canvas>
                         <div class="editor-hoverbar hidden" id="editorHoverBar">
-                            <button class="editor-hoverbtn" id="hoverMoveBtn" title="Déplacer">
+                            <button class="editor-hoverbtn danger" id="hoverDeletePointBtn" title="Supprimer le point">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12h16M12 4v16"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18"/>
                                 </svg>
                             </button>
-                            <button class="editor-hoverbtn" id="hoverDeletePointBtn" title="Supprimer le point">•✕</button>
-                            <button class="editor-hoverbtn danger" id="hoverDeleteShapeBtn" title="Supprimer le dessin">
+                            <button class="editor-hoverbtn danger" id="hoverDeleteShapeBtn" title="Supprimer la forme">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                 </svg>
@@ -1672,6 +1923,7 @@
                             <button class="tool-btn yellow" id="toolExcludeBtn" title="Zone d’exclusion">Zone d’exclusion</button>
                             <button class="tool-btn" id="toolUndoBtn" title="Annuler (Ctrl+Z)">↶</button>
                             <button class="tool-btn red" id="toolClearBtn">Tout effacer</button>
+                            <button class="tool-btn save" id="toolSaveBtn" title="Sauvegarder la forme dans la zone">Sauver</button>
                         </div>
 
                         <div class="editor-guide" id="editorGuide">
@@ -1698,13 +1950,16 @@
                             <input type="text" id="editorNewZoneName" placeholder="Nouvelle zone…" style="flex:1; min-width:0; background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#F5F7FF;">
                             <button class="tool-btn primary" id="editorAddZoneBtn">+</button>
                         </div>
+                        <div style="margin-top: 10px; display:flex; justify-content:flex-end;">
+                            <button class="tool-btn red" id="editorDeleteZoneBtn" title="Supprimer la zone sélectionnée">Supprimer la zone</button>
+                        </div>
                     </div>
 
                     <div class="editor-card">
                         <h3>Contrôles</h3>
                         <div class="editor-kv">
                             <div class="k">Lecture</div><div>Frame fixe (édition)</div>
-                            <div class="k">Astuce</div><div>Glissez un point pour le déplacer. Cliquez près d’une arête pour ajouter un point.</div>
+                            <div class="k">Astuce</div><div>Glissez un point pour le déplacer. Maintenez <b>Shift</b> et cliquez près d’une arête pour ajouter un point.</div>
                         </div>
                     </div>
                 </div>
@@ -1717,10 +1972,199 @@
         </div>
     </div>
 
+    <!-- App Modal (internal alerts/confirm) -->
+    <div class="editor-overlay hidden" id="appModalOverlay" role="dialog" aria-modal="true" aria-label="Message">
+        <div class="editor" style="width:min(520px, 100%); height:auto;">
+            <div class="editor-topbar">
+                <div>
+                    <div class="editor-title" id="appModalTitle">Message</div>
+                    <div class="editor-subtitle" id="appModalSubtitle">Zone Tracker</div>
+                </div>
+                <button class="btn btn-ghost btn-icon" id="appModalCloseBtn" title="Fermer">✕</button>
+            </div>
+            <div style="padding: 16px; background: #1B1E27; color:#F5F7FF; border-top:1px solid rgba(255,255,255,0.08);">
+                <div id="appModalMessage" style="white-space: pre-wrap; color: rgba(245,247,255,0.85); line-height:1.5;"></div>
+            </div>
+            <div class="editor-bottombar">
+                <button class="tool-btn" id="appModalCancelBtn">Annuler</button>
+                <button class="tool-btn primary" id="appModalOkBtn">OK</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // State
         let currentVideo = null;
         let currentCameraId = null;
+        let currentView = 'home'; // 'home' | 'tracker'
+        // DEMO mode: sites live only in memory (refresh => reset)
+        const DEMO_SITES = [
+            {
+                name: 'Site Démo',
+                cameras: [
+                    { id: 'cam1', name: 'Entrepôt', hint: 'Déchargement & présence', video: 'entr1.mp4' },
+                    { id: 'cam2', name: 'Convoyeur', hint: 'Tapis roulant & contrôle', video: 'video_01.mp4' }
+                ]
+            }
+        ];
+        let sitesCache = structuredClone ? structuredClone(DEMO_SITES) : JSON.parse(JSON.stringify(DEMO_SITES));
+        let currentSite = null; // { name, cameras, created_at }
+        let availableVideosList = [];
+        // Détection: on calcule les % / absences uniquement pendant la détection (pas “depuis que je regarde la page”)
+        const videoRunAccumSecByVideo = {}; // { [videoName]: seconds } cumulé (hors session courante)
+        const videoRunStartTsByVideo = {};  // { [videoName]: epochMs } start de la session courante si en cours
+        const videoHasRunByVideo = {};      // { [videoName]: boolean } true dès qu'on a lancé au moins une fois pendant cette session
+        const lastPresenceByVideo = {};     // { [videoName]: presenceZones } snapshot gelé quand en pause
+        const zoneLiveTimersByVideo = {};  // { [videoName]: { lastTs:number, zones:{[zone]:{occ:number, abs:number}} } }
+        const zonesCacheByVideo = {};      // { [videoName]: zonesWithPolygons } (définitions)
+        let zonesCacheRefreshTs = 0;
+
+        function markVideoRunStart(video) {
+            if (!video) return;
+            if (videoRunAccumSecByVideo[video] == null) videoRunAccumSecByVideo[video] = 0;
+            if (!videoRunStartTsByVideo[video]) videoRunStartTsByVideo[video] = Date.now();
+            videoHasRunByVideo[video] = true;
+        }
+
+        function markVideoRunStop(video) {
+            if (!video) return;
+            const start = videoRunStartTsByVideo[video];
+            if (!start) return;
+            const dt = Math.max(0, (Date.now() - start) / 1000);
+            videoRunAccumSecByVideo[video] = Number(videoRunAccumSecByVideo[video] || 0) + dt;
+            delete videoRunStartTsByVideo[video];
+        }
+
+        function markAllRunsStop() {
+            try {
+                for (const v of Array.from(activeVideoStreams || [])) markVideoRunStop(v);
+            } catch {}
+        }
+
+        function getVideoRunTotalSec(video) {
+            const acc = Number(videoRunAccumSecByVideo[video] || 0);
+            const start = videoRunStartTsByVideo[video];
+            if (activeVideoStreams.has(video) && start) {
+                return acc + Math.max(0, (Date.now() - start) / 1000);
+            }
+            return acc;
+        }
+
+        function formatHMS(totalSeconds) {
+            const s = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+            const h = Math.floor(s / 3600);
+            const m = Math.floor((s % 3600) / 60);
+            const ss = s % 60;
+            const pad = (n) => String(n).padStart(2, '0');
+            return `${pad(h)}:${pad(m)}:${pad(ss)}`;
+        }
+
+        function ensureZoneLive(video) {
+            if (!zoneLiveTimersByVideo[video]) zoneLiveTimersByVideo[video] = { lastTs: 0, zones: {} };
+            if (!zoneLiveTimersByVideo[video].zones) zoneLiveTimersByVideo[video].zones = {};
+            return zoneLiveTimersByVideo[video];
+        }
+
+        function updateZoneLiveTimers(video, presenceZones) {
+            if (!video) return;
+            if (!activeVideoStreams.has(video)) return; // ne compte que pendant la détection
+            const v = ensureZoneLive(video);
+            const now = Date.now();
+            const last = Number(v.lastTs || 0);
+            const dt = last ? Math.max(0, (now - last) / 1000) : 0;
+            v.lastTs = now;
+            if (!dt) return;
+
+            // union des zones connues + zones présentes
+            const names = new Set([
+                ...Object.keys(v.zones || {}),
+                ...Object.keys(presenceZones || {})
+            ]);
+            for (const name of names) {
+                if (!v.zones[name]) v.zones[name] = { occ: 0, abs: 0 };
+                const isOcc = !!(presenceZones?.[name]?.is_occupied);
+                if (isOcc) v.zones[name].occ += dt;
+                else v.zones[name].abs += dt;
+            }
+        }
+
+        function resetLocalTimersAll() {
+            try {
+                for (const k of Object.keys(zoneLiveTimersByVideo)) delete zoneLiveTimersByVideo[k];
+                for (const k of Object.keys(videoRunAccumSecByVideo)) delete videoRunAccumSecByVideo[k];
+                for (const k of Object.keys(videoRunStartTsByVideo)) delete videoRunStartTsByVideo[k];
+                for (const k of Object.keys(videoHasRunByVideo)) delete videoHasRunByVideo[k];
+                for (const k of Object.keys(lastPresenceByVideo)) delete lastPresenceByVideo[k];
+                for (const k of Object.keys(zonesCacheByVideo)) delete zonesCacheByVideo[k];
+            } catch {}
+        }
+
+        function resetLocalTimersZone(video, zoneName) {
+            if (!video || !zoneName) return;
+            const v = zoneLiveTimersByVideo[video];
+            if (v?.zones?.[zoneName]) v.zones[zoneName] = { occ: 0, abs: 0 };
+            // ne touche pas lastTs: le tick continue si détection tourne
+        }
+
+        async function refreshZonesCacheForSite(force = false) {
+            if (!currentSite?.cameras?.length) return;
+            const now = Date.now();
+            if (!force && (now - zonesCacheRefreshTs) < 2000) return; // throttle
+            zonesCacheRefreshTs = now;
+            const videos = currentSite.cameras.map(c => c.video).filter(Boolean);
+            await Promise.all(videos.map(async (v) => {
+                try {
+                    const res = await fetch(`/api/zones/${encodeURIComponent(v)}`);
+                    const data = await res.json();
+                    zonesCacheByVideo[v] = data.zones || {};
+                } catch {}
+            }));
+        }
+
+        function computeSiteStats() {
+            const cams = (currentSite?.cameras || []);
+            const camCount = cams.length;
+
+            // total zones sur toutes les caméras (définitions)
+            let zoneCount = 0;
+            const videos = cams.map(c => c.video).filter(Boolean);
+            for (const v of videos) {
+                zoneCount += Object.keys(zonesCacheByVideo[v] || {}).length;
+            }
+
+            // taux d’occupation moyen pondéré par le temps de détection:
+            // moyenne = (Σ occSec) / (Σ (occSec+absSec)) sur toutes les zones/toutes les caméras
+            let totalOcc = 0;
+            let totalDen = 0;
+            for (const v of videos) {
+                const z = zoneLiveTimersByVideo?.[v]?.zones || {};
+                // Inclure toutes les zones définies (même si jamais vues) => denom 0, n'impacte pas
+                const names = new Set([...Object.keys(zonesCacheByVideo[v] || {}), ...Object.keys(z)]);
+                for (const name of names) {
+                    const occ = Number(z?.[name]?.occ || 0);
+                    const abs = Number(z?.[name]?.abs || 0);
+                    const den = occ + abs;
+                    totalOcc += occ;
+                    totalDen += den;
+                }
+            }
+            const avgOcc = totalDen > 0 ? (totalOcc / totalDen) : 0;
+            return { camCount, zoneCount, avgOcc };
+        }
+
+        function updateHeaderStepsKpis() {
+            if (!step1Num || !step2Num || !step3Num) return;
+            if (currentView !== 'tracker' || !currentSite) {
+                step1Num.textContent = '—';
+                step2Num.textContent = '—';
+                step3Num.textContent = '—';
+                return;
+            }
+            const { camCount, zoneCount, avgOcc } = computeSiteStats();
+            step1Num.textContent = String(camCount);
+            step2Num.textContent = String(zoneCount);
+            step3Num.textContent = `${Math.round(avgOcc * 100)}%`;
+        }
         let isDrawing = false;
         let isCurrentVideoStreaming = false;
         let drawPoints = [];
@@ -1746,6 +2190,7 @@
         const ctx = drawCanvas.getContext('2d');
         const placeholder = document.getElementById('placeholder');
         const toggleDrawPanelBtn = document.getElementById('toggleDrawPanelBtn');
+        const drawFab = document.getElementById('drawFab');
         const drawPanel = document.getElementById('drawPanel');
         const drawZoneSelect = document.getElementById('drawZoneSelect');
         const drawZoneNameGroup = document.getElementById('drawZoneNameGroup');
@@ -1767,10 +2212,12 @@
         const startDetectionBtn = document.getElementById('startDetectionBtn');
         const stopDetectionBtn = document.getElementById('stopDetectionBtn');
         const stopAllBtn = document.getElementById('stopAllBtn');
-        const resetTimersBtn = document.getElementById('resetTimersBtn');
         const zonesGrid = document.getElementById('zonesGrid');
         const statusBadge = document.getElementById('statusBadge');
         const statusText = document.getElementById('statusText');
+        const step1Num = document.querySelector('#step1 .step-num');
+        const step2Num = document.querySelector('#step2 .step-num');
+        const step3Num = document.querySelector('#step3 .step-num');
         const activeStreamsDiv = document.getElementById('activeStreams');
         const cameraGrid = document.getElementById('cameraGrid');
         const currentVideoTitle = document.getElementById('currentVideoTitle');
@@ -1783,6 +2230,27 @@
         const recapDrawingsSub = document.getElementById('recapDrawingsSub');
         const recapActive = document.getElementById('recapActive');
         const recapActiveSub = document.getElementById('recapActiveSub');
+
+        // Multi-site UI
+        const homeView = document.getElementById('homeView');
+        const trackerView = document.getElementById('trackerView');
+        const sitesGrid = document.getElementById('sitesGrid');
+        const newSiteNameInput = document.getElementById('newSiteName');
+        const createSiteBtn = document.getElementById('createSiteBtn');
+        const navSites = document.getElementById('navSites');
+        const navTracker = document.getElementById('navTracker');
+        const pageTitleEl = document.getElementById('pageTitle');
+        const pageSubtitleEl = document.getElementById('pageSubtitle');
+        const stepsEl = document.querySelector('.steps');
+
+        // Cameras (per site)
+        const addCameraBtn = document.getElementById('addCameraBtn');
+        const addCameraForm = document.getElementById('addCameraForm');
+        const newCamName = document.getElementById('newCamName');
+        const newCamVideo = document.getElementById('newCamVideo');
+        const newCamHint = document.getElementById('newCamHint');
+        const saveCamBtn = document.getElementById('saveCamBtn');
+        const cancelCamBtn = document.getElementById('cancelCamBtn');
 
         // Editor modal elements
         const editorOverlay = document.getElementById('editorOverlay');
@@ -1801,17 +2269,52 @@
         const editorZoneList = document.getElementById('editorZoneList');
         const editorNewZoneName = document.getElementById('editorNewZoneName');
         const editorAddZoneBtn = document.getElementById('editorAddZoneBtn');
+        const editorDeleteZoneBtn = document.getElementById('editorDeleteZoneBtn');
         const toolSelectBtn = document.getElementById('toolSelectBtn');
         const toolCountLineBtn = document.getElementById('toolCountLineBtn');
         const toolIncludeBtn = document.getElementById('toolIncludeBtn');
         const toolExcludeBtn = document.getElementById('toolExcludeBtn');
         const toolUndoBtn = document.getElementById('toolUndoBtn');
         const toolClearBtn = document.getElementById('toolClearBtn');
+        const toolSaveBtn = document.getElementById('toolSaveBtn');
         const editorGuide = document.getElementById('editorGuide');
         const editorHoverBar = document.getElementById('editorHoverBar');
-        const hoverMoveBtn = document.getElementById('hoverMoveBtn');
         const hoverDeletePointBtn = document.getElementById('hoverDeletePointBtn');
         const hoverDeleteShapeBtn = document.getElementById('hoverDeleteShapeBtn');
+
+        // App modal (internal alert/confirm)
+        const appModalOverlay = document.getElementById('appModalOverlay');
+        const appModalTitle = document.getElementById('appModalTitle');
+        const appModalSubtitle = document.getElementById('appModalSubtitle');
+        const appModalMessage = document.getElementById('appModalMessage');
+        const appModalOkBtn = document.getElementById('appModalOkBtn');
+        const appModalCancelBtn = document.getElementById('appModalCancelBtn');
+        const appModalCloseBtn = document.getElementById('appModalCloseBtn');
+
+        let __modalResolve = null;
+
+        function uiModal({ title = 'Message', subtitle = 'Zone Tracker', message = '', okText = 'OK', cancelText = null } = {}) {
+            if (!appModalOverlay) return Promise.resolve(true);
+            appModalTitle.textContent = title;
+            appModalSubtitle.textContent = subtitle;
+            appModalMessage.textContent = message;
+            appModalOkBtn.textContent = okText;
+            appModalCancelBtn.textContent = cancelText || '';
+            appModalCancelBtn.classList.toggle('hidden', !cancelText);
+            appModalOverlay.classList.remove('hidden');
+
+            return new Promise((resolve) => {
+                __modalResolve = resolve;
+            });
+        }
+
+        function uiAlert(message, title = 'Info') {
+            return uiModal({ title, message, okText: 'OK', cancelText: null });
+        }
+
+        function uiConfirm(message, title = 'Confirmer') {
+            return uiModal({ title, message, okText: 'Confirmer', cancelText: 'Annuler' });
+        }
 
         const editorState = {
             open: false,
@@ -1847,12 +2350,12 @@
             toolExcludeBtn.classList.toggle('active', tool === 'exclude');
             editorGuide.textContent =
                 tool === 'select'
-                    ? 'Sélection: cliquez un dessin/point puis glissez pour déplacer. Cliquez près d’une arête pour ajouter un point.'
+                    ? 'Sélection: cliquez un point (hit zone large) puis glissez pour déplacer. Shift + clic près d’une arête = ajouter un point.'
                     : tool === 'line'
-                        ? 'Ligne de comptage: 2 clics pour placer départ/arrivée.'
+                        ? 'Ligne de comptage: 2 clics pour placer départ/arrivée, puis Sauver.'
                         : tool === 'exclude'
-                            ? 'Zone d’exclusion: cliquez pour placer des points (3+). Double-clic pour fermer.'
-                            : 'Zone d’inclusion: cliquez pour placer des points (3+). Double-clic pour fermer.';
+                            ? 'Zone d’exclusion: cliquez pour placer des points (3+), puis Sauver.'
+                            : 'Zone d’inclusion: cliquez pour placer des points (3+), puis Sauver.';
         }
 
         function editorPushUndo() {
@@ -1912,7 +2415,7 @@
             if (!putRes.ok) throw new Error('PUT zone failed');
             editorState.dirty = false;
             // sync main view quietly
-            try { await loadZones(); drawExistingZones(); } catch {}
+            try { await refreshMainAfterEditor(); } catch {}
         }
 
         async function editorPostNewPolygon(type, poly) {
@@ -1935,9 +2438,26 @@
             const pdata = await presenceRes.json();
             editorState.zones = zdata.zones || {};
             editorState.presence = pdata.zones || {};
+            // UX: après création, on sélectionne automatiquement la nouvelle forme pour pouvoir l'ajuster
+            editorSetTool('select');
+            editorState.zone = zoneName;
+            editorState.polygonIdx = prevCount;
             editorRenderZoneList();
             editorRender();
-            try { await loadZones(); drawExistingZones(); } catch {}
+            try { await refreshMainAfterEditor(); } catch {}
+        }
+
+        async function refreshMainAfterEditor() {
+            // Soft refresh (sans recharger la page) pour éviter de perdre l'état multi-site (in-memory)
+            if (!currentVideo) return;
+            // refresh KPI / sidebar + redraw zones overlay
+            await refreshZonesCacheForSite(true);
+            await loadZones();
+            await drawExistingZones();
+            // refresh frame (cache-bust) pour voir immédiatement les changements “propres”
+            if (!isCurrentVideoStreaming) {
+                videoFrame.src = `/api/videos/${encodeURIComponent(currentVideo)}/frame?t=${Date.now()}`;
+            }
         }
 
         function editorSelectZone(zoneName) {
@@ -1973,9 +2493,32 @@
 
         window.__editorSelectZone = (z) => editorSelectZone(z);
 
+        async function editorDeleteZone() {
+            if (!currentVideo || !editorState.zone) {
+                uiAlert('Sélectionnez une zone à supprimer.', 'Zones');
+                return;
+            }
+            const zoneName = editorState.zone;
+            const ok = await uiConfirm(`Supprimer la zone "${zoneName}" (tous ses dessins) ?`, 'Suppression');
+            if (!ok) return;
+
+            const res = await fetch(`/api/zones/${encodeURIComponent(currentVideo)}/${encodeURIComponent(zoneName)}`, { method: 'DELETE' });
+            if (!res.ok) {
+                uiAlert('Erreur suppression zone.', 'Suppression');
+                return;
+            }
+
+            // Refresh editor + main UI
+            editorState.zone = null;
+            editorState.polygonIdx = null;
+            hideHoverBar();
+            await editorOpen();
+            try { await loadZones(); await drawExistingZones(); } catch {}
+        }
+
         async function editorOpen() {
             if (!currentVideo) {
-                alert('Choisissez une caméra avant de dessiner.');
+                uiAlert('Choisissez une caméra avant de dessiner.', 'Dessin');
                 return;
             }
             if (isCurrentVideoStreaming) {
@@ -2035,6 +2578,8 @@
             editorOverlay.classList.add('hidden');
             editorState.open = false;
             editorClearTemp();
+            // Important: quand on quitte l'éditeur, on force un refresh visuel (évite l'impression que les anciennes formes “persistaient”)
+            refreshMainAfterEditor().catch(() => {});
         }
 
         function editorRender() {
@@ -2134,19 +2679,98 @@
             }
         }
 
+        let hoverHideTimer = null;
+        let hoverKey = '';
+
+        function cancelHoverHide() {
+            if (hoverHideTimer) clearTimeout(hoverHideTimer);
+            hoverHideTimer = null;
+        }
+
+        function scheduleHoverHide(ms = 7000) {
+            cancelHoverHide();
+            // Ne pas auto-masquer si déjà caché
+            if (editorHoverBar.classList.contains('hidden')) return;
+            hoverHideTimer = setTimeout(() => {
+                hideHoverBar();
+            }, ms);
+        }
+
         function hideHoverBar() {
+            cancelHoverHide();
             editorHoverBar.classList.add('hidden');
             editorHoverBar.dataset.kind = '';
             editorHoverBar.dataset.vIdx = '';
+            hoverKey = '';
         }
 
-        function showHoverBar(xCss, yCss, kind, vIdx) {
+        function showHoverBar(xCss, yCss, kind, vIdx, key, avoidX = xCss, avoidY = yCss) {
+            // Le hoverbar ne doit JAMAIS obstruer le point (sinon impossible de le déplacer),
+            // y compris quand on est près des bords (clamp).
             editorHoverBar.classList.remove('hidden');
-            editorHoverBar.style.left = `${xCss}px`;
-            editorHoverBar.style.top = `${yCss}px`;
             editorHoverBar.dataset.kind = kind;
             editorHoverBar.dataset.vIdx = typeof vIdx === 'number' ? String(vIdx) : '';
             hoverDeletePointBtn.classList.toggle('hidden', kind !== 'vertex');
+            hoverKey = key || '';
+
+            // Mesure réelle (selon si le bouton "point" est visible ou non)
+            const barW = editorHoverBar.offsetWidth || 92;
+            const barH = editorHoverBar.offsetHeight || 46;
+
+            // Bounds: canvas wrap (coordonnées CSS)
+            const wrapRect = editorCanvas.getBoundingClientRect();
+            const maxLeft = Math.max(0, wrapRect.width - barW);
+            const maxTop = Math.max(0, wrapRect.height - barH);
+
+            // Zone interdite autour du point (évite le recouvrement)
+            const avoid = 44; // px CSS (généreux)
+            const ax1 = avoidX - avoid, ay1 = avoidY - avoid;
+            const ax2 = avoidX + avoid, ay2 = avoidY + avoid;
+
+            function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+            function noOverlap(l, t) {
+                const r = l + barW, b = t + barH;
+                // pas d'intersection avec le carré d'évitement
+                return (r < ax1) || (l > ax2) || (b < ay1) || (t > ay2);
+            }
+
+            function overlapArea(l, t) {
+                const r = l + barW, b = t + barH;
+                const ox = Math.max(0, Math.min(r, ax2) - Math.max(l, ax1));
+                const oy = Math.max(0, Math.min(b, ay2) - Math.max(t, ay1));
+                return ox * oy;
+            }
+
+            // Essaye plusieurs positions autour du point (8 directions), puis on choisit le moindre chevauchement.
+            const off = 12;
+            const candidates = [
+                { l: avoidX + off, t: avoidY - barH - off },                 // NE
+                { l: avoidX + off, t: avoidY + off },                        // SE
+                { l: avoidX - barW - off, t: avoidY - barH - off },          // NW
+                { l: avoidX - barW - off, t: avoidY + off },                 // SW
+                { l: avoidX - barW / 2, t: avoidY - barH - off },            // N
+                { l: avoidX - barW / 2, t: avoidY + off },                   // S
+                { l: avoidX + off, t: avoidY - barH / 2 },                   // E
+                { l: avoidX - barW - off, t: avoidY - barH / 2 },            // W
+            ];
+
+            let placed = null;
+            let best = null;
+            for (const c of candidates) {
+                const l = clamp(c.l, 0, maxLeft);
+                const t = clamp(c.t, 0, maxTop);
+                if (noOverlap(l, t)) { placed = { l, t }; break; }
+                const a = overlapArea(l, t);
+                if (!best || a < best.a) best = { l, t, a };
+            }
+            // Fallback: position la moins mauvaise (chevauchement minimal) plutôt que de recouvrir le point
+            if (!placed && best) placed = { l: best.l, t: best.t };
+            if (!placed) placed = { l: clamp(avoidX + off, 0, maxLeft), t: clamp(avoidY + off, 0, maxTop) };
+
+            editorHoverBar.style.left = `${placed.l}px`;
+            editorHoverBar.style.top = `${placed.t}px`;
+            // Persistance généreuse (7s) pour permettre le déplacement de la souris + clic
+            scheduleHoverHide(7000);
         }
 
         function editorEventPoint(e) {
@@ -2181,7 +2805,7 @@
             return null;
         }
 
-        function editorNearestVertex(poly, p, radius = 14) {
+        function editorNearestVertex(poly, p, radius = 32) {
             let best = -1;
             let bestD = Infinity;
             for (let i = 0; i < poly.length; i++) {
@@ -2198,39 +2822,70 @@
                 return;
             }
             const zoneName = editorState.zone;
-            if (!zoneName) { hideHoverBar(); return; }
+            if (!zoneName) { scheduleHoverHide(7000); return; }
             const p = editorEventPoint(e);
             const idx = editorPickPolygon(p);
-            if (idx === null) { hideHoverBar(); return; }
+            if (idx === null) { scheduleHoverHide(7000); return; }
 
             // Prefer hovered polygon as selected (lightweight)
             editorState.polygonIdx = idx;
             const poly = editorState.zones?.[zoneName]?.polygons?.[idx];
-            if (!poly) { hideHoverBar(); return; }
-            const vIdx = editorNearestVertex(poly, p, 16);
+            if (!poly) { scheduleHoverHide(7000); return; }
+            const vIdx = editorNearestVertex(poly, p, 34);
 
             const wrapRect = editorCanvas.getBoundingClientRect();
-            const xCss = (e.clientX - wrapRect.left) + 10;
-            const yCss = (e.clientY - wrapRect.top) + 10;
-            showHoverBar(
-                Math.min(xCss, wrapRect.width - 140),
-                Math.min(yCss, wrapRect.height - 44),
-                vIdx >= 0 ? 'vertex' : 'poly',
-                vIdx >= 0 ? vIdx : null
-            );
+            const kind = vIdx >= 0 ? 'vertex' : 'poly';
+            const key = `${idx}:${kind === 'vertex' ? `v${vIdx}` : 'p'}`;
+
+            // IMPORTANT UX:
+            // - Le hoverbar doit rester "ancré" (pas suivre la souris) pour pouvoir cliquer dessus.
+            // - On ne repositionne que si la cible change.
+            if (key !== hoverKey) {
+                let xCss = 0;
+                let yCss = 0;
+
+                if (kind === 'vertex') {
+                    // Anchor on vertex position (canvas coords -> CSS coords)
+                    const vx = poly[vIdx][0];
+                    const vy = poly[vIdx][1];
+                    const scaleX = wrapRect.width / editorCanvas.width;
+                    const scaleY = wrapRect.height / editorCanvas.height;
+                    // Important: éviter le vrai point (pas un point décalé), sinon au bord le clamp peut le recouvrir.
+                    const px = vx * scaleX;
+                    const py = vy * scaleY;
+                    xCss = px;
+                    yCss = py;
+                    // avoidX/avoidY = centre du point
+                    showHoverBar(xCss, yCss, kind, kind === 'vertex' ? vIdx : null, key, px, py);
+                    // showHoverBar déjà appelé, on sort
+                    editorRender();
+                    return;
+                } else {
+                    // Anchor near initial hover position (cursor at the time), but do not track afterwards
+                    xCss = (e.clientX - wrapRect.left) + 10;
+                    yCss = (e.clientY - wrapRect.top) + 10;
+                }
+
+                // showHoverBar gère clamp + évitement du point, donc on lui passe le point d'ancrage brut
+                showHoverBar(
+                    xCss,
+                    yCss,
+                    kind,
+                    kind === 'vertex' ? vIdx : null,
+                    key
+                );
+            } else {
+                // Keep alive while hovering same target
+                scheduleHoverHide(7000);
+            }
             editorRender();
         }
 
         editorCanvas.addEventListener('dblclick', (e) => {
             if (!editorState.open) return;
-            if (editorState.tool !== 'include' && editorState.tool !== 'exclude') return;
-            if (editorState.points.length >= 3) {
-                const poly = clonePoints(editorState.points);
-                const type = editorState.tool === 'exclude' ? 'exclude' : 'include';
-                editorState.points = [];
-                editorRender();
-                editorPostNewPolygon(type, poly).catch(() => alert('Erreur auto-save (polygone).'));
-            }
+            // IMPORTANT UX: pas d’auto-save au double-clic (trop “surprenant”).
+            // Le flow fiable: dessiner → cliquer "Sauver".
+            e.preventDefault();
         });
 
         editorCanvas.addEventListener('pointerdown', (e) => {
@@ -2242,13 +2897,6 @@
                 if (editorState.points.length >= 2) editorState.points = [];
                 editorState.points.push(p);
                 editorRender();
-                // Auto-save dès que la ligne a 2 points
-                if (editorState.points.length === 2) {
-                    const poly = lineToPolygon(editorState.points[0], editorState.points[1], 12);
-                    editorState.points = [];
-                    editorRender();
-                    editorPostNewPolygon('line', poly).catch(() => alert('Erreur auto-save (ligne).'));
-                }
                 return;
             }
 
@@ -2273,17 +2921,17 @@
             hideHoverBar();
 
             const poly = editorState.zones[zoneName].polygons[idx];
-            const vIdx = editorNearestVertex(poly, p);
+            const vIdx = editorNearestVertex(poly, p, 34);
             if (vIdx >= 0) {
                 editorPushUndo();
                 editorState.drag = { kind: 'vertex', vIdx };
                 editorState.didDrag = false;
                 editorCanvas.setPointerCapture(e.pointerId);
             } else {
-                // insertion de point sur arête si près, sinon move entire shape
+                // insertion de point sur arête: volontaire (Shift) pour éviter les insertions accidentelles
                 const copy = clonePointsArray(editorState.zones[zoneName].polygons);
                 const polyCopy = copy[idx];
-                const inserted = insertPointOnNearestEdge(polyCopy, p);
+                const inserted = e.shiftKey ? insertPointOnNearestEdge(polyCopy, p) : false;
                 if (inserted) {
                     editorPushUndo();
                     editorState.zones[zoneName].polygons = copy;
@@ -2307,8 +2955,8 @@
             const zoneName = editorState.zone;
             if (!zoneName || typeof editorState.polygonIdx !== 'number') return;
             const p = editorEventPoint(e);
-            const copy = clonePointsArray(editorState.zones[zoneName].polygons);
-            const poly = copy[editorState.polygonIdx];
+            // Perf: ne pas cloner à chaque move (ça rendait le drag "mou").
+            const poly = editorState.zones?.[zoneName]?.polygons?.[editorState.polygonIdx];
             if (!poly) return;
 
             if (editorState.drag.kind === 'vertex') {
@@ -2327,7 +2975,6 @@
                 editorState.drag.start = p;
                 editorState.didDrag = true;
             }
-            editorState.zones[zoneName].polygons = copy;
             editorRender();
         });
 
@@ -2341,9 +2988,23 @@
         });
 
         async function editorSave() {
-            if (!currentVideo || !editorState.zone) {
-                alert('Sélectionnez une zone.');
+            if (!currentVideo) {
+                uiAlert('Choisissez une caméra avant de dessiner.', 'Sauvegarde');
                 return;
+            }
+            // UX: si aucune zone n'est sélectionnée mais qu'il en existe, on en choisit une automatiquement.
+            if (!editorState.zone) {
+                const keys = Object.keys(editorState.zones || {}).sort();
+                if (keys.length === 1) {
+                    editorSelectZone(keys[0]);
+                } else if (keys.length > 1) {
+                    editorSelectZone(keys[0]);
+                    // laisse une trace visuelle (liste à droite) + guide, plutôt qu'un blocage
+                } else {
+                    uiAlert('Créez d’abord une zone à droite (bouton +), puis cliquez sur “Sauver”.', 'Sauvegarde');
+                    try { editorNewZoneName?.focus(); } catch {}
+                    return;
+                }
             }
             const zoneName = editorState.zone;
 
@@ -2374,8 +3035,10 @@
                 editorState.presence = pdata.zones || {};
                 editorRenderZoneList();
                 editorRender();
+                // Soft refresh main (overlay + sidebar) pour que le rendu prenne effet immédiatement
+                await refreshMainAfterEditor();
             } catch (e) {
-                alert('Erreur: sauvegarde (PUT).');
+                uiAlert('Erreur: sauvegarde (PUT).', 'Sauvegarde');
             }
         }
 
@@ -2387,11 +3050,13 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, polygons: [], video: currentVideo })
             });
-            if (!res.ok) { alert('Erreur création zone'); return; }
+            if (!res.ok) { uiAlert('Erreur création zone', 'Zones'); return; }
             editorNewZoneName.value = '';
             await editorOpen(); // refresh editor state
             editorSelectZone(name);
         });
+
+        editorDeleteZoneBtn?.addEventListener('click', editorDeleteZone);
 
         toolSelectBtn.addEventListener('click', () => editorSetTool('select'));
         toolCountLineBtn.addEventListener('click', () => { editorSetTool('line'); editorState.points = []; editorRender(); });
@@ -2409,18 +3074,17 @@
             editorPopUndo();
         });
         toolClearBtn.addEventListener('click', () => { editorPushUndo(); editorClearTemp(); });
+        toolSaveBtn?.addEventListener('click', editorSave);
 
         editorSaveBtn.addEventListener('click', editorSave);
         editorCloseBtn.addEventListener('click', editorClose);
         editorCloseBtn2.addEventListener('click', editorClose);
 
-        // Hover actions
-        hoverMoveBtn.addEventListener('click', () => {
-            // Déjà possible: cliquer-glisser dans la zone (ou sur un point)
-            editorSetTool('select');
-            hideHoverBar();
-        });
+        // Hoverbar: keep it clickable (pause auto-hide while hovering it)
+        editorHoverBar?.addEventListener('pointerenter', cancelHoverHide);
+        editorHoverBar?.addEventListener('pointerleave', () => scheduleHoverHide(7000));
 
+        // Hover actions
         hoverDeletePointBtn.addEventListener('click', () => {
             if (!editorState.zone || typeof editorState.polygonIdx !== 'number') return;
             const kind = editorHoverBar.dataset.kind;
@@ -2429,7 +3093,7 @@
             const copy = clonePointsArray(editorState.zones?.[editorState.zone]?.polygons || []);
             const poly = copy[editorState.polygonIdx];
             if (!poly || poly.length <= 3) {
-                alert('Un polygone doit garder au moins 3 points.');
+                uiAlert('Un polygone doit garder au moins 3 points.', 'Edition');
                 return;
             }
             editorPushUndo();
@@ -2440,11 +3104,12 @@
             editorRender();
         });
 
-        hoverDeleteShapeBtn.addEventListener('click', () => {
+        hoverDeleteShapeBtn.addEventListener('click', async () => {
             if (!editorState.zone || typeof editorState.polygonIdx !== 'number') return;
             const copy = clonePointsArray(editorState.zones?.[editorState.zone]?.polygons || []);
             if (!copy[editorState.polygonIdx]) return;
-            if (!confirm('Supprimer ce dessin ?')) return;
+            const ok = await uiConfirm('Supprimer ce dessin ?', 'Suppression');
+            if (!ok) return;
             editorPushUndo();
             copy.splice(editorState.polygonIdx, 1);
             editorState.zones[editorState.zone].polygons = copy;
@@ -2468,10 +3133,28 @@
             }
         });
 
-        // Open editor when clicking the drawing button (instead of toggling the small panel)
-        toggleDrawPanelBtn.addEventListener('click', () => {
-            editorOpen();
+        // Modal buttons
+        function closeAppModal(result) {
+            if (!appModalOverlay) return;
+            appModalOverlay.classList.add('hidden');
+            const r = __modalResolve;
+            __modalResolve = null;
+            if (typeof r === 'function') r(result);
+        }
+        appModalOkBtn?.addEventListener('click', () => closeAppModal(true));
+        appModalCancelBtn?.addEventListener('click', () => closeAppModal(false));
+        appModalCloseBtn?.addEventListener('click', () => closeAppModal(false));
+        appModalOverlay?.addEventListener('click', (e) => {
+            if (e.target === appModalOverlay) closeAppModal(false);
         });
+        document.addEventListener('keydown', (e) => {
+            if (appModalOverlay?.classList.contains('hidden')) return;
+            if (e.key === 'Escape') closeAppModal(false);
+        });
+
+        // Open editor when clicking the drawing button (now: overlay icon)
+        toggleDrawPanelBtn?.addEventListener('click', () => editorOpen());
+        drawFab?.addEventListener('click', () => editorOpen());
 
         function clonePoints(pts) {
             return (pts || []).map(p => [p[0], p[1]]);
@@ -2578,21 +3261,287 @@
             step3: document.getElementById('step3')
         };
 
+        function setView(view) {
+            currentView = view;
+            const isHome = view === 'home';
+
+            homeView.classList.toggle('hidden', !isHome);
+            trackerView.classList.toggle('hidden', isHome);
+
+            navSites.classList.toggle('active', isHome);
+            navTracker.classList.toggle('active', !isHome);
+
+            if (stepsEl) stepsEl.style.display = isHome ? 'none' : '';
+
+            if (isHome) {
+                pageTitleEl.textContent = 'Sites';
+                pageSubtitleEl.textContent = 'Choisissez un site ou créez-en un pour démarrer la configuration';
+                renderSitesSidebar();
+            } else {
+                const siteLabel = currentSite?.name ? ` — ${currentSite.name}` : '';
+                pageTitleEl.textContent = `Zone Presence Tracker${siteLabel}`;
+                pageSubtitleEl.textContent = 'Surveillance et analyse du temps de présence';
+            }
+        }
+
+        function loadSites() {
+            renderSitesHome();
+            if (currentView === 'home') renderSitesSidebar();
+        }
+
+        function escapeHtml(text) {
+            return String(text ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        function renderSitesHome() {
+            if (!sitesGrid) return;
+            if (!sitesCache || sitesCache.length === 0) {
+                sitesGrid.innerHTML = '<div class="no-zones">Aucun site. Créez-en un pour commencer.</div>';
+                return;
+            }
+
+            sitesGrid.innerHTML = sitesCache.map((s) => {
+                const cams = s.cameras || [];
+                const camLines = cams.map(c => `${c.id}: ${c.name} • ${c.video}`).slice(0, 3);
+                const siteName = escapeHtml(s.name);
+                const siteKey = encodeURIComponent(String(s.name ?? ''));
+                const demoName = DEMO_SITES?.[0]?.name;
+                const canDelete = !(demoName && s.name === demoName);
+                return `
+                    <div class="zone-card site-card" style="cursor:pointer;" data-site="${siteKey}">
+                        <div class="zone-card-header">
+                            <div class="zone-card-name">${siteName}</div>
+                            <div style="display:flex; align-items:center; gap: var(--space-2);">
+                                <div class="zone-card-status empty">${cams.length} caméra(s)</div>
+                                ${canDelete ? `<button class="btn btn-ghost btn-icon" data-delete-site="${siteKey}" title="Supprimer" type="button">✕</button>` : ''}
+                            </div>
+                        </div>
+                        <div style="margin-top: var(--space-2); color: var(--color-text-muted); font-size: var(--text-xs);">
+                            ${camLines.map(l => `<div>${l}</div>`).join('')}
+                        </div>
+                        <div class="zone-card-time" style="font-size: var(--text-sm);">Configurer</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderSitesSidebar() {
+            if (!zoneListSidebar) return;
+            if (!sitesCache || sitesCache.length === 0) {
+                zoneListSidebar.innerHTML = '<div style="color: var(--sidebar-text-subtle); font-size: var(--text-sm);">Aucun site</div>';
+                return;
+            }
+            zoneListSidebar.innerHTML = `
+                <div class="draw-tree">
+                    ${sitesCache.map((s) => `
+                        <div class="tree-row site-row" data-site="${encodeURIComponent(String(s.name ?? ''))}">
+                            <div class="left">
+                                <span class="label">🏢 ${escapeHtml(s.name)}</span>
+                            </div>
+                            <span class="meta">${(s.cameras || []).length} cam</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function createSite(name) {
+            const n = String(name || '').trim();
+            if (!n) throw new Error('Nom de site requis');
+            if ((sitesCache || []).some(s => s.name === n)) throw new Error('Site déjà existant');
+            // nouveau site vide (0 caméra)
+            sitesCache.push({ name: n, cameras: [] });
+        }
+
+        function cameraIdFromName(name) {
+            const base = String(name || '')
+                .trim()
+                .toLowerCase()
+                .replaceAll(/[^a-z0-9]+/g, '-')
+                .replaceAll(/(^-|-$)/g, '');
+            return base || 'cam';
+        }
+
+        function makeUniqueCameraId(cameras, desiredId) {
+            const used = new Set((cameras || []).map(c => c.id));
+            let id = desiredId;
+            let n = 2;
+            while (used.has(id)) {
+                id = `${desiredId}-${n}`;
+                n += 1;
+            }
+            return id;
+        }
+
+        function saveCurrentSiteCameras(cameras) {
+            if (!currentSite?.name) throw new Error('Aucun site sélectionné');
+            const idx = (sitesCache || []).findIndex(s => s.name === currentSite.name);
+            if (idx < 0) throw new Error('Site introuvable');
+            sitesCache[idx].cameras = cameras;
+            currentSite = sitesCache[idx];
+        }
+
+        function deleteSiteByName(name) {
+            const n = String(name || '').trim();
+            const demoName = DEMO_SITES?.[0]?.name;
+            if (n && demoName && n === demoName) throw new Error('Impossible de supprimer le site démo');
+            const idx = (sitesCache || []).findIndex(s => s.name === n);
+            if (idx >= 0) sitesCache.splice(idx, 1);
+            if (currentSite?.name === n) {
+                currentSite = null;
+                currentVideo = null;
+                currentCameraId = null;
+                selectedAsset = null;
+                setView('home');
+            }
+        }
+
+        async function selectSiteByName(name) {
+            const found = (sitesCache || []).find(s => s.name === name);
+            currentSite = found || { name, cameras: [] };
+
+            // Reset selection when switching sites
+            currentVideo = null;
+            currentCameraId = null;
+            selectedAsset = null;
+
+            setView('tracker');
+            await loadVideos();
+
+            // Auto select first camera if possible
+            const cams = getActiveCameras();
+            if (cams.length > 0) {
+                selectCamera(cams[0].id);
+            }
+            await loadZones();
+            updateSteps();
+        }
+
         // Initialize
         init();
 
         async function init() {
             // Important: récupérer d'abord les streams, puis construire l'UI (évite les “resets”)
             await updateActiveStreams();
-            await loadVideos();
-            await loadZones();
-            updateSteps();
+            loadSites();
+
+            // Nav
+            navSites?.addEventListener('click', () => setView('home'));
+            navTracker?.addEventListener('click', async () => {
+                if (!currentSite) {
+                    setView('home');
+                    return;
+                }
+                setView('tracker');
+                await loadVideos();
+                await loadZones();
+                updateSteps();
+            });
+
+            // Create site
+            async function handleCreateSite() {
+                const name = (newSiteNameInput?.value || '').trim();
+                if (!name) return;
+                try {
+                    createSite(name);
+                    newSiteNameInput.value = '';
+                    loadSites();
+                    await selectSiteByName(name);
+                } catch (e) {
+                    alert(`Erreur création site: ${e?.message || e}`);
+                }
+            }
+            createSiteBtn?.addEventListener('click', handleCreateSite);
+            newSiteNameInput?.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') handleCreateSite();
+            });
+
+            // Add camera (site)
+            function openAddCameraForm() {
+                if (!addCameraForm) return;
+                addCameraForm.classList.remove('hidden');
+                // populate videos
+                if (newCamVideo) {
+                    newCamVideo.innerHTML = '';
+                    (availableVideosList || []).forEach((v) => {
+                        newCamVideo.innerHTML += `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`;
+                    });
+                }
+                newCamName?.focus();
+            }
+            function closeAddCameraForm() {
+                addCameraForm?.classList.add('hidden');
+                if (newCamName) newCamName.value = '';
+                if (newCamHint) newCamHint.value = '';
+            }
+            addCameraBtn?.addEventListener('click', () => {
+                if (currentView !== 'tracker') return;
+                openAddCameraForm();
+            });
+            cancelCamBtn?.addEventListener('click', closeAddCameraForm);
+            saveCamBtn?.addEventListener('click', async () => {
+                const name = (newCamName?.value || '').trim();
+                const video = (newCamVideo?.value || '').trim();
+                const hint = (newCamHint?.value || '').trim();
+                if (!name || !video) {
+                    alert('Nom et vidéo requis.');
+                    return;
+                }
+                try {
+                    const cams = Array.isArray(currentSite?.cameras) ? [...currentSite.cameras] : [];
+                    const desired = cameraIdFromName(name);
+                    const id = makeUniqueCameraId(cams, desired);
+                    cams.push({ id, name, hint, video });
+                    saveCurrentSiteCameras(cams);
+                    loadSites();
+                    closeAddCameraForm();
+                    await loadVideos();
+                    if (!currentVideo) selectCamera(id);
+                    await loadZones();
+                } catch (e) {
+                    alert(`Erreur ajout caméra: ${e?.message || e}`);
+                }
+            });
+
+            // Click delegation for site cards/rows
+            sitesGrid?.addEventListener('click', async (e) => {
+                const del = e.target?.closest?.('[data-delete-site]');
+                if (del) {
+                    const key = del.getAttribute('data-delete-site') || '';
+                    const name = decodeURIComponent(key);
+                    const ok = await uiConfirm(`Supprimer le site "${name}" ?`, 'Suppression');
+                    if (ok) {
+                        try { deleteSiteByName(name); loadSites(); } catch (err) { uiAlert(err?.message || String(err), 'Suppression'); }
+                    }
+                    return;
+                }
+                const el = e.target?.closest?.('[data-site]');
+                if (!el) return;
+                const key = el.getAttribute('data-site') || '';
+                const name = decodeURIComponent(key);
+                selectSiteByName(name);
+            });
+            zoneListSidebar?.addEventListener('click', (e) => {
+                const el = e.target?.closest?.('[data-site]');
+                if (!el) return;
+                const key = el.getAttribute('data-site') || '';
+                const name = decodeURIComponent(key);
+                selectSiteByName(name);
+            });
+
+            // DEMO: always start on home; refresh resets sites to DEMO_SITES
+            setView('home');
 
             setInterval(loadZones, 1000);
             setInterval(updateActiveStreams, 2000);
         }
 
-        const CAMERA_DEFS = [
+        const DEFAULT_CAMERA_DEFS = [
             {
                 id: 'entr1',
                 name: 'Entrepôt / Logistique',
@@ -2607,18 +3556,26 @@
             }
         ];
 
+        function getActiveCameras() {
+            // En mode multi-site: un site peut être vide (0 caméra)
+            if (currentSite && Array.isArray(currentSite.cameras)) return currentSite.cameras;
+            return [];
+        }
+
         function getCameraByVideo(videoName) {
-            return CAMERA_DEFS.find(c => c.video === videoName) || null;
+            return getActiveCameras().find(c => c.video === videoName) || null;
         }
 
         function getCameraById(id) {
-            return CAMERA_DEFS.find(c => c.id === id) || null;
+            return getActiveCameras().find(c => c.id === id) || null;
         }
 
         async function loadVideos() {
             const res = await fetch('/api/videos');
             const data = await res.json();
             const available = new Set(data.videos || []);
+            const cams = getActiveCameras();
+            availableVideosList = data.videos || [];
 
             // Garder la liste de vidéos pour l'interne (upload / fallback)
             const selected = videoSelect.value || currentVideo || '';
@@ -2630,7 +3587,15 @@
 
             // UI: 2 caméras fixes (simple & fiable)
             cameraGrid.innerHTML = '';
-            CAMERA_DEFS.forEach((cam) => {
+            if (!cams || cams.length === 0) {
+                cameraGrid.innerHTML = `
+                    <div class="no-zones" style="grid-column: 1 / -1; text-align:left;">
+                        Aucune caméra sur ce site. Cliquez sur <b>+</b> pour en ajouter une.
+                    </div>
+                `;
+                return;
+            }
+            cams.forEach((cam) => {
                 const videoExists = available.has(cam.video);
                 const isActive = activeVideoStreams.has(cam.video);
                 const isCurrent = cam.video === currentVideo;
@@ -2644,7 +3609,7 @@
                             <span class="camera-status-text">${statusText}</span>
                         </div>
                         <div style="margin-top: var(--space-2); font-size: var(--text-xs); color: var(--color-text-muted);">
-                            ${cam.hint} • <span style="font-family: 'Courier New', monospace;">${cam.video}</span>
+                            ${(cam.hint || '')} • <span style="font-family: 'Courier New', monospace;">${cam.video}</span>
                         </div>
                     </div>
                 `;
@@ -2665,10 +3630,25 @@
 
         async function updateActiveStreams() {
             try {
+                const prev = new Set(activeVideoStreams || []);
                 const res = await fetch('/api/streams');
                 const data = await res.json();
 
                 activeVideoStreams = new Set(data.streams.map(s => s.video));
+
+                // Diff start/stop pour garder les compteurs cohérents même si le stream a été lancé ailleurs
+                for (const v of activeVideoStreams) {
+                    if (!prev.has(v)) {
+                        markVideoRunStart(v);
+                        ensureZoneLive(v).lastTs = Date.now();
+                    }
+                }
+                for (const v of prev) {
+                    if (!activeVideoStreams.has(v)) {
+                        markVideoRunStop(v);
+                        if (zoneLiveTimersByVideo?.[v]) zoneLiveTimersByVideo[v].lastTs = 0;
+                    }
+                }
 
                 if (data.streams.length === 0) {
                     activeStreamsDiv.innerHTML = '';
@@ -2712,16 +3692,25 @@
                     const textEl = statusEl.querySelector('.camera-status-text');
                     if (textEl) textEl.textContent = active ? 'En ligne' : 'Prête';
                 });
+
+                // steps KPI (site) + cache zones (site)
+                if (currentView === 'tracker' && currentSite) {
+                    refreshZonesCacheForSite(false).then(updateHeaderStepsKpis).catch(() => updateHeaderStepsKpis());
+                } else {
+                    updateHeaderStepsKpis();
+                }
             } catch (e) {
                 console.error('Error fetching streams:', e);
             }
         }
 
         async function loadZones() {
+            if (currentView !== 'tracker') return;
             if (!currentVideo) {
+                const cams = getActiveCameras();
                 zonesGrid.innerHTML = '<div class="no-zones">Sélectionnez une vidéo</div>';
                 zoneListSidebar.innerHTML = '<div style="color: var(--sidebar-text-subtle); font-size: var(--text-sm);">Sélectionnez une vidéo</div>';
-                recapCameras.textContent = `${CAMERA_DEFS.length}`;
+                recapCameras.textContent = `${cams.length}`;
                 recapCamerasSub.textContent = 'Caméras configurées';
                 recapZones.textContent = '—';
                 recapZonesSub.textContent = 'Sélectionnez une caméra';
@@ -2729,22 +3718,38 @@
                 recapDrawingsSub.textContent = '—';
                 recapActive.textContent = '—';
                 recapActiveSub.textContent = '—';
+                updateHeaderStepsKpis();
                 return;
             }
+            const isDetecting = activeVideoStreams.has(currentVideo);
+            // Note: le dénominateur (pour % occupation/absence) ne doit avancer QUE quand la détection tourne.
+            // (On garde le cumul par vidéo tant que la page reste ouverte.)
+            // refresh cache zones pour le site (toutes caméras)
+            await refreshZonesCacheForSite(false);
 
-            const [presenceRes, zonesRes] = await Promise.all([
-                fetch(`/api/presence/${encodeURIComponent(currentVideo)}`),
-                fetch(`/api/zones/${encodeURIComponent(currentVideo)}`)
-            ]);
-            const presenceData = await presenceRes.json();
+            const zonesRes = await fetch(`/api/zones/${encodeURIComponent(currentVideo)}`);
             const zonesData = await zonesRes.json();
-
-            const zones = presenceData.zones || {};
             const zonesWithPolygons = zonesData.zones || {};
+            zonesCacheByVideo[currentVideo] = zonesWithPolygons;
+
+            // Présence:
+            // - si détection active: on fetch et on met à jour le snapshot
+            // - sinon: on gèle sur le dernier snapshot (ou 0 si jamais lancé)
+            let zones = {};
+            if (isDetecting) {
+                const presenceRes = await fetch(`/api/presence/${encodeURIComponent(currentVideo)}`);
+                const presenceData = await presenceRes.json();
+                zones = presenceData.zones || {};
+                lastPresenceByVideo[currentVideo] = zones;
+                // Met à jour les compteurs locaux (occupation/absence) selon is_occupied
+                updateZoneLiveTimers(currentVideo, zones);
+            } else {
+                zones = (videoHasRunByVideo[currentVideo] ? (lastPresenceByVideo[currentVideo] || {}) : {});
+            }
 
             // Recap (camera + zones + drawings + active presence)
             const online = activeVideoStreams.size;
-            recapCameras.textContent = `${online}/${CAMERA_DEFS.length}`;
+            recapCameras.textContent = `${online}/${getActiveCameras().length}`;
             recapCamerasSub.textContent = 'En ligne / configurées';
 
             const zoneCount = Object.keys(zonesWithPolygons).length;
@@ -2756,11 +3761,11 @@
             recapDrawings.textContent = `${drawingsCount}`;
             recapDrawingsSub.textContent = 'Dessins sur cette caméra';
 
-            const activeCount = Object.values(zones).filter(z => z.is_occupied).length;
+            const activeCount = isDetecting ? Object.values(zones).filter(z => z.is_occupied).length : 0;
             recapActive.textContent = `${activeCount}`;
-            recapActiveSub.textContent = 'Zones occupées';
+            recapActiveSub.textContent = isDetecting ? 'Zones occupées' : (videoHasRunByVideo[currentVideo] ? 'Détection en pause' : 'Lancez la détection');
 
-            if (Object.keys(zones).length === 0) {
+            if (Object.keys(zonesWithPolygons).length === 0) {
                 zonesGrid.innerHTML = '<div class="no-zones">Aucune zone définie pour cette vidéo</div>';
                 zoneListSidebar.innerHTML = '<div style="color: var(--sidebar-text-subtle); font-size: var(--text-sm);">Aucune zone</div>';
                 updateDrawPanelZones(zonesWithPolygons);
@@ -2771,36 +3776,69 @@
             zoneListSidebar.innerHTML = '';
             updateDrawPanelZones(zonesWithPolygons);
 
-            for (const [name, info] of Object.entries(zones)) {
-                const statusClass = info.is_occupied ? 'occupied' : 'empty';
-                const statusLabel = info.is_occupied ? 'Occupé' : 'Vide';
+            for (const name of Object.keys(zonesWithPolygons).sort()) {
+                const info = zones[name] || { formatted_time: '00:00:00', is_occupied: false, total_time: 0 };
+                const statusClass = isDetecting ? (info.is_occupied ? 'occupied' : 'empty') : 'empty';
+                const statusLabel = isDetecting ? (info.is_occupied ? 'Occupé' : 'Vide') : (videoHasRunByVideo[currentVideo] ? 'Pause' : 'Prêt');
                 const polys = (zonesWithPolygons[name]?.polygons || []);
-                const firstPoly = polys[0] || null;
-                const previewSvg = firstPoly ? buildPolyPreviewSvg(firstPoly) : '';
                 const drawings = polys.length;
 
+                const previews = polys.slice(0, 2);
+                const previewBoxes = previews.map((poly, idx) => {
+                    const svg = buildPolyPreviewSvg(poly);
+                    const isSel = selectedAsset && selectedAsset.zone === name && typeof selectedAsset.idx === 'number' && selectedAsset.idx === idx;
+                    const zKey = encodeURIComponent(String(name));
+                    return `
+                        <div class="zone-preview-box ${isSel ? 'active' : ''}" data-zone="${zKey}" data-idx="${idx}" title="Sélectionner la forme #${idx + 1}">
+                            ${svg}
+                        </div>
+                    `;
+                }).join('');
+
+                const isSelected = selectedAsset && selectedAsset.zone === name;
+
+                // Compteurs locaux (fiables): occupation + absence
+                const live = zoneLiveTimersByVideo?.[currentVideo]?.zones?.[name] || { occ: 0, abs: 0 };
+                const occSec = (isDetecting || videoHasRunByVideo[currentVideo]) ? Number(live.occ || 0) : 0;
+                const absSec = (isDetecting || videoHasRunByVideo[currentVideo]) ? Number(live.abs || 0) : 0;
+                const denom = occSec + absSec;
+                const occPct = denom > 0 ? Math.min(100, Math.max(0, (occSec / denom) * 100)) : 0;
+                const absPct = denom > 0 ? Math.max(0, 100 - occPct) : 0;
+                const secFmt = (s) => `${Math.max(0, Math.floor(Number(s) || 0))} s`;
+
+                const presenceToneClass = (statusLabel === 'Occupé') ? 'presence-occupied' : 'presence-empty';
                 zonesGrid.innerHTML += `
-                    <div class="zone-card">
+                    <div class="zone-card ${presenceToneClass} ${isSelected ? 'selected' : ''}" data-zone="${encodeURIComponent(String(name))}">
                         <div class="zone-card-header">
-                            <div class="zone-card-name">${name}</div>
+                            <div>
+                                <div class="zone-name-pill">${name}</div>
+                                <div class="zone-forms-count">${drawings} forme(s)</div>
+                            </div>
                             <div class="zone-card-status ${statusClass}">${statusLabel}</div>
                         </div>
-                        <div style="display:flex; align-items:center; justify-content:space-between; gap: var(--space-3); margin-top: var(--space-2);">
-                            <div style="color: var(--color-text-muted); font-size: var(--text-xs);">${drawings} dessin(s)</div>
-                            <div style="width: 88px; height: 56px; border-radius: var(--radius-sm); overflow:hidden; border: 1px solid var(--color-border); background: rgba(0,0,0,0.02);">
-                                ${previewSvg}
+                        <div class="zone-previews">
+                            ${previewBoxes}
+                        </div>
+                        <div class="occ-bars">
+                            <div>
+                                <div class="occ-head">
+                                    <span><strong>Occupation</strong> • <span class="pct">${occPct.toFixed(0)}%</span></span>
+                                    <span class="secs">${secFmt(occSec)}</span>
+                                </div>
+                                <div class="occ-track"><div class="occ-fill" style="width:${occPct.toFixed(2)}%"></div></div>
+                            </div>
+                            <div>
+                                <div class="occ-head">
+                                    <span><strong>Absence</strong> • <span class="pct">${absPct.toFixed(0)}%</span></span>
+                                    <span class="secs">${secFmt(absSec)}</span>
+                                </div>
+                                <div class="occ-track"><div class="occ-fill red" style="width:${absPct.toFixed(2)}%"></div></div>
                             </div>
                         </div>
-                        <div class="zone-card-time">${info.formatted_time}</div>
                         <div class="zone-card-actions">
                             <button class="btn btn-ghost btn-icon" onclick="resetZoneTimer('${name}')" title="Reset">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                </svg>
-                            </button>
-                            <button class="btn btn-ghost btn-icon" onclick="deleteZone('${name}')" title="Supprimer">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                 </svg>
                             </button>
                         </div>
@@ -2814,6 +3852,7 @@
 
             // Render explorer tree
             renderAssetTree(zones, zonesWithPolygons);
+            updateHeaderStepsKpis();
         }
 
         function updateDrawPanelZones(zonesWithPolygons) {
@@ -2826,16 +3865,6 @@
                 drawZoneSelect.value = prev;
             }
             drawZoneNameGroup.classList.toggle('hidden', drawZoneSelect.value !== '__new__');
-        }
-
-        function iconForDrawing(video, zone, idx) {
-            try {
-                const t = localStorage.getItem(`drawmeta:${video}:${zone}:${idx}`);
-                if (t === 'line') return '／'; // ligne
-                if (t === 'exclude') return '⛔'; // exclusion
-                if (t === 'include') return '⬠'; // inclusion
-            } catch {}
-            return '⬠'; // polygone
         }
 
         function getDrawType(video, zone, idx) {
@@ -2904,21 +3933,24 @@
                             const info = presenceZones[zoneName] || { formatted_time: '00:00:00', is_occupied: false };
                             const drawings = zonesWithPolygons[zoneName]?.polygons || [];
                             const dotClass = info.is_occupied ? 'occupied' : '';
+                            const live = zoneLiveTimersByVideo?.[currentVideo]?.zones?.[zoneName] || { occ: 0, abs: 0 };
+                            const metaTime = (videoHasRunByVideo[currentVideo] || activeVideoStreams.has(currentVideo))
+                                ? formatHMS(live.occ || 0)
+                                : '00:00:00';
                             return `
                                 <div class="tree-row" onclick="selectZone('${zoneName}')">
                                     <div class="left">
                                         <span class="zone-dot ${dotClass}"></span>
                                         <span class="label">${zoneName}</span>
                                     </div>
-                                    <span class="meta">${info.formatted_time}</span>
+                                    <span class="meta">${metaTime}</span>
                                 </div>
                                 <div class="tree-children">
                                     ${drawings.map((_, idx) => `
                                         <div class="tree-row tree-leaf" onclick="selectDrawing('${zoneName}', ${idx})">
                                             <div class="left">
-                                                <span class="label">${iconForDrawing(currentVideo, zoneName, idx)} Dessin ${idx + 1}</span>
+                                                <span class="label">Dessin ${idx + 1}</span>
                                             </div>
-                                            <span class="meta">#${idx + 1}</span>
                                         </div>
                                     `).join('')}
                                 </div>
@@ -2936,14 +3968,59 @@
             drawZoneNameGroup.classList.add('hidden');
             selectedAsset = { zone: zoneName };
             drawExistingZones();
+            syncPresenceSelectionUI();
         };
 
         window.selectDrawing = (zoneName, idx) => {
             selectedAsset = { zone: zoneName, idx };
             drawExistingZones();
+            syncPresenceSelectionUI();
         };
 
+        function syncPresenceSelectionUI() {
+            // Applique la surbrillance immédiatement (sans attendre le prochain loadZones à 1s)
+            try {
+                const zSel = selectedAsset?.zone || null;
+                const idxSel = (selectedAsset && typeof selectedAsset.idx === 'number') ? selectedAsset.idx : null;
+                document.querySelectorAll('.zone-card[data-zone]').forEach((el) => {
+                    const z = decodeURIComponent(el.getAttribute('data-zone') || '');
+                    el.classList.toggle('selected', !!zSel && z === zSel);
+                });
+                document.querySelectorAll('.zone-preview-box[data-zone][data-idx]').forEach((el) => {
+                    const z = decodeURIComponent(el.getAttribute('data-zone') || '');
+                    const idx = Number(el.getAttribute('data-idx'));
+                    el.classList.toggle('active', !!zSel && z === zSel && idxSel !== null && idx === idxSel);
+                });
+            } catch {}
+        }
+
+        // Click sur les cartes de la section "Présences" => surbrillance / sélection (reuse des mêmes fonctions que la sidebar)
+        zonesGrid?.addEventListener('click', (e) => {
+            const t = e.target;
+            if (!(t instanceof Element)) return;
+            // Ne pas déclencher si clic sur un bouton (reset, etc.)
+            if (t.closest('button')) return;
+
+            const preview = t.closest('.zone-preview-box');
+            if (preview) {
+                const z = decodeURIComponent(preview.getAttribute('data-zone') || '');
+                const idx = Number(preview.getAttribute('data-idx'));
+                if (z && Number.isFinite(idx)) window.selectDrawing(z, idx);
+                return;
+            }
+
+            const card = t.closest('.zone-card[data-zone]');
+            if (card) {
+                const z = decodeURIComponent(card.getAttribute('data-zone') || '');
+                if (z) window.selectZone(z);
+            }
+        });
+
         function updateSteps() {
+            if (currentView !== 'tracker') {
+                Object.values(steps).forEach(s => s.classList.remove('active', 'done'));
+                return;
+            }
             Object.values(steps).forEach(s => s.classList.remove('active', 'done'));
 
             if (!currentVideo) {
@@ -3214,14 +4291,15 @@
             if (!editMode || !editPoints) return;
             e.preventDefault();
             const p = getCanvasPointFromEvent(e);
-            const idx = nearestVertexIndex(editPoints, p, HANDLE_RADIUS * 1.6);
+            // Hit zone plus large pour attraper le point sans “créer à côté”
+            const idx = nearestVertexIndex(editPoints, p, HANDLE_RADIUS * 3.8);
             if (idx >= 0) {
                 editDragging = { idx };
                 drawCanvas.setPointerCapture(e.pointerId);
                 redrawCanvas();
             } else {
-                // insertion de point sur arête si assez près
-                const inserted = insertPointOnNearestEdge(editPoints, p);
+                // insertion de point sur arête: volontaire (Shift) pour éviter les insertions accidentelles
+                const inserted = e.shiftKey ? insertPointOnNearestEdge(editPoints, p) : false;
                 if (inserted) {
                     redrawCanvas();
                 }
@@ -3291,6 +4369,14 @@
             drawPoints = [];
             redrawCanvas();
             updateFinishButtonState();
+
+            // UX: on sélectionne automatiquement le dessin créé et on ouvre l'édition
+            selectedAsset = { zone: zoneName, idx: prevCount };
+            syncPresenceSelectionUI();
+            exitDrawingMode();
+            await drawExistingZones();
+            // entre directement en mode édition pour ajuster sans message "sélectionnez un dessin"
+            editSelectedBtn.click();
         });
 
         cancelBtn.addEventListener('click', () => {
@@ -3470,6 +4556,9 @@
 
             isCurrentVideoStreaming = true;
             activeVideoStreams.add(currentVideo);
+            markVideoRunStart(currentVideo);
+            // Init local zone timers tick to avoid a big dt spike at first poll
+            ensureZoneLive(currentVideo).lastTs = Date.now();
 
             videoFrame.classList.add('hidden');
             videoStream.classList.remove('hidden');
@@ -3492,6 +4581,9 @@
 
             isCurrentVideoStreaming = false;
             activeVideoStreams.delete(currentVideo);
+            markVideoRunStop(currentVideo);
+            // stop tick (freeze)
+            if (zoneLiveTimersByVideo?.[currentVideo]) zoneLiveTimersByVideo[currentVideo].lastTs = 0;
 
             videoStream.src = '';
             videoStream.classList.add('hidden');
@@ -3516,6 +4608,9 @@
             await fetch('/api/streams/stop', { method: 'POST' });
 
             isCurrentVideoStreaming = false;
+            markAllRunsStop();
+            // freeze all local ticks
+            try { Object.values(zoneLiveTimersByVideo).forEach(v => { if (v) v.lastTs = 0; }); } catch {}
             activeVideoStreams.clear();
 
             if (currentVideo) {
@@ -3539,15 +4634,11 @@
             await updateActiveStreams();
         });
 
-        resetTimersBtn.addEventListener('click', async () => {
-            if (!confirm('Remettre tous les timers à zéro ?')) return;
-            await fetch('/api/zones/reset', { method: 'POST' });
-            await loadZones();
-        });
-
         async function resetZoneTimer(name) {
-            if (!confirm(`Remettre le timer de "${name}" à zéro ?`)) return;
+            const ok = await uiConfirm(`Remettre le timer de "${name}" à zéro ?`, 'Timers');
+            if (!ok) return;
             await fetch(`/api/zones/reset/${encodeURIComponent(name)}`, { method: 'POST' });
+            resetLocalTimersZone(currentVideo, name);
             await loadZones();
         }
 
@@ -3585,16 +4676,18 @@
         updateBlurButton();
 
         async function deleteZone(name) {
-            if (!confirm(`Supprimer la zone "${name}" de cette vidéo ?`)) return;
+            const ok = await uiConfirm(`Supprimer la zone "${name}" de cette vidéo ?`, 'Suppression');
+            if (!ok) return;
             await fetch(`/api/zones/${encodeURIComponent(currentVideo)}/${encodeURIComponent(name)}`, { method: 'DELETE' });
             await loadZones();
             drawExistingZones();
         }
 
         document.getElementById('deleteAllZonesBtn').addEventListener('click', async () => {
-            if (!currentVideo) return;
-            if (!confirm('Supprimer TOUTES les zones de cette vidéo ?')) return;
-            await fetch(`/api/zones/${encodeURIComponent(currentVideo)}`, { method: 'DELETE' });
+            const ok = await uiConfirm('Remettre tous les timers à zéro ?', 'Timers');
+            if (!ok) return;
+            await fetch('/api/zones/reset', { method: 'POST' });
+            resetLocalTimersAll();
             await loadZones();
             drawExistingZones();
         });
