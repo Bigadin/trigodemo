@@ -11,6 +11,7 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel
 from shapely.geometry import Polygon, box
 from ultralytics import YOLO
+import torch
 
 app = FastAPI(title="Zone Presence Tracker")
 
@@ -29,6 +30,10 @@ print("Loading YOLO model...")
 model = YOLO("human.pt")
 model_lock = threading.Lock()
 print("YOLO model loaded!")
+
+# Select device automatically (CPU if no CUDA)
+YOLO_DEVICE = 0 if torch.cuda.is_available() else "cpu"
+print(f"YOLO inference device: {YOLO_DEVICE} (cuda_available={torch.cuda.is_available()})")
 
 # Data state
 zones_by_video = {}
@@ -87,6 +92,13 @@ def save_presence():
 load_data()
 
 
+def _list_video_files() -> list[str]:
+    videos: list[str] = []
+    for ext in ["*.mp4", "*.avi", "*.mov", "*.mkv", "*.MP4", "*.AVI", "*.MOV", "*.MKV"]:
+        videos.extend([f.name for f in VIDEOS_DIR.glob(ext)])
+    return sorted(list(set(videos)))
+
+
 class ZoneCreate(BaseModel):
     name: str
     polygons: list
@@ -105,10 +117,7 @@ async def root():
 
 @app.get("/api/videos")
 async def list_videos():
-    videos = []
-    for ext in ["*.mp4", "*.avi", "*.mov", "*.mkv", "*.MP4", "*.AVI", "*.MOV", "*.MKV"]:
-        videos.extend([f.name for f in VIDEOS_DIR.glob(ext)])
-    return {"videos": list(set(videos))}
+    return {"videos": _list_video_files()}
 
 
 @app.post("/api/videos/upload")
@@ -195,6 +204,24 @@ async def create_zone(zone: ZoneCreate):
 
     save_zones()
     return {"message": "Zone created", "name": zone_name}
+
+
+@app.put("/api/zones/{video_name}/{zone_name}")
+async def update_zone(video_name: str, zone_name: str, update: ZoneUpdate):
+    """
+    Replace polygons for an existing zone (edit) WITHOUT touching timers.
+    This preserves zone_timers / accumulated presence.
+    """
+    with data_lock:
+        if video_name not in zones_by_video:
+            raise HTTPException(status_code=404, detail="Video not found")
+        if zone_name not in zones_by_video[video_name]:
+            raise HTTPException(status_code=404, detail="Zone not found")
+
+        zones_by_video[video_name][zone_name]["polygons"] = update.polygons
+
+    save_zones()
+    return {"message": "Zone updated", "name": zone_name, "video": video_name}
 
 
 @app.delete("/api/zones/{video_name}/{zone_name}")
@@ -459,7 +486,7 @@ def detection_worker(video_name: str, frame_queue: Queue):
                 continue
 
             with model_lock:
-                results = model(frame, verbose=False, classes=[0], conf=YOLO_CONFIDENCE, device=0)
+                results = model(frame, verbose=False, classes=[0], conf=YOLO_CONFIDENCE, device=YOLO_DEVICE)
 
             detections = []
             for r in results:
