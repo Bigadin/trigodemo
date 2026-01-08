@@ -2901,15 +2901,30 @@
             if (editorState.tool === 'select' && editorState.zone && typeof editorState.polygonIdx === 'number') {
                 const poly = editorState.zones?.[editorState.zone]?.polygons?.[editorState.polygonIdx];
                 if (poly && poly.length) {
-                    poly.forEach((p, i) => {
-                        editorCtx.beginPath();
-                        editorCtx.arc(p[0], p[1], 9, 0, Math.PI * 2);
-                        editorCtx.fillStyle = '#10B0F9';
-                        editorCtx.fill();
-                        editorCtx.strokeStyle = '#fff';
-                        editorCtx.lineWidth = 2;
-                        editorCtx.stroke();
-                    });
+                    const type = getDrawType(currentVideo, editorState.zone, editorState.polygonIdx);
+                    if (type === 'line' && poly.length === 4) {
+                        const ends = lineEndpointsFromQuad(poly);
+                        const pts = ends ? [ends.p1, ends.p2] : [];
+                        pts.forEach((p) => {
+                            editorCtx.beginPath();
+                            editorCtx.arc(p[0], p[1], 9, 0, Math.PI * 2);
+                            editorCtx.fillStyle = '#10B0F9';
+                            editorCtx.fill();
+                            editorCtx.strokeStyle = '#fff';
+                            editorCtx.lineWidth = 2;
+                            editorCtx.stroke();
+                        });
+                    } else {
+                        poly.forEach((p) => {
+                            editorCtx.beginPath();
+                            editorCtx.arc(p[0], p[1], 9, 0, Math.PI * 2);
+                            editorCtx.fillStyle = '#10B0F9';
+                            editorCtx.fill();
+                            editorCtx.strokeStyle = '#fff';
+                            editorCtx.lineWidth = 2;
+                            editorCtx.stroke();
+                        });
+                    }
                 }
             }
         }
@@ -2945,6 +2960,7 @@
             editorHoverBar.classList.remove('hidden');
             editorHoverBar.dataset.kind = kind;
             editorHoverBar.dataset.vIdx = typeof vIdx === 'number' ? String(vIdx) : '';
+            // Suppression de point uniquement sur sommet de polygone (pas sur extrémités de ligne)
             hoverDeletePointBtn.classList.toggle('hidden', kind !== 'vertex');
             hoverKey = key || '';
 
@@ -3050,6 +3066,24 @@
             return bestD <= radius * radius ? best : -1;
         }
 
+        function lineEndpointsFromQuad(poly) {
+            if (!poly || poly.length !== 4) return null;
+            const a = [(poly[0][0] + poly[1][0]) / 2, (poly[0][1] + poly[1][1]) / 2];
+            const b = [(poly[2][0] + poly[3][0]) / 2, (poly[2][1] + poly[3][1]) / 2];
+            return { p1: a, p2: b };
+        }
+
+        function editorNearestLineEndpoint(poly, p, radius = 34) {
+            const ends = lineEndpointsFromQuad(poly);
+            if (!ends) return -1;
+            const d1 = dist2(ends.p1, p);
+            const d2 = dist2(ends.p2, p);
+            const r2 = radius * radius;
+            if (d1 <= r2 && d1 <= d2) return 0;
+            if (d2 <= r2) return 1;
+            return -1;
+        }
+
         function editorUpdateHoverUI(e) {
             if (!editorState.open) return;
             if (editorState.tool !== 'select') {
@@ -3066,11 +3100,16 @@
             editorState.polygonIdx = idx;
             const poly = editorState.zones?.[zoneName]?.polygons?.[idx];
             if (!poly) { scheduleHoverHide(7000); return; }
-            const vIdx = editorNearestVertex(poly, p, 34);
+            const type = getDrawType(currentVideo, zoneName, idx);
+            const lineEnd = (type === 'line' && poly.length === 4) ? editorNearestLineEndpoint(poly, p, 34) : -1;
+            const vIdx = (lineEnd >= 0) ? -1 : editorNearestVertex(poly, p, 34);
 
             const wrapRect = editorCanvas.getBoundingClientRect();
-            const kind = vIdx >= 0 ? 'vertex' : 'poly';
-            const key = `${idx}:${kind === 'vertex' ? `v${vIdx}` : 'p'}`;
+            const kind = (lineEnd >= 0) ? 'lineEnd' : (vIdx >= 0 ? 'vertex' : 'poly');
+            const key =
+                kind === 'lineEnd'
+                    ? `${idx}:le${lineEnd}`
+                    : `${idx}:${kind === 'vertex' ? `v${vIdx}` : 'p'}`;
 
             // IMPORTANT UX:
             // - Le hoverbar doit rester "ancré" (pas suivre la souris) pour pouvoir cliquer dessus.
@@ -3079,7 +3118,18 @@
                 let xCss = 0;
                 let yCss = 0;
 
-                if (kind === 'vertex') {
+                if (kind === 'lineEnd') {
+                    const ends = lineEndpointsFromQuad(poly);
+                    if (!ends) { scheduleHoverHide(7000); return; }
+                    const end = lineEnd === 0 ? ends.p1 : ends.p2;
+                    const scaleX = wrapRect.width / editorCanvas.width;
+                    const scaleY = wrapRect.height / editorCanvas.height;
+                    const px = end[0] * scaleX;
+                    const py = end[1] * scaleY;
+                    showHoverBar(px, py, kind, lineEnd, key, px, py);
+                    editorRender();
+                    return;
+                } else if (kind === 'vertex') {
                     // Anchor on vertex position (canvas coords -> CSS coords)
                     const vx = poly[vIdx][0];
                     const vy = poly[vIdx][1];
@@ -3195,26 +3245,56 @@
                     return;
                 }
             }
-            const vIdx = editorNearestVertex(poly, p, 34);
-            if (vIdx >= 0) {
-                editorPushUndo();
-                editorState.drag = { kind: 'vertex', vIdx };
-                editorState.didDrag = false;
-                editorCanvas.setPointerCapture(e.pointerId);
-            } else {
-                // insertion de point sur arête: volontaire (Shift) pour éviter les insertions accidentelles
-                const copy = clonePointsArray(editorState.zones[zoneName].polygons);
-                const polyCopy = copy[idx];
-                const inserted = e.shiftKey ? insertPointOnNearestEdge(polyCopy, p) : false;
-                if (inserted) {
+            const type = getDrawType(currentVideo, zoneName, idx);
+            if (type === 'line' && poly.length === 4) {
+                // Ligne = forme entière: on autorise uniquement
+                // - drag du segment (déplacement global)
+                // - drag d'une extrémité (2 poignées)
+                const ends = lineEndpointsFromQuad(poly);
+                const endIdx = editorNearestLineEndpoint(poly, p, 34);
+                if (endIdx >= 0 && ends) {
+                    const meta = getLineMeta(currentVideo, zoneName, idx) || {};
+                    const p1 = Array.isArray(meta.p1) ? meta.p1 : ends.p1;
+                    const p2 = Array.isArray(meta.p2) ? meta.p2 : ends.p2;
                     editorPushUndo();
-                    editorState.zones[zoneName].polygons = copy;
-                    editorScheduleAutosave();
+                    editorState.drag = {
+                        kind: 'lineEnd',
+                        zoneName,
+                        idx,
+                        endIdx,
+                        other: endIdx === 0 ? p2 : p1,
+                        dir: Array.isArray(meta.dir) ? meta.dir : null
+                    };
+                    editorState.didDrag = false;
+                    editorCanvas.setPointerCapture(e.pointerId);
                 } else {
                     editorPushUndo();
                     editorState.drag = { kind: 'poly', start: p };
                     editorState.didDrag = false;
                     editorCanvas.setPointerCapture(e.pointerId);
+                }
+            } else {
+                const vIdx = editorNearestVertex(poly, p, 34);
+                if (vIdx >= 0) {
+                    editorPushUndo();
+                    editorState.drag = { kind: 'vertex', vIdx };
+                    editorState.didDrag = false;
+                    editorCanvas.setPointerCapture(e.pointerId);
+                } else {
+                    // insertion de point sur arête: volontaire (Shift) pour éviter les insertions accidentelles
+                    const copy = clonePointsArray(editorState.zones[zoneName].polygons);
+                    const polyCopy = copy[idx];
+                    const inserted = e.shiftKey ? insertPointOnNearestEdge(polyCopy, p) : false;
+                    if (inserted) {
+                        editorPushUndo();
+                        editorState.zones[zoneName].polygons = copy;
+                        editorScheduleAutosave();
+                    } else {
+                        editorPushUndo();
+                        editorState.drag = { kind: 'poly', start: p };
+                        editorState.didDrag = false;
+                        editorCanvas.setPointerCapture(e.pointerId);
+                    }
                 }
             }
             editorRender();
@@ -3258,6 +3338,30 @@
                 editorRender();
                 return;
             }
+            if (editorState.drag.kind === 'lineEnd') {
+                const p = editorEventPoint(e);
+                const zoneName = editorState.drag.zoneName;
+                const idx = editorState.drag.idx;
+                const other = editorState.drag.other;
+                const endIdx = editorState.drag.endIdx;
+                if (!zoneName || typeof idx !== 'number' || !other || (endIdx !== 0 && endIdx !== 1)) return;
+
+                const p1 = endIdx === 0 ? [p[0], p[1]] : [other[0], other[1]];
+                const p2 = endIdx === 1 ? [p[0], p[1]] : [other[0], other[1]];
+                const newPoly = lineToPolygon(p1, p2, 12);
+                const poly = editorState.zones?.[zoneName]?.polygons?.[idx];
+                if (poly) editorState.zones[zoneName].polygons[idx] = newPoly;
+
+                const meta = getLineMeta(currentVideo, zoneName, idx) || {};
+                meta.p1 = p1;
+                meta.p2 = p2;
+                if (editorState.drag.dir) meta.dir = editorState.drag.dir;
+                setLineMeta(currentVideo, zoneName, idx, meta);
+
+                editorState.didDrag = true;
+                editorRender();
+                return;
+            }
             const zoneName = editorState.zone;
             if (!zoneName || typeof editorState.polygonIdx !== 'number') return;
             const p = editorEventPoint(e);
@@ -3275,6 +3379,17 @@
                 if (!start) return;
                 const dx = p[0] - start[0];
                 const dy = p[1] - start[1];
+                // Si c'est une ligne: on déplace la forme entière ET on translate le linemeta p1/p2
+                try {
+                    const idx = editorState.polygonIdx;
+                    const type = getDrawType(currentVideo, zoneName, idx);
+                    if (type === 'line' && poly.length === 4) {
+                        const meta = getLineMeta(currentVideo, zoneName, idx) || {};
+                        if (Array.isArray(meta.p1)) meta.p1 = [meta.p1[0] + dx, meta.p1[1] + dy];
+                        if (Array.isArray(meta.p2)) meta.p2 = [meta.p2[0] + dx, meta.p2[1] + dy];
+                        setLineMeta(currentVideo, zoneName, idx, meta);
+                    }
+                } catch {}
                 for (let i = 0; i < poly.length; i++) {
                     poly[i] = [poly[i][0] + dx, poly[i][1] + dy];
                 }
@@ -3542,7 +3657,7 @@
             // handle
             if (handle) {
                 ctx.beginPath();
-                ctx.arc(to[0], to[1], 7, 0, Math.PI * 2);
+                ctx.arc(to[0], to[1], 10, 0, Math.PI * 2);
                 ctx.fillStyle = '#ffffff';
                 ctx.globalAlpha = 0.9;
                 ctx.fill();
@@ -3568,7 +3683,8 @@
         }
 
         function lineHandleHit(p, handleEnd) {
-            return dist2(p, handleEnd) <= (12 * 12);
+            // Hit area plus permissive pour attraper la poignée de flèche en édition
+            return dist2(p, handleEnd) <= (26 * 26);
         }
 
         function getCanvasPointFromEvent(e) {
