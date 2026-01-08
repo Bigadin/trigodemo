@@ -1,174 +1,1269 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zone Presence Tracker</title>
+    <title>YRYS - Zone Presence Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* ========================================
+           YRYS Design System Tokens
+           ======================================== */
+        :root {
+            /* Typography */
+            --font-sans: "Manrope", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+
+            /* Spacing scale */
+            --space-1: 4px;
+            --space-2: 8px;
+            --space-3: 12px;
+            --space-4: 16px;
+            --space-5: 24px;
+            --space-6: 32px;
+            --space-7: 48px;
+
+            /* Radius (un peu plus carré) */
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 12px;
+            --radius-xl: 14px;
+
+            /* Brand accents */
+            --brand-01: #F08321; /* Orange */
+            --brand-02: #10B0F9; /* Cyan */
+            --brand-03: #062DB6; /* Blue */
+            --brand-04: #BD44D5; /* Purple */
+
+            /* Grays */
+            --gray-01: #EDEFF7; /* Cloud */
+            --gray-02: #D3D6E0; /* Smoke */
+            --gray-03: #BCBFCC; /* Steel */
+            --gray-04: #9DA2B3; /* Space */
+            --gray-05: #6E7180; /* Graphite */
+            --gray-06: #40424D; /* Arsenic */
+            --gray-07: #1E1E24; /* Phantom */
+            --gray-08: #000000; /* Black */
+
+            /* Type scale */
+            --text-xs: 12px;
+            --text-sm: 14px;
+            --text-md: 16px;
+            --text-lg: 18px;
+            --text-xl: 24px;
+            --text-2xl: 32px;
+        }
+
+        /* Dark theme (default) */
+        :root[data-theme="dark"] {
+            --color-bg: #0B0F14;
+            --color-surface: #111825;
+            --color-surface-2: #0E141F;
+            --color-surface-3: #1a2332;
+            --color-border: rgba(255, 255, 255, 0.08);
+            --color-border-hover: rgba(255, 255, 255, 0.15);
+
+            --color-text: #F5F7FF;
+            --color-text-muted: rgba(245, 247, 255, 0.65);
+            --color-text-subtle: rgba(245, 247, 255, 0.4);
+
+            --color-primary: var(--brand-02);
+            --color-primary-hover: #0ea5e9;
+            --color-primary-pressed: #0284c7;
+
+            --color-success: #22c55e;
+            --color-danger: #ef4444;
+            --color-warning: var(--brand-01);
+
+            --color-focus: var(--brand-02);
+
+            --bg-texture-opacity: 0.10;
+        }
+
+        /* Light theme (par défaut) — gris clairs, pas “blanc pur” */
+        :root[data-theme="light"] {
+            --color-bg: #E7EBF2;
+            --color-surface: #EEF2F8;
+            --color-surface-2: #F6F8FC;
+            --color-surface-3: #E3E9F3;
+            --color-border: rgba(15, 23, 42, 0.12);
+            --color-border-hover: rgba(15, 23, 42, 0.18);
+
+            --color-text: #0F172A;
+            --color-text-muted: rgba(15, 23, 42, 0.65);
+            --color-text-subtle: rgba(15, 23, 42, 0.45);
+
+            --color-primary: var(--brand-02);
+            --color-primary-hover: #0ea5e9;
+            --color-primary-pressed: #0284c7;
+
+            --color-success: #16a34a;
+            --color-danger: #dc2626;
+            --color-warning: var(--brand-01);
+
+            --color-focus: var(--brand-02);
+
+            --bg-texture-opacity: 0.18;
+        }
+
+        /* Sidebar reste sombre même en light */
+        :root {
+            --sidebar-bg: #0B0F14;
+            --sidebar-surface: #111825;
+            --sidebar-surface-2: #0E141F;
+            --sidebar-border: rgba(255, 255, 255, 0.08);
+            --sidebar-border-hover: rgba(255, 255, 255, 0.14);
+            --sidebar-text: #F5F7FF;
+            --sidebar-text-muted: rgba(245, 247, 255, 0.68);
+            --sidebar-text-subtle: rgba(245, 247, 255, 0.45);
+        }
+
+        /* ========================================
+           Base Reset & Typography
+           ======================================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
         body {
-            font-family: system-ui, -apple-system, sans-serif;
-            background: #0f0f1a;
-            color: #fff;
+            font-family: var(--font-sans);
+            background: var(--color-bg);
+            color: var(--color-text);
             min-height: 100vh;
+            font-size: var(--text-md);
+            line-height: 1.5;
         }
 
-        .app {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
+        /* Texture background (Light Texture YRYS) */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 360px;
+            background-image: url("/static/assets_youn/YrysUIPackage/UI_Jatin/Light%20Texture.png");
+            background-size: 720px auto;
+            background-position: top center;
+            background-repeat: repeat-x;
+            opacity: var(--bg-texture-opacity);
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.75) 45%, rgba(0,0,0,0) 100%);
+            pointer-events: none;
+            z-index: 0;
         }
 
-        header {
-            text-align: center;
-            padding: 20px 0;
-            border-bottom: 1px solid #333;
-            margin-bottom: 20px;
+        /* Texture band bottom */
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 260px;
+            background-image: url("/static/assets_youn/YrysUIPackage/UI_Jatin/Light%20Texture.png");
+            background-size: 720px auto;
+            background-position: bottom center;
+            background-repeat: repeat-x;
+            opacity: calc(var(--bg-texture-opacity) * 0.85);
+            mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.65) 45%, rgba(0,0,0,0) 100%);
+            pointer-events: none;
+            z-index: 0;
         }
 
-        header h1 {
-            font-size: 1.5rem;
-            color: #4ecdc4;
-        }
-
-        /* Steps */
-        .steps {
+        /* ========================================
+           App Layout
+           ======================================== */
+        .app-layout {
             display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 30px;
+            min-height: 100vh;
+            position: relative;
+            z-index: 1;
         }
 
-        .step {
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: var(--sidebar-surface);
+            border-right: 1px solid var(--sidebar-border);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: var(--space-5);
+            border-bottom: 1px solid var(--sidebar-border);
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            background: #1a1a2e;
-            border-radius: 25px;
-            font-size: 0.9rem;
-            opacity: 0.5;
-            transition: all 0.3s;
+            gap: var(--space-3);
         }
 
-        .step.active {
+        .logo {
+            width: 36px;
+            height: 36px;
+        }
+
+        .logo-text {
+            font-size: var(--text-lg);
+            font-weight: 700;
+            color: var(--sidebar-text);
+            letter-spacing: 0.5px;
+        }
+
+        .sidebar-section {
+            padding: var(--space-4);
+        }
+
+        .sidebar-label {
+            font-size: var(--text-xs);
+            font-weight: 600;
+            color: var(--sidebar-text-subtle);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: var(--space-3);
+        }
+
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-1);
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            padding: var(--space-3) var(--space-4);
+            border-radius: var(--radius-md);
+            color: var(--sidebar-text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: var(--text-sm);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--sidebar-text);
+        }
+
+        .nav-item.active {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--sidebar-text);
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            opacity: 0.7;
+        }
+
+        .nav-item.active .nav-icon,
+        .nav-item:hover .nav-icon {
             opacity: 1;
-            background: #4ecdc4;
-            color: #000;
         }
 
-        .step.done {
-            opacity: 1;
-            background: #2d5a4a;
+        /* Zone list in sidebar */
+        .zone-list-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+            margin-top: var(--space-2);
         }
 
-        .step-num {
-            width: 24px;
-            height: 24px;
+        .zone-item-sidebar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-3);
+            background: var(--sidebar-surface-2);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--sidebar-border);
+        }
+
+        .zone-item-info {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .zone-dot {
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            background: rgba(0,0,0,0.3);
+            background: var(--color-success);
+        }
+
+        .zone-dot.occupied {
+            background: var(--color-danger);
+            animation: pulse-dot 1.5s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .zone-item-name {
+            font-size: var(--text-sm);
+            font-weight: 500;
+        }
+
+        .zone-item-time {
+            font-size: var(--text-xs);
+            font-family: 'Courier New', monospace;
+            color: var(--brand-02);
+            font-weight: 600;
+        }
+
+        /* Sidebar lisibilité */
+        .sidebar * {
+            text-shadow: 0 1px 0 rgba(0,0,0,0.35);
+        }
+
+        .sidebar a, .sidebar .nav-item, .sidebar .zone-item-name {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Sidebar footer */
+        .sidebar-footer {
+            margin-top: auto;
+            padding: var(--space-4);
+            border-top: 1px solid var(--sidebar-border);
+        }
+
+        .version-badge {
+            font-size: var(--text-xs);
+            color: var(--sidebar-text-subtle);
+        }
+
+        /* Main content */
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: var(--space-6);
             display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 0.8rem;
+            flex-direction: column;
+            gap: var(--space-5);
         }
 
-        /* Panels */
-        .panel {
-            background: #1a1a2e;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .panel-header {
+        /* Header bar */
+        .header-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-            gap: 10px;
         }
 
-        .panel h2 {
-            font-size: 1rem;
-            color: #888;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        .page-title {
+            font-size: var(--text-xl);
+            font-weight: 600;
         }
 
-        /* Video selection */
-        .video-select-area {
+        .page-subtitle {
+            font-size: var(--text-sm);
+            color: var(--color-text-muted);
+            margin-top: var(--space-1);
+        }
+
+        .header-actions {
             display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
+            align-items: center;
+            gap: var(--space-3);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-2) var(--space-4);
+            border-radius: var(--radius-lg);
+            font-size: var(--text-sm);
+            font-weight: 500;
+        }
+
+        .status-indicator.ready {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--color-success);
+        }
+
+        .status-indicator.streaming {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--color-danger);
+            animation: pulse-status 1.5s infinite;
+        }
+
+        .status-indicator.drawing {
+            background: rgba(240, 131, 33, 0.15);
+            color: var(--brand-01);
+        }
+
+        @keyframes pulse-status {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .status-dot-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-5);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-4);
+        }
+
+        .card-title {
+            font-size: var(--text-md);
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        .card-subtitle {
+            font-size: var(--text-xs);
+            color: var(--color-text-subtle);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Video section */
+        .video-section {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: var(--space-5);
+        }
+
+        @media (max-width: 1200px) {
+            .video-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .video-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+
+        .video-card-header {
+            padding: var(--space-4) var(--space-5);
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
             align-items: center;
         }
 
-        select, input[type="text"] {
-            padding: 12px 16px;
-            background: #0f0f1a;
-            border: 2px solid #333;
-            border-radius: 8px;
-            color: #fff;
-            font-size: 1rem;
-            min-width: 250px;
-        }
-
-        select:focus, input:focus {
-            outline: none;
-            border-color: #4ecdc4;
-        }
-
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
+        .video-title {
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .video-status {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            font-size: var(--text-sm);
+            color: var(--color-success);
+        }
+
+        .video-status.offline {
+            color: var(--color-text-muted);
+        }
+
+        .video-wrapper {
+            position: relative;
+            background: #000;
+            aspect-ratio: 16/9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #videoFrame, #videoStream {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        #drawCanvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        #drawCanvas.drawing {
+            pointer-events: auto;
+            cursor: crosshair;
+        }
+
+        .video-placeholder {
+            color: var(--color-text-subtle);
+            font-size: var(--text-md);
+            text-align: center;
+            padding: var(--space-6);
+        }
+
+        .video-placeholder-icon {
+            font-size: 48px;
+            margin-bottom: var(--space-3);
+            opacity: 0.3;
+        }
+
+        /* Video controls toolbar */
+        .video-toolbar {
+            padding: var(--space-4) var(--space-5);
+            border-top: 1px solid var(--color-border);
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-3);
+            align-items: center;
+        }
+
+        /* Camera status panel */
+        .camera-panel {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-4);
+        }
+
+        .camera-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-3);
+        }
+
+        .camera-item {
+            background: var(--color-surface-2);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: var(--space-3);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
         }
 
-        .btn-primary {
-            background: #4ecdc4;
-            color: #000;
+        .camera-item:hover {
+            border-color: var(--color-border-hover);
+            background: var(--color-surface-3);
         }
 
-        .btn-primary:hover {
-            background: #3dbdb5;
+        .camera-item.active {
+            border-color: var(--color-primary);
+            background: rgba(16, 176, 249, 0.08);
         }
 
-        .btn-danger {
-            background: #ff6b6b;
-            color: #fff;
+        .camera-item-name {
+            font-size: var(--text-sm);
+            font-weight: 500;
+            margin-bottom: var(--space-1);
         }
 
-        .btn-danger:hover {
-            background: #ee5a5a;
+        .camera-item-status {
+            font-size: var(--text-xs);
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
         }
 
-        .btn-secondary {
-            background: #333;
-            color: #fff;
+        .camera-item-status.online {
+            color: var(--color-success);
         }
 
-        .btn-secondary:hover {
-            background: #444;
+        .camera-item-status.offline {
+            color: var(--color-text-subtle);
         }
 
-        .btn:disabled {
+        /* Forms */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+        }
+
+        .form-label {
+            font-size: var(--text-sm);
+            font-weight: 500;
+            color: var(--color-text-muted);
+        }
+
+        .form-row {
+            display: flex;
+            gap: var(--space-3);
+            align-items: flex-end;
+        }
+
+        select, input[type="text"] {
+            padding: var(--space-3) var(--space-4);
+            background: var(--color-surface-2);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            color: var(--color-text);
+            font-family: var(--font-sans);
+            font-size: var(--text-sm);
+            min-width: 200px;
+            transition: all 0.2s ease;
+        }
+
+        select:hover, input[type="text"]:hover {
+            border-color: var(--color-border-hover);
+        }
+
+        select:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(16, 176, 249, 0.15);
+        }
+
+        select:disabled, input:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
 
-        .btn-small {
-            padding: 8px 16px;
-            font-size: 0.85rem;
+        /* Buttons */
+        .btn {
+            padding: var(--space-3) var(--space-4);
+            border: none;
+            border-radius: var(--radius-md);
+            font-family: var(--font-sans);
+            font-size: var(--text-sm);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            white-space: nowrap;
         }
 
+        .btn:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(16, 176, 249, 0.3);
+        }
+
+        .btn-primary {
+            background: var(--color-primary);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            background: var(--color-primary-hover);
+        }
+
+        .btn-primary:active {
+            background: var(--color-primary-pressed);
+        }
+
+        .btn-secondary {
+            background: var(--color-surface-3);
+            color: var(--color-text);
+            border: 1px solid var(--color-border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-06);
+            border-color: var(--color-border-hover);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--color-danger);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.25);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--color-text-muted);
+        }
+
+        .btn-ghost:hover {
+            background: var(--color-surface-3);
+            color: var(--color-text);
+        }
+
+        .btn-icon {
+            padding: var(--space-2);
+            min-width: 36px;
+            justify-content: center;
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .btn-blur-on {
+            background: rgba(189, 68, 213, 0.2) !important;
+            color: var(--brand-04) !important;
+            border-color: rgba(189, 68, 213, 0.3) !important;
+        }
+
+        /* Zones grid */
+        .zones-section {
+            margin-top: var(--space-4);
+        }
+
+        .zones-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: var(--space-4);
+        }
+
+        .zone-card {
+            background: var(--color-surface-2);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: var(--space-4);
+            transition: all 0.2s ease;
+        }
+
+        .zone-card:hover {
+            border-color: var(--color-border-hover);
+        }
+
+        .zone-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--space-3);
+        }
+
+        .zone-card-name {
+            font-weight: 600;
+            font-size: var(--text-md);
+            color: var(--color-primary);
+        }
+
+        .zone-card-status {
+            padding: var(--space-1) var(--space-3);
+            border-radius: var(--radius-lg);
+            font-size: var(--text-xs);
+            font-weight: 500;
+        }
+
+        .zone-card-status.occupied {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--color-danger);
+        }
+
+        .zone-card-status.empty {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--color-success);
+        }
+
+        .zone-card-time {
+            font-size: var(--text-2xl);
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+            margin: var(--space-3) 0;
+            color: var(--color-text);
+        }
+
+        .zone-card-actions {
+            display: flex;
+            gap: var(--space-2);
+        }
+
+        .no-zones {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: var(--color-text-subtle);
+            padding: var(--space-7);
+            background: var(--color-surface-2);
+            border-radius: var(--radius-md);
+            border: 1px dashed var(--color-border);
+        }
+
+        /* Drawing instructions */
+        .draw-instructions {
+            background: rgba(240, 131, 33, 0.15);
+            color: var(--brand-01);
+            padding: var(--space-3) var(--space-4);
+            border-radius: var(--radius-md);
+            font-weight: 500;
+            font-size: var(--text-sm);
+            display: none;
+        }
+
+        .draw-instructions.visible {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .btn-small {
+            padding: var(--space-2) var(--space-3);
+            font-size: var(--text-xs);
+        }
+
+        /* Drawing HUD (dans la vidéo) */
+        .draw-hud {
+            position: absolute;
+            left: var(--space-4);
+            right: var(--space-4);
+            bottom: var(--space-4);
+            display: flex;
+            justify-content: space-between;
+            gap: var(--space-4);
+            padding: var(--space-4);
+            border-radius: var(--radius-lg);
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            z-index: 5;
+        }
+
+        :root[data-theme="light"] .draw-hud {
+            background: rgba(255, 255, 255, 0.65);
+            border: 1px solid rgba(15, 23, 42, 0.12);
+        }
+
+        .draw-hud-left {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+            min-width: 0;
+        }
+
+        .draw-hud-title {
+            font-weight: 700;
+            font-size: var(--text-sm);
+            color: var(--color-text);
+        }
+
+        .draw-hud-actions {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        /* Draw panel (remplace le modal) */
+        .draw-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-3);
+            align-items: flex-end;
+            padding: var(--space-3);
+            border-radius: var(--radius-md);
+            background: var(--color-surface-2);
+            border: 1px solid var(--color-border);
+        }
+
+        .draw-panel .form-group {
+            min-width: 180px;
+        }
+
+        .segmented {
+            display: inline-flex;
+            gap: 0;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            background: var(--color-surface);
+        }
+
+        .segmented .btn {
+            border-radius: 0;
+            border: 0;
+        }
+
+        .segmented .btn.active {
+            background: rgba(16, 176, 249, 0.16);
+            color: var(--color-text);
+        }
+
+        .draw-tree {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+        }
+
+        .tree-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--space-2);
+            padding: var(--space-2) var(--space-3);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+
+        .tree-row:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: var(--sidebar-border-hover);
+        }
+
+        .tree-row .left {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            min-width: 0;
+        }
+
+        .tree-row .label {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--sidebar-text);
+            font-size: var(--text-sm);
+            font-weight: 500;
+        }
+
+        .tree-row .meta {
+            font-family: 'Courier New', monospace;
+            font-size: var(--text-xs);
+            color: var(--brand-02);
+            font-weight: 700;
+        }
+
+        .tree-children {
+            margin-left: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-1);
+        }
+
+        .tree-leaf .label {
+            color: var(--sidebar-text-muted);
+            font-size: var(--text-xs);
+        }
+
+        /* =========================================================
+           Drawing Editor (modal) — “paint-like”
+           ========================================================= */
+        .editor-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 300;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-6);
+        }
+
+        .editor {
+            width: min(1240px, 100%);
+            height: min(820px, 100%);
+            border-radius: 14px;
+            overflow: hidden;
+            background: #1B1E27;
+            border: 1px solid rgba(255,255,255,0.10);
+            box-shadow: 0 35px 120px rgba(0,0,0,0.45);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .editor-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            background: #232734;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .editor-title {
+            font-weight: 700;
+            color: #F5F7FF;
+        }
+
+        .editor-subtitle {
+            font-size: var(--text-xs);
+            color: rgba(245,247,255,0.65);
+            margin-top: 2px;
+        }
+
+        .editor-body {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1.6fr 0.9fr;
+            gap: 16px;
+            padding: 16px;
+            min-height: 0;
+        }
+
+        .editor-left {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 0;
+        }
+
+        .editor-canvas-wrap {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #0b0f14;
+            border: 1px solid rgba(255,255,255,0.10);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 0;
+        }
+
+        .editor-hoverbar {
+            position: absolute;
+            z-index: 3;
+            display: flex;
+            gap: 6px;
+            padding: 6px;
+            border-radius: 12px;
+            background: rgba(35,39,52,0.92);
+            border: 1px solid rgba(255,255,255,0.12);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 14px 50px rgba(0,0,0,0.35);
+            pointer-events: none; /* ne bloque pas le drag canvas */
+        }
+
+        .editor-hoverbtn {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.06);
+            color: #F5F7FF;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+        }
+
+        .editor-hoverbtn {
+            pointer-events: auto; /* seuls les boutons capturent le clic */
+        }
+
+        .editor-hoverbtn:hover { background: rgba(16,176,249,0.14); border-color: rgba(16,176,249,0.35); }
+        .editor-hoverbtn.danger:hover { background: rgba(239,68,68,0.18); border-color: rgba(239,68,68,0.35); }
+
+        .editor-canvas-wrap img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        #editorCanvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .editor-right {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 0;
+            overflow: auto;
+        }
+
+        .editor-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .editor-card h3 {
+            font-size: var(--text-sm);
+            font-weight: 700;
+            color: #F5F7FF;
+            margin-bottom: 10px;
+        }
+
+        .editor-kv {
+            display: grid;
+            grid-template-columns: 70px 1fr;
+            gap: 8px 10px;
+            font-size: var(--text-sm);
+            color: rgba(245,247,255,0.78);
+        }
+
+        .editor-kv .k { color: rgba(245,247,255,0.55); }
+
+        .editor-zones {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 220px;
+            overflow: auto;
+        }
+
+        .editor-zone-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            background: rgba(255,255,255,0.03);
+        }
+
+        .editor-zone-row:hover { border-color: rgba(16,176,249,0.35); }
+        .editor-zone-row.active { border-color: rgba(16,176,249,0.65); background: rgba(16,176,249,0.10); }
+
+        .editor-zone-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .editor-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+        }
+
+        .editor-zone-name {
+            color: #F5F7FF;
+            font-weight: 600;
+            font-size: var(--text-sm);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .editor-zone-meta {
+            color: rgba(245,247,255,0.65);
+            font-family: 'Courier New', monospace;
+            font-size: var(--text-xs);
+            white-space: nowrap;
+        }
+
+        .editor-tools {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .tool-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tool-btn {
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.10);
+            background: rgba(255,255,255,0.06);
+            color: #F5F7FF;
+            font-weight: 700;
+            font-size: var(--text-sm);
+            cursor: pointer;
+        }
+
+        .tool-btn.primary { background: rgba(16,176,249,0.20); border-color: rgba(16,176,249,0.35); }
+        .tool-btn.green { background: rgba(34,197,94,0.18); border-color: rgba(34,197,94,0.35); }
+        .tool-btn.yellow { background: rgba(240,131,33,0.18); border-color: rgba(240,131,33,0.35); }
+        .tool-btn.red { background: rgba(239,68,68,0.18); border-color: rgba(239,68,68,0.35); }
+        .tool-btn.active { outline: 2px solid rgba(16,176,249,0.55); }
+
+        .editor-guide {
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.10);
+            background: rgba(0,0,0,0.22);
+            color: rgba(245,247,255,0.75);
+            font-size: var(--text-sm);
+        }
+
+        .editor-bottombar {
+            padding: 14px 16px;
+            background: #232734;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        /* Active streams badges */
+        .active-streams {
+            display: flex;
+            gap: var(--space-2);
+            flex-wrap: wrap;
+        }
+
+        .stream-badge {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--color-success);
+            padding: var(--space-1) var(--space-3);
+            border-radius: var(--radius-lg);
+            font-size: var(--text-xs);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+        }
+
+        .stream-badge.current {
+            background: rgba(16, 176, 249, 0.15);
+            color: var(--color-primary);
+        }
+
+        .stream-badge .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* File upload */
         .file-upload {
             position: relative;
         }
@@ -183,329 +1278,441 @@
             cursor: pointer;
         }
 
-        /* Video container - FIXED positioning */
-        .video-wrapper {
-            position: relative;
-            background: #000;
-            border-radius: 8px;
-            overflow: hidden;
+        /* Hidden class */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Steps indicator */
+        .steps {
             display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 400px;
+            gap: var(--space-2);
         }
 
-        .video-container {
-            position: relative;
-            display: inline-block;
-        }
-
-        #videoFrame, #videoStream {
-            display: block;
-            max-width: 100%;
-            max-height: 500px;
-        }
-
-        #drawCanvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            pointer-events: none;
-        }
-
-        #drawCanvas.drawing {
-            pointer-events: auto;
-            cursor: crosshair;
-        }
-
-        .video-placeholder {
-            position: absolute;
-            inset: 0;
+        .step {
             display: flex;
             align-items: center;
-            justify-content: center;
-            color: #666;
-            font-size: 1.2rem;
-        }
-
-        /* Drawing toolbar */
-        .draw-toolbar {
-            display: flex;
-            gap: 10px;
-            padding: 15px;
-            background: #252540;
-            border-radius: 8px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .draw-toolbar label {
-            color: #888;
-            font-size: 0.9rem;
-        }
-
-        .draw-instructions {
-            background: #4ecdc4;
-            color: #000;
-            padding: 10px 15px;
-            border-radius: 8px;
+            gap: var(--space-2);
+            padding: var(--space-2) var(--space-4);
+            background: var(--color-surface-2);
+            border-radius: var(--radius-lg);
+            font-size: var(--text-sm);
             font-weight: 500;
-            display: none;
+            color: var(--color-text-subtle);
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
         }
 
-        .draw-instructions.visible {
-            display: block;
+        .step.active {
+            background: rgba(16, 176, 249, 0.15);
+            color: var(--color-primary);
+            border-color: rgba(16, 176, 249, 0.3);
         }
 
-        /* Active streams indicator */
-        .active-streams {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
+        .step.done {
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--color-success);
         }
 
-        .stream-badge {
-            background: #2d5a4a;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.8rem;
+        .step-num {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: currentColor;
+            color: var(--color-bg);
             display: flex;
             align-items: center;
-            gap: 5px;
+            justify-content: center;
+            font-size: var(--text-xs);
+            font-weight: 700;
         }
 
-        .stream-badge.current {
-            background: #4ecdc4;
-            color: #000;
-        }
-
-        .stream-badge .dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #4ecdc4;
-            animation: blink 1s infinite;
-        }
-
-        .stream-badge.current .dot {
-            background: #000;
-        }
-
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-
-        /* Zones list */
-        .zones-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px;
-        }
-
-        .zone-card {
-            background: #252540;
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-        }
-
-        .zone-name {
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: #4ecdc4;
-        }
-
-        .zone-time {
-            font-size: 2rem;
-            font-family: 'Courier New', monospace;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-
-        .zone-status {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            margin-bottom: 10px;
-        }
-
-        .zone-status.occupied {
-            background: #ff6b6b;
-        }
-
-        .zone-status.empty {
-            background: #2d5a4a;
-        }
-
-        .zone-delete {
-            background: none;
-            border: 1px solid #ff6b6b;
-            color: #ff6b6b;
-            padding: 5px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.8rem;
-        }
-
-        .zone-delete:hover {
-            background: #ff6b6b;
-            color: #fff;
-        }
-
-        .no-zones {
-            text-align: center;
-            color: #666;
-            padding: 30px;
-        }
-
-        /* Controls */
-        .controls-row {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-        }
-
-        /* Status indicator */
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-        }
-
-        .status-badge.streaming {
-            background: #ff6b6b;
-            animation: pulse 1.5s infinite;
-        }
-
-        .status-badge.ready {
-            background: #2d5a4a;
-        }
-
-        .status-badge.drawing {
-            background: #f9ca24;
-            color: #000;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
+        .step.active .step-num,
+        .step.done .step-num {
             background: currentColor;
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
         }
 
-        /* Hidden elements */
-        .hidden { display: none !important; }
-
-        /* Blur toggle button */
-        .btn-blur-on {
-            background: #9b59b6 !important;
-            color: #fff !important;
+        ::-webkit-scrollbar-track {
+            background: var(--color-surface);
         }
 
-        .btn-blur-on:hover {
-            background: #8e44ad !important;
+        ::-webkit-scrollbar-thumb {
+            background: var(--gray-06);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--gray-05);
+        }
+
+        /* Responsive sidebar */
+        @media (max-width: 900px) {
+            .sidebar {
+                transform: translateX(-100%);
+                z-index: 100;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="app">
-        <header>
-            <h1>Zone Presence Tracker</h1>
-        </header>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <svg class="logo" viewBox="0 0 1609.48 1543.54" xmlns="http://www.w3.org/2000/svg">
+                    <polygon fill="#0b58d8" points="1609.48 1410.4 708.85 1543.42 856.3 1002.13 1148.84 958.84 1148.96 958.87 1609.48 1410.4"/>
+                    <polygon fill="#10b0f9" points="856.3 1002.13 708.81 1543.54 708.69 1543.51 0 971.95 625.87 816.5 625.99 816.53 856.18 1002.1 856.3 1002.13"/>
+                    <polygon fill="#f93b09" points="1440.85 915.14 998.21 481.22 1129.3 0 1440.85 915.14"/>
+                    <polygon fill="#bd44d5" points="1609.48 1410.4 1148.96 958.87 1441.08 915.72 1609.48 1410.4"/>
+                    <polygon fill="#fc5607" points="1129.3 0 998.21 481.22 998.12 481.07 396.67 630.56 1129.3 0"/>
+                    <polygon fill="#e7ab37" points="625.87 816.5 0 971.95 396.03 631.03 625.87 816.5"/>
+                    <polygon fill="#f8d239" points="998.21 481.22 927.27 741.62 625.99 816.53 625.87 816.5 396.03 631.03 396.67 630.56 998.12 481.07 998.21 481.22"/>
+                    <polygon fill="#f08321" points="1441.08 915.72 1148.96 958.87 1148.84 958.84 927.27 741.62 998.21 481.22 1440.85 915.14 1441.08 915.72"/>
+                    <polygon fill="#062db6" points="1148.84 958.84 856.3 1002.13 927.27 741.62 1148.84 958.84"/>
+                    <polygon fill="#7475d8" points="927.27 741.62 856.3 1002.13 856.18 1002.1 625.99 816.53 927.27 741.62"/>
+                </svg>
+                <span class="logo-text">YRYS</span>
+            </div>
 
-        <!-- Steps indicator -->
-        <div class="steps">
-            <div class="step" id="step1">
-                <span class="step-num">1</span>
-                <span>Choisir video</span>
+            <div class="sidebar-section">
+                <div class="sidebar-label">General</div>
+                <nav class="sidebar-nav">
+                    <a class="nav-item active">
+                        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                        </svg>
+                        Zone Tracker
+                    </a>
+                </nav>
             </div>
-            <div class="step" id="step2">
-                <span class="step-num">2</span>
-                <span>Dessiner zones</span>
-            </div>
-            <div class="step" id="step3">
-                <span class="step-num">3</span>
-                <span>Lancer detection</span>
-            </div>
-        </div>
 
-        <!-- Step 1: Video selection -->
-        <div class="panel">
-            <div class="panel-header">
-                <h2>Video Source</h2>
-                <div class="active-streams" id="activeStreams"></div>
-                <span class="status-badge ready" id="statusBadge">
-                    <span class="status-dot"></span>
-                    <span id="statusText">Pret</span>
-                </span>
-            </div>
-            <div class="video-select-area">
-                <select id="videoSelect">
-                    <option value="">-- Choisir une video --</option>
-                </select>
-                <div class="file-upload">
-                    <button class="btn btn-secondary">Upload video</button>
-                    <input type="file" id="videoUpload" accept="video/*">
-                </div>
-            </div>
-        </div>
-
-        <!-- Video display -->
-        <div class="panel">
-            <div class="video-wrapper" id="videoWrapper">
-                <div class="video-placeholder" id="placeholder">
-                    Selectionnez une video pour commencer
-                </div>
-                <div class="video-container" id="videoContainer">
-                    <img id="videoFrame" class="hidden" alt="Video frame">
-                    <img id="videoStream" class="hidden" alt="Video stream">
-                    <canvas id="drawCanvas" class="hidden"></canvas>
+            <div class="sidebar-section">
+                <div class="sidebar-label">Active Zones</div>
+                <div class="zone-list-sidebar" id="zoneListSidebar">
+                    <div style="color: var(--color-text-subtle); font-size: var(--text-sm);">Aucune zone</div>
                 </div>
             </div>
 
-            <!-- Drawing toolbar -->
-            <div class="draw-toolbar" id="drawToolbar">
-                <label>Nom de la zone:</label>
-                <input type="text" id="zoneName" placeholder="Ex: Zone A" style="min-width: 150px;">
-                <button class="btn btn-primary" id="startDrawBtn">Dessiner</button>
-                <button class="btn btn-secondary hidden" id="undoBtn">Annuler point</button>
-                <button class="btn btn-primary hidden" id="finishBtn">Valider zone</button>
-                <button class="btn btn-danger hidden" id="cancelBtn">Annuler</button>
-                <div class="draw-instructions" id="drawInstructions">
-                    Cliquez sur la video pour placer les points du polygone (min 3 points)
+            <div class="sidebar-footer">
+                <div class="version-badge">©2025 YRYS, Inc — v1.0</div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header-bar">
+                <div>
+                    <h1 class="page-title">Zone Presence Tracker</h1>
+                    <p class="page-subtitle">Surveillance et analyse du temps de présence</p>
+                </div>
+                <div class="header-actions">
+                    <div class="steps">
+                        <div class="step" id="step1">
+                            <span class="step-num">1</span>
+                            <span>Caméra</span>
+                        </div>
+                        <div class="step" id="step2">
+                            <span class="step-num">2</span>
+                            <span>Zones</span>
+                        </div>
+                        <div class="step" id="step3">
+                            <span class="step-num">3</span>
+                            <span>Détection</span>
+                        </div>
+                    </div>
+                    <div class="status-indicator ready" id="statusBadge">
+                        <span class="status-dot-indicator"></span>
+                        <span id="statusText">Prêt</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Video Section -->
+            <section class="video-section">
+                <div class="video-card">
+                    <div class="video-card-header">
+                        <div class="video-title">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                            <span id="currentVideoTitle">Sélectionner une vidéo</span>
+                        </div>
+                        <div class="active-streams" id="activeStreams"></div>
+                    </div>
+
+                    <div class="video-wrapper" id="videoWrapper">
+                        <div class="draw-hud hidden" id="drawHud">
+                            <div class="draw-hud-left">
+                                <div class="draw-hud-title" id="drawHudTitle">Mode dessin</div>
+                                <div class="draw-instructions visible" id="drawInstructions">
+                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    Cliquez pour placer les points
+                                </div>
+                            </div>
+                            <div class="draw-hud-actions">
+                                <button class="btn btn-secondary btn-small" id="undoBtn">Annuler pt</button>
+                                <button class="btn btn-primary btn-small" id="finishBtn" disabled>Enregistrer dessin</button>
+                                <button class="btn btn-danger btn-small" id="cancelBtn">Annuler</button>
+                            </div>
+                        </div>
+                        <div class="video-placeholder" id="placeholder">
+                            <div class="video-placeholder-icon">📹</div>
+                            <div>Sélectionnez une vidéo pour commencer</div>
+                        </div>
+                        <div class="video-container" id="videoContainer">
+                            <img id="videoFrame" class="hidden" alt="Video frame">
+                            <img id="videoStream" class="hidden" alt="Video stream">
+                            <canvas id="drawCanvas" class="hidden"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="video-toolbar">
+                        <!-- Source vidéo: gérée via la liste des caméras (masqué pour garder le mécanisme interne) -->
+                        <div class="hidden">
+                            <select id="videoSelect">
+                                <option value="">-- Choisir une vidéo --</option>
+                            </select>
+                            <input type="file" id="videoUpload" accept="video/*">
+                        </div>
+
+                        <div class="form-row">
+                            <button class="btn btn-secondary" id="toggleDrawPanelBtn">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                                Dessin
+                            </button>
+                            <div class="draw-panel hidden" id="drawPanel">
+                                <div class="form-group">
+                                    <label class="form-label">Zone</label>
+                                    <select id="drawZoneSelect">
+                                        <option value="">— Choisir —</option>
+                                        <option value="__new__">+ Nouvelle zone…</option>
+                                    </select>
+                                </div>
+                                <div class="form-group hidden" id="drawZoneNameGroup">
+                                    <label class="form-label">Nom de zone</label>
+                                    <input type="text" id="drawZoneName" placeholder="Ex: Zone A">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Outil</label>
+                                    <div class="segmented">
+                                        <button class="btn btn-secondary btn-small active" id="toolPolyBtn" type="button">Polygone</button>
+                                        <button class="btn btn-secondary btn-small" id="toolLineBtn" type="button">Ligne</button>
+                                    </div>
+                                </div>
+                                <button class="btn btn-primary" id="startDrawBtn" type="button">Tracer</button>
+                                <button class="btn btn-secondary" id="stopDrawBtn" type="button">Terminer</button>
+                                <div style="width: 1px; height: 28px; background: var(--color-border);"></div>
+                                <button class="btn btn-secondary btn-small" id="editSelectedBtn" type="button">Éditer</button>
+                                <button class="btn btn-secondary btn-small" id="addPointBtn" type="button">+ Point</button>
+                                <button class="btn btn-secondary btn-small" id="deletePointBtn" type="button">- Point</button>
+                                <button class="btn btn-primary btn-small" id="saveEditBtn" type="button">Sauver</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Camera/Control Panel -->
+                <div class="camera-panel">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-subtitle">Contrôles</div>
+                                <div class="card-title">Actions</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+                            <button class="btn btn-primary" id="startDetectionBtn" disabled style="width: 100%;">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Lancer la détection
+                            </button>
+                            <button class="btn btn-danger hidden" id="stopDetectionBtn" style="width: 100%;">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>
+                                </svg>
+                                Arrêter
+                            </button>
+                            <button class="btn btn-danger hidden" id="stopAllBtn" style="width: 100%;">Arrêter tout</button>
+                            <button class="btn btn-secondary" id="resetTimersBtn" style="width: 100%;">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                </svg>
+                                Reset timers
+                            </button>
+                            <button class="btn btn-secondary" id="toggleBlurBtn" style="width: 100%;">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                                </svg>
+                                Floutage: OFF
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-subtitle">Vidéos disponibles</div>
+                                <div class="card-title">Caméras</div>
+                            </div>
+                        </div>
+                        <div class="camera-grid" id="cameraGrid">
+                            <!-- Cameras will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Zones Section -->
+            <section class="zones-section">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-subtitle">Présences</div>
+                            <div class="card-title">Temps de présence par zone</div>
+                        </div>
+                        <button class="btn btn-danger" id="deleteAllZonesBtn">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                            Supprimer tout
+                        </button>
+                    </div>
+                    <div class="recap-grid" id="recapGrid" style="display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: var(--space-4); padding: var(--space-4); border-top: 1px solid var(--color-border);">
+                        <div class="card" style="background: transparent; border: 0; box-shadow: none; padding: 0;">
+                            <div class="card-subtitle">Caméras</div>
+                            <div class="card-title" id="recapCameras">—</div>
+                            <div style="color: var(--color-text-muted); font-size: var(--text-xs);" id="recapCamerasSub">—</div>
+                        </div>
+                        <div class="card" style="background: transparent; border: 0; box-shadow: none; padding: 0;">
+                            <div class="card-subtitle">Zones</div>
+                            <div class="card-title" id="recapZones">—</div>
+                            <div style="color: var(--color-text-muted); font-size: var(--text-xs);" id="recapZonesSub">—</div>
+                        </div>
+                        <div class="card" style="background: transparent; border: 0; box-shadow: none; padding: 0;">
+                            <div class="card-subtitle">Dessins</div>
+                            <div class="card-title" id="recapDrawings">—</div>
+                            <div style="color: var(--color-text-muted); font-size: var(--text-xs);" id="recapDrawingsSub">—</div>
+                        </div>
+                        <div class="card" style="background: transparent; border: 0; box-shadow: none; padding: 0;">
+                            <div class="card-subtitle">Présences actives</div>
+                            <div class="card-title" id="recapActive">—</div>
+                            <div style="color: var(--color-text-muted); font-size: var(--text-xs);" id="recapActiveSub">—</div>
+                        </div>
+                    </div>
+                    <div class="zones-grid" id="zonesGrid">
+                        <div class="no-zones">Aucune zone définie pour cette vidéo</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Drawing Editor Modal (paint-like) -->
+    <div class="editor-overlay hidden" id="editorOverlay" role="dialog" aria-modal="true" aria-label="Éditeur de zones">
+        <div class="editor">
+            <div class="editor-topbar">
+                <div>
+                    <div class="editor-title" id="editorTitle">Video Editing</div>
+                    <div class="editor-subtitle" id="editorSubtitle">Outils de dessin</div>
+                </div>
+                <button class="btn btn-ghost btn-icon" id="editorCloseBtn" title="Fermer">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="editor-body">
+                <div class="editor-left">
+                    <div class="editor-canvas-wrap">
+                        <img id="editorFrame" alt="Frame">
+                        <canvas id="editorCanvas"></canvas>
+                        <div class="editor-hoverbar hidden" id="editorHoverBar">
+                            <button class="editor-hoverbtn" id="hoverMoveBtn" title="Déplacer">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12h16M12 4v16"/>
+                                </svg>
+                            </button>
+                            <button class="editor-hoverbtn" id="hoverDeletePointBtn" title="Supprimer le point">•✕</button>
+                            <button class="editor-hoverbtn danger" id="hoverDeleteShapeBtn" title="Supprimer le dessin">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="editor-tools">
+                        <div class="tool-row">
+                            <button class="tool-btn primary active" id="toolSelectBtn">Sélection</button>
+                            <button class="tool-btn" id="toolCountLineBtn">Ligne de comptage</button>
+                            <button class="tool-btn green" id="toolIncludeBtn">Zone d’inclusion</button>
+                            <button class="tool-btn yellow" id="toolExcludeBtn" title="Zone d’exclusion">Zone d’exclusion</button>
+                            <button class="tool-btn" id="toolUndoBtn" title="Annuler (Ctrl+Z)">↶</button>
+                            <button class="tool-btn red" id="toolClearBtn">Tout effacer</button>
+                        </div>
+
+                        <div class="editor-guide" id="editorGuide">
+                            1) Choisissez une zone à droite. 2) Dessinez (ligne ou polygone). 3) Ajustez les points. 4) Sauvegardez.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="editor-right">
+                    <div class="editor-card">
+                        <h3>Informations sur la caméra</h3>
+                        <div class="editor-kv">
+                            <div class="k">ID</div><div id="editorCamId">—</div>
+                            <div class="k">Rés.</div><div id="editorCamRes">—</div>
+                            <div class="k">Statut</div><div id="editorCamStatus">—</div>
+                            <div class="k">Src.</div><div id="editorCamSource">—</div>
+                        </div>
+                    </div>
+
+                    <div class="editor-card">
+                        <h3>Associated Zones</h3>
+                        <div class="editor-zones" id="editorZoneList"></div>
+                        <div style="margin-top: 10px; display:flex; gap:8px;">
+                            <input type="text" id="editorNewZoneName" placeholder="Nouvelle zone…" style="flex:1; min-width:0; background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#F5F7FF;">
+                            <button class="tool-btn primary" id="editorAddZoneBtn">+</button>
+                        </div>
+                    </div>
+
+                    <div class="editor-card">
+                        <h3>Contrôles</h3>
+                        <div class="editor-kv">
+                            <div class="k">Lecture</div><div>Frame fixe (édition)</div>
+                            <div class="k">Astuce</div><div>Glissez un point pour le déplacer. Cliquez près d’une arête pour ajouter un point.</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Detection controls -->
-            <div class="controls-row">
-                <button class="btn btn-primary" id="startDetectionBtn" disabled>Lancer la detection</button>
-                <button class="btn btn-danger hidden" id="stopDetectionBtn">Arreter cette video</button>
-                <button class="btn btn-danger hidden" id="stopAllBtn">Arreter toutes les videos</button>
-                <button class="btn btn-secondary" id="resetTimersBtn">Reset tous les timers</button>
-                <button class="btn btn-secondary" id="toggleBlurBtn">Floutage: OFF</button>
-            </div>
-        </div>
-
-        <!-- Zones panel -->
-        <div class="panel">
-            <div class="panel-header">
-                <h2>Zones & Temps de Presence</h2>
-                <button class="btn btn-danger btn-small" id="deleteAllZonesBtn">Supprimer toutes les zones</button>
-            </div>
-            <div class="zones-grid" id="zonesGrid">
-                <div class="no-zones">Aucune zone definie</div>
+            <div class="editor-bottombar">
+                <button class="tool-btn" id="editorSaveBtn">Save annotations</button>
+                <button class="tool-btn" id="editorCloseBtn2">Close</button>
             </div>
         </div>
     </div>
@@ -513,12 +1720,21 @@
     <script>
         // State
         let currentVideo = null;
+        let currentCameraId = null;
         let isDrawing = false;
         let isCurrentVideoStreaming = false;
         let drawPoints = [];
         let videoWidth = 0;
         let videoHeight = 0;
         let activeVideoStreams = new Set();
+        let drawMode = 'poly'; // 'poly' | 'line'
+        let activeDrawZoneName = '';
+        let zonePolygonCounts = {}; // { [zoneName]: number }
+        let selectedAsset = null; // { zone: string, idx?: number }
+        let editMode = false;
+        let editPoints = null; // points being edited (array of [x,y])
+        let editDragging = null; // { idx: number }
+        const HANDLE_RADIUS = 10;
 
         // Elements
         const videoSelect = document.getElementById('videoSelect');
@@ -529,8 +1745,21 @@
         const drawCanvas = document.getElementById('drawCanvas');
         const ctx = drawCanvas.getContext('2d');
         const placeholder = document.getElementById('placeholder');
-        const zoneName = document.getElementById('zoneName');
+        const toggleDrawPanelBtn = document.getElementById('toggleDrawPanelBtn');
+        const drawPanel = document.getElementById('drawPanel');
+        const drawZoneSelect = document.getElementById('drawZoneSelect');
+        const drawZoneNameGroup = document.getElementById('drawZoneNameGroup');
+        const drawZoneName = document.getElementById('drawZoneName');
+        const toolPolyBtn = document.getElementById('toolPolyBtn');
+        const toolLineBtn = document.getElementById('toolLineBtn');
         const startDrawBtn = document.getElementById('startDrawBtn');
+        const stopDrawBtn = document.getElementById('stopDrawBtn');
+        const editSelectedBtn = document.getElementById('editSelectedBtn');
+        const addPointBtn = document.getElementById('addPointBtn');
+        const deletePointBtn = document.getElementById('deletePointBtn');
+        const saveEditBtn = document.getElementById('saveEditBtn');
+        const drawHud = document.getElementById('drawHud');
+        const drawHudTitle = document.getElementById('drawHudTitle');
         const undoBtn = document.getElementById('undoBtn');
         const finishBtn = document.getElementById('finishBtn');
         const cancelBtn = document.getElementById('cancelBtn');
@@ -543,6 +1772,806 @@
         const statusBadge = document.getElementById('statusBadge');
         const statusText = document.getElementById('statusText');
         const activeStreamsDiv = document.getElementById('activeStreams');
+        const cameraGrid = document.getElementById('cameraGrid');
+        const currentVideoTitle = document.getElementById('currentVideoTitle');
+        const zoneListSidebar = document.getElementById('zoneListSidebar');
+        const recapCameras = document.getElementById('recapCameras');
+        const recapCamerasSub = document.getElementById('recapCamerasSub');
+        const recapZones = document.getElementById('recapZones');
+        const recapZonesSub = document.getElementById('recapZonesSub');
+        const recapDrawings = document.getElementById('recapDrawings');
+        const recapDrawingsSub = document.getElementById('recapDrawingsSub');
+        const recapActive = document.getElementById('recapActive');
+        const recapActiveSub = document.getElementById('recapActiveSub');
+
+        // Editor modal elements
+        const editorOverlay = document.getElementById('editorOverlay');
+        const editorCloseBtn = document.getElementById('editorCloseBtn');
+        const editorCloseBtn2 = document.getElementById('editorCloseBtn2');
+        const editorSaveBtn = document.getElementById('editorSaveBtn');
+        const editorTitle = document.getElementById('editorTitle');
+        const editorSubtitle = document.getElementById('editorSubtitle');
+        const editorFrame = document.getElementById('editorFrame');
+        const editorCanvas = document.getElementById('editorCanvas');
+        const editorCtx = editorCanvas.getContext('2d');
+        const editorCamId = document.getElementById('editorCamId');
+        const editorCamSource = document.getElementById('editorCamSource');
+        const editorCamRes = document.getElementById('editorCamRes');
+        const editorCamStatus = document.getElementById('editorCamStatus');
+        const editorZoneList = document.getElementById('editorZoneList');
+        const editorNewZoneName = document.getElementById('editorNewZoneName');
+        const editorAddZoneBtn = document.getElementById('editorAddZoneBtn');
+        const toolSelectBtn = document.getElementById('toolSelectBtn');
+        const toolCountLineBtn = document.getElementById('toolCountLineBtn');
+        const toolIncludeBtn = document.getElementById('toolIncludeBtn');
+        const toolExcludeBtn = document.getElementById('toolExcludeBtn');
+        const toolUndoBtn = document.getElementById('toolUndoBtn');
+        const toolClearBtn = document.getElementById('toolClearBtn');
+        const editorGuide = document.getElementById('editorGuide');
+        const editorHoverBar = document.getElementById('editorHoverBar');
+        const hoverMoveBtn = document.getElementById('hoverMoveBtn');
+        const hoverDeletePointBtn = document.getElementById('hoverDeletePointBtn');
+        const hoverDeleteShapeBtn = document.getElementById('hoverDeleteShapeBtn');
+
+        const editorState = {
+            open: false,
+            tool: 'select', // select | line | poly
+            zone: null,
+            polygonIdx: null,
+            mode: 'idle', // idle | creating | editing
+            points: [],
+            drag: null, // { kind: 'vertex'|'poly', vIdx?:number, start?:[x,y] }
+            undo: [],
+            zones: {}, // from /api/zones/{video}
+            presence: {}, // from /api/presence/{video}
+            w: 0,
+            h: 0,
+            dirty: false,
+            autosaveTimer: null,
+            didDrag: false
+        };
+
+        function setTool(tool) {
+            drawMode = tool;
+            toolPolyBtn.classList.toggle('active', tool === 'poly');
+            toolLineBtn.classList.toggle('active', tool === 'line');
+            updateFinishButtonState();
+        }
+
+        // ===== Editor modal logic (paint-like) =====
+        function editorSetTool(tool) {
+            editorState.tool = tool;
+            toolSelectBtn.classList.toggle('active', tool === 'select');
+            toolCountLineBtn.classList.toggle('active', tool === 'line');
+            toolIncludeBtn.classList.toggle('active', tool === 'include');
+            toolExcludeBtn.classList.toggle('active', tool === 'exclude');
+            editorGuide.textContent =
+                tool === 'select'
+                    ? 'Sélection: cliquez un dessin/point puis glissez pour déplacer. Cliquez près d’une arête pour ajouter un point.'
+                    : tool === 'line'
+                        ? 'Ligne de comptage: 2 clics pour placer départ/arrivée.'
+                        : tool === 'exclude'
+                            ? 'Zone d’exclusion: cliquez pour placer des points (3+). Double-clic pour fermer.'
+                            : 'Zone d’inclusion: cliquez pour placer des points (3+). Double-clic pour fermer.';
+        }
+
+        function editorPushUndo() {
+            const snapshot = {
+                tool: editorState.tool,
+                zone: editorState.zone,
+                polygonIdx: editorState.polygonIdx,
+                mode: editorState.mode,
+                points: clonePoints(editorState.points),
+            };
+            editorState.undo.push(snapshot);
+            if (editorState.undo.length > 50) editorState.undo.shift();
+        }
+
+        function editorPopUndo() {
+            const s = editorState.undo.pop();
+            if (!s) return;
+            editorState.tool = s.tool;
+            editorState.zone = s.zone;
+            editorState.polygonIdx = s.polygonIdx;
+            editorState.mode = s.mode;
+            editorState.points = clonePoints(s.points);
+            editorSetTool(editorState.tool);
+            editorRender();
+        }
+
+        function editorClearTemp() {
+            editorState.mode = 'idle';
+            editorState.points = [];
+            editorState.drag = null;
+            editorState.polygonIdx = null;
+            editorRender();
+        }
+
+        function editorScheduleAutosave() {
+            if (!currentVideo || !editorState.zone) return;
+            editorState.dirty = true;
+            if (editorState.autosaveTimer) clearTimeout(editorState.autosaveTimer);
+            editorState.autosaveTimer = setTimeout(async () => {
+                try {
+                    await editorPutNow();
+                } catch (e) {
+                    console.warn('Autosave failed', e);
+                }
+            }, 650);
+        }
+
+        async function editorPutNow() {
+            if (!currentVideo || !editorState.zone) return;
+            const zoneName = editorState.zone;
+            const polygons = editorState.zones?.[zoneName]?.polygons || [];
+            const putRes = await fetch(`/api/zones/${encodeURIComponent(currentVideo)}/${encodeURIComponent(zoneName)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ polygons })
+            });
+            if (!putRes.ok) throw new Error('PUT zone failed');
+            editorState.dirty = false;
+            // sync main view quietly
+            try { await loadZones(); drawExistingZones(); } catch {}
+        }
+
+        async function editorPostNewPolygon(type, poly) {
+            if (!currentVideo || !editorState.zone) return;
+            const zoneName = editorState.zone;
+            const prevCount = (editorState.zones?.[zoneName]?.polygons || []).length;
+            const res = await fetch('/api/zones', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: zoneName, polygons: [poly], video: currentVideo })
+            });
+            if (!res.ok) throw new Error('POST zone failed');
+            setDrawType(currentVideo, zoneName, prevCount, type);
+            // refresh editor state from server
+            const [zonesRes, presenceRes] = await Promise.all([
+                fetch(`/api/zones/${encodeURIComponent(currentVideo)}`),
+                fetch(`/api/presence/${encodeURIComponent(currentVideo)}`)
+            ]);
+            const zdata = await zonesRes.json();
+            const pdata = await presenceRes.json();
+            editorState.zones = zdata.zones || {};
+            editorState.presence = pdata.zones || {};
+            editorRenderZoneList();
+            editorRender();
+            try { await loadZones(); drawExistingZones(); } catch {}
+        }
+
+        function editorSelectZone(zoneName) {
+            editorState.zone = zoneName;
+            editorState.polygonIdx = null;
+            editorState.mode = 'idle';
+            editorState.points = [];
+            editorRenderZoneList();
+            editorRender();
+        }
+
+        function editorRenderZoneList() {
+            const zones = editorState.zones || {};
+            const presence = editorState.presence || {};
+            const keys = Object.keys(zones).sort((a,b) => a.localeCompare(b));
+            editorZoneList.innerHTML = keys.length
+                ? keys.map((z) => {
+                    const info = presence[z] || { formatted_time: '00:00:00' };
+                    const active = editorState.zone === z ? 'active' : '';
+                    const count = (zones[z]?.polygons || []).length;
+                    return `
+                        <div class="editor-zone-row ${active}" onclick="window.__editorSelectZone('${z.replace(/'/g, "\\'")}')">
+                            <div class="editor-zone-left">
+                                <span class="editor-dot"></span>
+                                <span class="editor-zone-name">${z}</span>
+                            </div>
+                            <span class="editor-zone-meta">${info.formatted_time} • ${count}</span>
+                        </div>
+                    `;
+                }).join('')
+                : `<div style="color: rgba(245,247,255,0.65); font-size: var(--text-sm);">Aucune zone</div>`;
+        }
+
+        window.__editorSelectZone = (z) => editorSelectZone(z);
+
+        async function editorOpen() {
+            if (!currentVideo) {
+                alert('Choisissez une caméra avant de dessiner.');
+                return;
+            }
+            if (isCurrentVideoStreaming) {
+                // On stoppe pour éditer sur frame fixe (plus fiable)
+                await fetch(`/api/stream/${encodeURIComponent(currentVideo)}/stop`, { method: 'POST' });
+                isCurrentVideoStreaming = false;
+            }
+
+            const cam = getCameraByVideo(currentVideo);
+            editorTitle.textContent = `Video Editing — ${cam ? cam.name : currentVideo}`;
+            editorSubtitle.textContent = `Source: ${currentVideo}`;
+
+            // Load info + zones
+            const [infoRes, zonesRes, presenceRes] = await Promise.all([
+                fetch(`/api/videos/${encodeURIComponent(currentVideo)}/info`),
+                fetch(`/api/zones/${encodeURIComponent(currentVideo)}`),
+                fetch(`/api/presence/${encodeURIComponent(currentVideo)}`)
+            ]);
+            const info = await infoRes.json();
+            const zdata = await zonesRes.json();
+            const pdata = await presenceRes.json();
+
+            editorState.w = info.width;
+            editorState.h = info.height;
+            editorState.zones = zdata.zones || {};
+            editorState.presence = pdata.zones || {};
+            if (!editorState.zone) {
+                const firstZone = Object.keys(editorState.zones)[0] || null;
+                editorState.zone = firstZone;
+            }
+
+            editorCamId.textContent = cam ? cam.id : '—';
+            editorCamSource.textContent = currentVideo;
+            editorCamRes.textContent = `${info.width}×${info.height}`;
+            editorCamStatus.textContent = 'Online';
+
+            editorFrame.src = `/api/videos/${encodeURIComponent(currentVideo)}/frame?t=${Date.now()}`;
+            editorCanvas.width = info.width;
+            editorCanvas.height = info.height;
+
+            editorSetTool('select');
+            editorClearTemp();
+            editorRenderZoneList();
+
+            editorOverlay.classList.remove('hidden');
+            editorState.open = true;
+            // sync canvas display size after image load
+            editorFrame.onload = () => {
+                const r = editorFrame.getBoundingClientRect();
+                editorCanvas.style.width = r.width + 'px';
+                editorCanvas.style.height = r.height + 'px';
+                editorRender();
+            };
+        }
+
+        function editorClose() {
+            editorOverlay.classList.add('hidden');
+            editorState.open = false;
+            editorClearTemp();
+        }
+
+        function editorRender() {
+            // clear
+            editorCtx.clearRect(0, 0, editorCanvas.width, editorCanvas.height);
+
+            // draw existing polygons for selected zone
+            const zoneName = editorState.zone;
+            if (zoneName && editorState.zones?.[zoneName]?.polygons) {
+                const polys = editorState.zones[zoneName].polygons;
+                polys.forEach((poly, idx) => {
+                    if (!poly || poly.length < 3) return;
+                    const isActive = editorState.polygonIdx === idx;
+                    const type = getDrawType(currentVideo, zoneName, idx);
+                    const c = colorsForType(type, isActive);
+                    editorCtx.beginPath();
+                    editorCtx.moveTo(poly[0][0], poly[0][1]);
+                    for (let i = 1; i < poly.length; i++) editorCtx.lineTo(poly[i][0], poly[i][1]);
+                    editorCtx.closePath();
+                    editorCtx.fillStyle = c.fill;
+                    editorCtx.fill();
+                    editorCtx.strokeStyle = c.stroke;
+                    editorCtx.lineWidth = isActive ? 4 : 2;
+                    editorCtx.stroke();
+                });
+            }
+
+            // draw current temp tool
+            if (editorState.points.length) {
+                if (editorState.tool === 'line') {
+                    const p1 = editorState.points[0];
+                    const p2 = editorState.points[1];
+                    if (p1) {
+                        editorCtx.beginPath();
+                        editorCtx.arc(p1[0], p1[1], 8, 0, Math.PI * 2);
+                        editorCtx.fillStyle = '#10B0F9';
+                        editorCtx.fill();
+                    }
+                    if (p2) {
+                        editorCtx.beginPath();
+                        editorCtx.arc(p2[0], p2[1], 8, 0, Math.PI * 2);
+                        editorCtx.fillStyle = '#10B0F9';
+                        editorCtx.fill();
+                        editorCtx.beginPath();
+                        editorCtx.moveTo(p1[0], p1[1]);
+                        editorCtx.lineTo(p2[0], p2[1]);
+                        editorCtx.strokeStyle = '#10B0F9';
+                        editorCtx.lineWidth = 3;
+                        editorCtx.setLineDash([8, 6]);
+                        editorCtx.stroke();
+                        editorCtx.setLineDash([]);
+                    }
+                } else if (editorState.tool === 'include' || editorState.tool === 'exclude') {
+                    const pts = editorState.points;
+                    const t = editorState.tool === 'exclude' ? 'exclude' : 'include';
+                    const c = colorsForType(t, false);
+                    editorCtx.beginPath();
+                    editorCtx.moveTo(pts[0][0], pts[0][1]);
+                    for (let i = 1; i < pts.length; i++) editorCtx.lineTo(pts[i][0], pts[i][1]);
+                    if (pts.length >= 3) {
+                        editorCtx.closePath();
+                        editorCtx.fillStyle = c.fill;
+                        editorCtx.fill();
+                    }
+                    editorCtx.strokeStyle = c.stroke;
+                    editorCtx.lineWidth = 3;
+                    editorCtx.setLineDash([6, 4]);
+                    editorCtx.stroke();
+                    editorCtx.setLineDash([]);
+
+                    pts.forEach((p, i) => {
+                        editorCtx.beginPath();
+                        editorCtx.arc(p[0], p[1], 8, 0, Math.PI * 2);
+                        editorCtx.fillStyle = i === 0 ? '#10B0F9' : '#22c55e';
+                        editorCtx.fill();
+                        editorCtx.strokeStyle = '#000';
+                        editorCtx.lineWidth = 2;
+                        editorCtx.stroke();
+                    });
+                }
+            }
+
+            // draw handles for selected polygon (edit)
+            if (editorState.tool === 'select' && editorState.zone && typeof editorState.polygonIdx === 'number') {
+                const poly = editorState.zones?.[editorState.zone]?.polygons?.[editorState.polygonIdx];
+                if (poly && poly.length) {
+                    poly.forEach((p, i) => {
+                        editorCtx.beginPath();
+                        editorCtx.arc(p[0], p[1], 9, 0, Math.PI * 2);
+                        editorCtx.fillStyle = '#10B0F9';
+                        editorCtx.fill();
+                        editorCtx.strokeStyle = '#fff';
+                        editorCtx.lineWidth = 2;
+                        editorCtx.stroke();
+                    });
+                }
+            }
+        }
+
+        function hideHoverBar() {
+            editorHoverBar.classList.add('hidden');
+            editorHoverBar.dataset.kind = '';
+            editorHoverBar.dataset.vIdx = '';
+        }
+
+        function showHoverBar(xCss, yCss, kind, vIdx) {
+            editorHoverBar.classList.remove('hidden');
+            editorHoverBar.style.left = `${xCss}px`;
+            editorHoverBar.style.top = `${yCss}px`;
+            editorHoverBar.dataset.kind = kind;
+            editorHoverBar.dataset.vIdx = typeof vIdx === 'number' ? String(vIdx) : '';
+            hoverDeletePointBtn.classList.toggle('hidden', kind !== 'vertex');
+        }
+
+        function editorEventPoint(e) {
+            const rect = editorCanvas.getBoundingClientRect();
+            const scaleX = editorCanvas.width / rect.width;
+            const scaleY = editorCanvas.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+            return [x, y];
+        }
+
+        function pointInPoly(poly, p) {
+            // ray casting
+            let inside = false;
+            for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+                const xi = poly[i][0], yi = poly[i][1];
+                const xj = poly[j][0], yj = poly[j][1];
+                const intersect = ((yi > p[1]) !== (yj > p[1])) &&
+                    (p[0] < (xj - xi) * (p[1] - yi) / (yj - yi + 1e-9) + xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        }
+
+        function editorPickPolygon(p) {
+            const zoneName = editorState.zone;
+            const polys = editorState.zones?.[zoneName]?.polygons || [];
+            for (let idx = polys.length - 1; idx >= 0; idx--) {
+                const poly = polys[idx];
+                if (poly?.length >= 3 && pointInPoly(poly, p)) return idx;
+            }
+            return null;
+        }
+
+        function editorNearestVertex(poly, p, radius = 14) {
+            let best = -1;
+            let bestD = Infinity;
+            for (let i = 0; i < poly.length; i++) {
+                const d = dist2(poly[i], p);
+                if (d < bestD) { bestD = d; best = i; }
+            }
+            return bestD <= radius * radius ? best : -1;
+        }
+
+        function editorUpdateHoverUI(e) {
+            if (!editorState.open) return;
+            if (editorState.tool !== 'select') {
+                hideHoverBar();
+                return;
+            }
+            const zoneName = editorState.zone;
+            if (!zoneName) { hideHoverBar(); return; }
+            const p = editorEventPoint(e);
+            const idx = editorPickPolygon(p);
+            if (idx === null) { hideHoverBar(); return; }
+
+            // Prefer hovered polygon as selected (lightweight)
+            editorState.polygonIdx = idx;
+            const poly = editorState.zones?.[zoneName]?.polygons?.[idx];
+            if (!poly) { hideHoverBar(); return; }
+            const vIdx = editorNearestVertex(poly, p, 16);
+
+            const wrapRect = editorCanvas.getBoundingClientRect();
+            const xCss = (e.clientX - wrapRect.left) + 10;
+            const yCss = (e.clientY - wrapRect.top) + 10;
+            showHoverBar(
+                Math.min(xCss, wrapRect.width - 140),
+                Math.min(yCss, wrapRect.height - 44),
+                vIdx >= 0 ? 'vertex' : 'poly',
+                vIdx >= 0 ? vIdx : null
+            );
+            editorRender();
+        }
+
+        editorCanvas.addEventListener('dblclick', (e) => {
+            if (!editorState.open) return;
+            if (editorState.tool !== 'include' && editorState.tool !== 'exclude') return;
+            if (editorState.points.length >= 3) {
+                const poly = clonePoints(editorState.points);
+                const type = editorState.tool === 'exclude' ? 'exclude' : 'include';
+                editorState.points = [];
+                editorRender();
+                editorPostNewPolygon(type, poly).catch(() => alert('Erreur auto-save (polygone).'));
+            }
+        });
+
+        editorCanvas.addEventListener('pointerdown', (e) => {
+            if (!editorState.open) return;
+            const p = editorEventPoint(e);
+
+            if (editorState.tool === 'line') {
+                editorPushUndo();
+                if (editorState.points.length >= 2) editorState.points = [];
+                editorState.points.push(p);
+                editorRender();
+                // Auto-save dès que la ligne a 2 points
+                if (editorState.points.length === 2) {
+                    const poly = lineToPolygon(editorState.points[0], editorState.points[1], 12);
+                    editorState.points = [];
+                    editorRender();
+                    editorPostNewPolygon('line', poly).catch(() => alert('Erreur auto-save (ligne).'));
+                }
+                return;
+            }
+
+            if (editorState.tool === 'include' || editorState.tool === 'exclude') {
+                editorPushUndo();
+                editorState.points.push(p);
+                editorRender();
+                return;
+            }
+
+            // select/edit
+            const zoneName = editorState.zone;
+            if (!zoneName) return;
+            const idx = editorPickPolygon(p);
+            if (idx === null) {
+                editorState.polygonIdx = null;
+                hideHoverBar();
+                editorRender();
+                return;
+            }
+            editorState.polygonIdx = idx;
+            hideHoverBar();
+
+            const poly = editorState.zones[zoneName].polygons[idx];
+            const vIdx = editorNearestVertex(poly, p);
+            if (vIdx >= 0) {
+                editorPushUndo();
+                editorState.drag = { kind: 'vertex', vIdx };
+                editorState.didDrag = false;
+                editorCanvas.setPointerCapture(e.pointerId);
+            } else {
+                // insertion de point sur arête si près, sinon move entire shape
+                const copy = clonePointsArray(editorState.zones[zoneName].polygons);
+                const polyCopy = copy[idx];
+                const inserted = insertPointOnNearestEdge(polyCopy, p);
+                if (inserted) {
+                    editorPushUndo();
+                    editorState.zones[zoneName].polygons = copy;
+                    editorScheduleAutosave();
+                } else {
+                    editorPushUndo();
+                    editorState.drag = { kind: 'poly', start: p };
+                    editorState.didDrag = false;
+                    editorCanvas.setPointerCapture(e.pointerId);
+                }
+            }
+            editorRender();
+        });
+
+        editorCanvas.addEventListener('pointermove', (e) => {
+            if (!editorState.open) return;
+            if (!editorState.drag) {
+                editorUpdateHoverUI(e);
+                return;
+            }
+            const zoneName = editorState.zone;
+            if (!zoneName || typeof editorState.polygonIdx !== 'number') return;
+            const p = editorEventPoint(e);
+            const copy = clonePointsArray(editorState.zones[zoneName].polygons);
+            const poly = copy[editorState.polygonIdx];
+            if (!poly) return;
+
+            if (editorState.drag.kind === 'vertex') {
+                const vIdx = editorState.drag.vIdx;
+                if (typeof vIdx !== 'number' || !poly[vIdx]) return;
+                poly[vIdx] = [p[0], p[1]];
+                editorState.didDrag = true;
+            } else if (editorState.drag.kind === 'poly') {
+                const start = editorState.drag.start;
+                if (!start) return;
+                const dx = p[0] - start[0];
+                const dy = p[1] - start[1];
+                for (let i = 0; i < poly.length; i++) {
+                    poly[i] = [poly[i][0] + dx, poly[i][1] + dy];
+                }
+                editorState.drag.start = p;
+                editorState.didDrag = true;
+            }
+            editorState.zones[zoneName].polygons = copy;
+            editorRender();
+        });
+
+        editorCanvas.addEventListener('pointerup', () => {
+            if (!editorState.open) return;
+            editorState.drag = null;
+            if (editorState.didDrag) {
+                editorState.didDrag = false;
+                editorScheduleAutosave();
+            }
+        });
+
+        async function editorSave() {
+            if (!currentVideo || !editorState.zone) {
+                alert('Sélectionnez une zone.');
+                return;
+            }
+            const zoneName = editorState.zone;
+
+            // Si un tracé est en cours, on le commit (auto-save “manuel”)
+            if (editorState.tool === 'line' && editorState.points.length === 2) {
+                const poly = lineToPolygon(editorState.points[0], editorState.points[1], 12);
+                editorState.points = [];
+                editorRender();
+                await editorPostNewPolygon('line', poly);
+            } else if ((editorState.tool === 'include' || editorState.tool === 'exclude') && editorState.points.length >= 3) {
+                const poly = clonePoints(editorState.points);
+                const type = editorState.tool === 'exclude' ? 'exclude' : 'include';
+                editorState.points = [];
+                editorRender();
+                await editorPostNewPolygon(type, poly);
+            }
+
+            // Force save des modifs (PUT) + refresh editor
+            try {
+                await editorPutNow();
+                const [zonesRes, presenceRes] = await Promise.all([
+                    fetch(`/api/zones/${encodeURIComponent(currentVideo)}`),
+                    fetch(`/api/presence/${encodeURIComponent(currentVideo)}`)
+                ]);
+                const zdata = await zonesRes.json();
+                const pdata = await presenceRes.json();
+                editorState.zones = zdata.zones || {};
+                editorState.presence = pdata.zones || {};
+                editorRenderZoneList();
+                editorRender();
+            } catch (e) {
+                alert('Erreur: sauvegarde (PUT).');
+            }
+        }
+
+        editorAddZoneBtn.addEventListener('click', async () => {
+            const name = editorNewZoneName.value.trim();
+            if (!name) return;
+            const res = await fetch('/api/zones', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, polygons: [], video: currentVideo })
+            });
+            if (!res.ok) { alert('Erreur création zone'); return; }
+            editorNewZoneName.value = '';
+            await editorOpen(); // refresh editor state
+            editorSelectZone(name);
+        });
+
+        toolSelectBtn.addEventListener('click', () => editorSetTool('select'));
+        toolCountLineBtn.addEventListener('click', () => { editorSetTool('line'); editorState.points = []; editorRender(); });
+        toolIncludeBtn.addEventListener('click', () => { editorSetTool('include'); editorState.points = []; editorRender(); });
+        toolExcludeBtn.addEventListener('click', () => { editorSetTool('exclude'); editorState.points = []; editorRender(); });
+        toolUndoBtn.addEventListener('click', () => {
+            // Annulation “intelligente” façon paint:
+            // - si on trace, on retire le dernier point
+            // - sinon on annule le dernier snapshot
+            if ((editorState.tool === 'include' || editorState.tool === 'exclude' || editorState.tool === 'line') && editorState.points.length) {
+                editorState.points.pop();
+                editorRender();
+                return;
+            }
+            editorPopUndo();
+        });
+        toolClearBtn.addEventListener('click', () => { editorPushUndo(); editorClearTemp(); });
+
+        editorSaveBtn.addEventListener('click', editorSave);
+        editorCloseBtn.addEventListener('click', editorClose);
+        editorCloseBtn2.addEventListener('click', editorClose);
+
+        // Hover actions
+        hoverMoveBtn.addEventListener('click', () => {
+            // Déjà possible: cliquer-glisser dans la zone (ou sur un point)
+            editorSetTool('select');
+            hideHoverBar();
+        });
+
+        hoverDeletePointBtn.addEventListener('click', () => {
+            if (!editorState.zone || typeof editorState.polygonIdx !== 'number') return;
+            const kind = editorHoverBar.dataset.kind;
+            const vIdx = Number(editorHoverBar.dataset.vIdx);
+            if (kind !== 'vertex' || !Number.isFinite(vIdx)) return;
+            const copy = clonePointsArray(editorState.zones?.[editorState.zone]?.polygons || []);
+            const poly = copy[editorState.polygonIdx];
+            if (!poly || poly.length <= 3) {
+                alert('Un polygone doit garder au moins 3 points.');
+                return;
+            }
+            editorPushUndo();
+            poly.splice(vIdx, 1);
+            editorState.zones[editorState.zone].polygons = copy;
+            editorScheduleAutosave();
+            hideHoverBar();
+            editorRender();
+        });
+
+        hoverDeleteShapeBtn.addEventListener('click', () => {
+            if (!editorState.zone || typeof editorState.polygonIdx !== 'number') return;
+            const copy = clonePointsArray(editorState.zones?.[editorState.zone]?.polygons || []);
+            if (!copy[editorState.polygonIdx]) return;
+            if (!confirm('Supprimer ce dessin ?')) return;
+            editorPushUndo();
+            copy.splice(editorState.polygonIdx, 1);
+            editorState.zones[editorState.zone].polygons = copy;
+            editorState.polygonIdx = null;
+            editorScheduleAutosave();
+            hideHoverBar();
+            editorRenderZoneList();
+            editorRender();
+        });
+
+        // Raccourcis clavier (paint-like)
+        document.addEventListener('keydown', (e) => {
+            if (!editorState.open) return;
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+                e.preventDefault();
+                toolUndoBtn.click();
+            }
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                editorClose();
+            }
+        });
+
+        // Open editor when clicking the drawing button (instead of toggling the small panel)
+        toggleDrawPanelBtn.addEventListener('click', () => {
+            editorOpen();
+        });
+
+        function clonePoints(pts) {
+            return (pts || []).map(p => [p[0], p[1]]);
+        }
+
+        function dist2(a, b) {
+            const dx = a[0] - b[0];
+            const dy = a[1] - b[1];
+            return dx * dx + dy * dy;
+        }
+
+        function getCanvasPointFromEvent(e) {
+            const rect = drawCanvas.getBoundingClientRect();
+            const scaleX = drawCanvas.width / rect.width;
+            const scaleY = drawCanvas.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+            return [x, y];
+        }
+
+        function nearestVertexIndex(pts, p, radiusPx = HANDLE_RADIUS) {
+            const r2 = radiusPx * radiusPx;
+            let bestIdx = -1;
+            let bestD = Infinity;
+            for (let i = 0; i < pts.length; i++) {
+                const d = dist2(pts[i], p);
+                if (d < bestD) {
+                    bestD = d;
+                    bestIdx = i;
+                }
+            }
+            return bestD <= r2 ? bestIdx : -1;
+        }
+
+        function pointToSegmentDistanceSquared(p, a, b) {
+            const vx = b[0] - a[0];
+            const vy = b[1] - a[1];
+            const wx = p[0] - a[0];
+            const wy = p[1] - a[1];
+            const c1 = vx * wx + vy * wy;
+            if (c1 <= 0) return dist2(p, a);
+            const c2 = vx * vx + vy * vy;
+            if (c2 <= c1) return dist2(p, b);
+            const t = c1 / c2;
+            const proj = [a[0] + t * vx, a[1] + t * vy];
+            return dist2(p, proj);
+        }
+
+        function insertPointOnNearestEdge(pts, p) {
+            if (!pts || pts.length < 3) return false;
+            let bestIdx = -1;
+            let bestD = Infinity;
+            for (let i = 0; i < pts.length; i++) {
+                const a = pts[i];
+                const b = pts[(i + 1) % pts.length];
+                const d = pointToSegmentDistanceSquared(p, a, b);
+                if (d < bestD) {
+                    bestD = d;
+                    bestIdx = i;
+                }
+            }
+            // Seuil d’insertion (en px canvas)
+            if (bestD > (18 * 18)) return false;
+            pts.splice(bestIdx + 1, 0, [p[0], p[1]]);
+            return true;
+        }
+
+        function setEditMode(on) {
+            editMode = on;
+            editDragging = null;
+        }
+
+        async function saveEditedPolygon() {
+            if (!currentVideo || !selectedAsset || !selectedAsset.zone) return;
+            if (!editPoints || !Array.isArray(editPoints)) return;
+
+            const zoneName = selectedAsset.zone;
+            const idx = selectedAsset.idx;
+            const polygons = clonePointsArray((cachedZones[zoneName]?.polygons) || []);
+            if (typeof idx !== 'number' || !polygons[idx]) return;
+
+            polygons[idx] = clonePoints(editPoints);
+
+            const res = await fetch(`/api/zones/${encodeURIComponent(currentVideo)}/${encodeURIComponent(zoneName)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ polygons })
+            });
+            if (!res.ok) {
+                alert('Erreur sauvegarde (PUT zone).');
+                return;
+            }
+            await loadZones();
+            await drawExistingZones();
+            setEditMode(false);
+        }
+
+        function clonePointsArray(polys) {
+            return (polys || []).map(poly => clonePoints(poly));
+        }
         const steps = {
             step1: document.getElementById('step1'),
             step2: document.getElementById('step2'),
@@ -553,24 +2582,85 @@
         init();
 
         async function init() {
+            // Important: récupérer d'abord les streams, puis construire l'UI (évite les “resets”)
+            await updateActiveStreams();
             await loadVideos();
             await loadZones();
-            await updateActiveStreams();
             updateSteps();
 
-            // Poll zones and streams every second
             setInterval(loadZones, 1000);
             setInterval(updateActiveStreams, 2000);
+        }
+
+        const CAMERA_DEFS = [
+            {
+                id: 'entr1',
+                name: 'Entrepôt / Logistique',
+                hint: 'Déchargement & présence',
+                video: 'entr1.mp4'
+            },
+            {
+                id: 'convoyeur',
+                name: 'Convoyeur / Ligne',
+                hint: 'Tapis roulant & contrôle',
+                video: 'video_01.mp4'
+            }
+        ];
+
+        function getCameraByVideo(videoName) {
+            return CAMERA_DEFS.find(c => c.video === videoName) || null;
+        }
+
+        function getCameraById(id) {
+            return CAMERA_DEFS.find(c => c.id === id) || null;
         }
 
         async function loadVideos() {
             const res = await fetch('/api/videos');
             const data = await res.json();
+            const available = new Set(data.videos || []);
 
-            videoSelect.innerHTML = '<option value="">-- Choisir une video --</option>';
-            data.videos.forEach(v => {
+            // Garder la liste de vidéos pour l'interne (upload / fallback)
+            const selected = videoSelect.value || currentVideo || '';
+            videoSelect.innerHTML = '<option value="">-- Choisir une vidéo --</option>';
+            (data.videos || []).forEach((v) => {
                 videoSelect.innerHTML += `<option value="${v}">${v}</option>`;
             });
+            if (selected && available.has(selected)) videoSelect.value = selected;
+
+            // UI: 2 caméras fixes (simple & fiable)
+            cameraGrid.innerHTML = '';
+            CAMERA_DEFS.forEach((cam) => {
+                const videoExists = available.has(cam.video);
+                const isActive = activeVideoStreams.has(cam.video);
+                const isCurrent = cam.video === currentVideo;
+                const statusText = videoExists ? (isActive ? 'En ligne' : 'Prête') : 'Manquante';
+
+                cameraGrid.innerHTML += `
+                    <div class="camera-item ${isCurrent ? 'active' : ''}" data-camera="${cam.id}" onclick="selectCamera('${cam.id}')">
+                        <div class="camera-item-name">${cam.name}</div>
+                        <div class="camera-item-status ${videoExists ? (isActive ? 'online' : 'offline') : 'offline'}">
+                            <span class="camera-status-dot" style="width:6px;height:6px;border-radius:50%;background:currentColor;"></span>
+                            <span class="camera-status-text">${statusText}</span>
+                        </div>
+                        <div style="margin-top: var(--space-2); font-size: var(--text-xs); color: var(--color-text-muted);">
+                            ${cam.hint} • <span style="font-family: 'Courier New', monospace;">${cam.video}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function selectVideo(videoName) {
+            videoSelect.value = videoName;
+            videoSelect.dispatchEvent(new Event('change'));
+        }
+
+        function selectCamera(cameraId) {
+            const cam = getCameraById(cameraId);
+            if (!cam) return;
+            currentCameraId = cameraId;
+            selectVideo(cam.video);
         }
 
         async function updateActiveStreams() {
@@ -593,7 +2683,6 @@
                     stopAllBtn.classList.remove('hidden');
                 }
 
-                // Update button states
                 if (currentVideo) {
                     isCurrentVideoStreaming = activeVideoStreams.has(currentVideo);
                     if (isCurrentVideoStreaming) {
@@ -604,6 +2693,25 @@
                         stopDetectionBtn.classList.add('hidden');
                     }
                 }
+
+                // Met à jour les cartes caméras sans reconstruire le DOM (évite le jitter)
+                document.querySelectorAll('.camera-item[data-camera]').forEach((el) => {
+                    const camId = el.getAttribute('data-camera');
+                    const cam = getCameraById(camId);
+                    if (!cam) return;
+
+                    const active = activeVideoStreams.has(cam.video);
+                    const isCurrent = cam.video === currentVideo;
+                    el.classList.toggle('active', isCurrent);
+
+                    const statusEl = el.querySelector('.camera-item-status');
+                    if (!statusEl) return;
+
+                    statusEl.classList.toggle('online', active);
+                    statusEl.classList.toggle('offline', !active);
+                    const textEl = statusEl.querySelector('.camera-status-text');
+                    if (textEl) textEl.textContent = active ? 'En ligne' : 'Prête';
+                });
             } catch (e) {
                 console.error('Error fetching streams:', e);
             }
@@ -611,34 +2719,229 @@
 
         async function loadZones() {
             if (!currentVideo) {
-                zonesGrid.innerHTML = '<div class="no-zones">Selectionnez une video</div>';
+                zonesGrid.innerHTML = '<div class="no-zones">Sélectionnez une vidéo</div>';
+                zoneListSidebar.innerHTML = '<div style="color: var(--sidebar-text-subtle); font-size: var(--text-sm);">Sélectionnez une vidéo</div>';
+                recapCameras.textContent = `${CAMERA_DEFS.length}`;
+                recapCamerasSub.textContent = 'Caméras configurées';
+                recapZones.textContent = '—';
+                recapZonesSub.textContent = 'Sélectionnez une caméra';
+                recapDrawings.textContent = '—';
+                recapDrawingsSub.textContent = '—';
+                recapActive.textContent = '—';
+                recapActiveSub.textContent = '—';
                 return;
             }
 
-            const res = await fetch(`/api/presence/${encodeURIComponent(currentVideo)}`);
-            const data = await res.json();
-            const zones = data.zones;
+            const [presenceRes, zonesRes] = await Promise.all([
+                fetch(`/api/presence/${encodeURIComponent(currentVideo)}`),
+                fetch(`/api/zones/${encodeURIComponent(currentVideo)}`)
+            ]);
+            const presenceData = await presenceRes.json();
+            const zonesData = await zonesRes.json();
+
+            const zones = presenceData.zones || {};
+            const zonesWithPolygons = zonesData.zones || {};
+
+            // Recap (camera + zones + drawings + active presence)
+            const online = activeVideoStreams.size;
+            recapCameras.textContent = `${online}/${CAMERA_DEFS.length}`;
+            recapCamerasSub.textContent = 'En ligne / configurées';
+
+            const zoneCount = Object.keys(zonesWithPolygons).length;
+            recapZones.textContent = `${zoneCount}`;
+            recapZonesSub.textContent = 'Zones sur cette caméra';
+
+            let drawingsCount = 0;
+            for (const z of Object.values(zonesWithPolygons)) drawingsCount += (z.polygons || []).length;
+            recapDrawings.textContent = `${drawingsCount}`;
+            recapDrawingsSub.textContent = 'Dessins sur cette caméra';
+
+            const activeCount = Object.values(zones).filter(z => z.is_occupied).length;
+            recapActive.textContent = `${activeCount}`;
+            recapActiveSub.textContent = 'Zones occupées';
 
             if (Object.keys(zones).length === 0) {
-                zonesGrid.innerHTML = '<div class="no-zones">Aucune zone definie pour cette video</div>';
+                zonesGrid.innerHTML = '<div class="no-zones">Aucune zone définie pour cette vidéo</div>';
+                zoneListSidebar.innerHTML = '<div style="color: var(--sidebar-text-subtle); font-size: var(--text-sm);">Aucune zone</div>';
+                updateDrawPanelZones(zonesWithPolygons);
                 return;
             }
 
             zonesGrid.innerHTML = '';
+            zoneListSidebar.innerHTML = '';
+            updateDrawPanelZones(zonesWithPolygons);
+
             for (const [name, info] of Object.entries(zones)) {
                 const statusClass = info.is_occupied ? 'occupied' : 'empty';
-                const statusLabel = info.is_occupied ? 'Occupe' : 'Vide';
+                const statusLabel = info.is_occupied ? 'Occupé' : 'Vide';
+                const polys = (zonesWithPolygons[name]?.polygons || []);
+                const firstPoly = polys[0] || null;
+                const previewSvg = firstPoly ? buildPolyPreviewSvg(firstPoly) : '';
+                const drawings = polys.length;
 
                 zonesGrid.innerHTML += `
                     <div class="zone-card">
-                        <div class="zone-name">${name}</div>
-                        <div class="zone-status ${statusClass}">${statusLabel}</div>
-                        <div class="zone-time">${info.formatted_time}</div>
-                        <button class="zone-delete" onclick="deleteZone('${name}')">Supprimer</button>
+                        <div class="zone-card-header">
+                            <div class="zone-card-name">${name}</div>
+                            <div class="zone-card-status ${statusClass}">${statusLabel}</div>
+                        </div>
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap: var(--space-3); margin-top: var(--space-2);">
+                            <div style="color: var(--color-text-muted); font-size: var(--text-xs);">${drawings} dessin(s)</div>
+                            <div style="width: 88px; height: 56px; border-radius: var(--radius-sm); overflow:hidden; border: 1px solid var(--color-border); background: rgba(0,0,0,0.02);">
+                                ${previewSvg}
+                            </div>
+                        </div>
+                        <div class="zone-card-time">${info.formatted_time}</div>
+                        <div class="zone-card-actions">
+                            <button class="btn btn-ghost btn-icon" onclick="resetZoneTimer('${name}')" title="Reset">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                </svg>
+                            </button>
+                            <button class="btn btn-ghost btn-icon" onclick="deleteZone('${name}')" title="Supprimer">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 `;
+
+                // Sidebar explorer: Source vidéo > Zones > Dessins
+                const polyCount = (zonesWithPolygons[name]?.polygons || []).length;
+                zonePolygonCounts[name] = polyCount;
+            }
+
+            // Render explorer tree
+            renderAssetTree(zones, zonesWithPolygons);
+        }
+
+        function updateDrawPanelZones(zonesWithPolygons) {
+            const prev = drawZoneSelect.value;
+            drawZoneSelect.innerHTML = '<option value="">— Choisir —</option><option value="__new__">+ Nouvelle zone…</option>';
+            Object.keys(zonesWithPolygons || {}).sort().forEach((z) => {
+                drawZoneSelect.innerHTML += `<option value="${z}">${z}</option>`;
+            });
+            if (prev && [...drawZoneSelect.options].some(o => o.value === prev)) {
+                drawZoneSelect.value = prev;
+            }
+            drawZoneNameGroup.classList.toggle('hidden', drawZoneSelect.value !== '__new__');
+        }
+
+        function iconForDrawing(video, zone, idx) {
+            try {
+                const t = localStorage.getItem(`drawmeta:${video}:${zone}:${idx}`);
+                if (t === 'line') return '／'; // ligne
+                if (t === 'exclude') return '⛔'; // exclusion
+                if (t === 'include') return '⬠'; // inclusion
+            } catch {}
+            return '⬠'; // polygone
+        }
+
+        function getDrawType(video, zone, idx) {
+            try {
+                return localStorage.getItem(`drawmeta:${video}:${zone}:${idx}`) || 'include';
+            } catch {
+                return 'include';
             }
         }
+
+        function setDrawType(video, zone, idx, type) {
+            try {
+                localStorage.setItem(`drawmeta:${video}:${zone}:${idx}`, type);
+            } catch {}
+        }
+
+        function buildPolyPreviewSvg(poly) {
+            if (!poly || poly.length < 3) return '';
+            // Normalise points to a small viewBox with padding
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            for (const p of poly) {
+                minX = Math.min(minX, p[0]); minY = Math.min(minY, p[1]);
+                maxX = Math.max(maxX, p[0]); maxY = Math.max(maxY, p[1]);
+            }
+            const w = Math.max(1, maxX - minX);
+            const h = Math.max(1, maxY - minY);
+            const pad = 6;
+            const vw = 100, vh = 64;
+            const sx = (vw - pad * 2) / w;
+            const sy = (vh - pad * 2) / h;
+            const s = Math.min(sx, sy);
+            const pts = poly.map(p => {
+                const x = (p[0] - minX) * s + pad;
+                const y = (p[1] - minY) * s + pad;
+                return `${x.toFixed(1)},${y.toFixed(1)}`;
+            }).join(' ');
+            return `
+                <svg viewBox="0 0 ${vw} ${vh}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+                    <polygon points="${pts}" fill="rgba(34,197,94,0.18)" stroke="#22c55e" stroke-width="3" />
+                </svg>
+            `;
+        }
+
+        function colorsForType(type, isActive = false) {
+            // palette: include=vert, line=bleu, exclude=orange/rouge
+            const base = {
+                include: { stroke: '#22c55e', fill: 'rgba(34,197,94,0.16)' },
+                line: { stroke: '#10B0F9', fill: 'rgba(16,176,249,0.12)' },
+                exclude: { stroke: '#F08321', fill: 'rgba(240,131,33,0.16)' }
+            }[type] || { stroke: '#22c55e', fill: 'rgba(34,197,94,0.16)' };
+            if (!isActive) return base;
+            return { stroke: '#10B0F9', fill: 'rgba(16,176,249,0.18)' };
+        }
+
+        function renderAssetTree(presenceZones, zonesWithPolygons) {
+            const root = `
+                <div class="draw-tree">
+                    <div class="tree-row" onclick="selectVideo('${currentVideo}')">
+                        <div class="left">
+                            <span class="label">📹 ${(getCameraByVideo(currentVideo)?.name || currentVideo)}</span>
+                        </div>
+                        <span class="meta">${getCameraByVideo(currentVideo)?.id || 'Source'}</span>
+                    </div>
+                    <div class="tree-children">
+                        ${Object.keys(zonesWithPolygons || {}).sort().map((zoneName) => {
+                            const info = presenceZones[zoneName] || { formatted_time: '00:00:00', is_occupied: false };
+                            const drawings = zonesWithPolygons[zoneName]?.polygons || [];
+                            const dotClass = info.is_occupied ? 'occupied' : '';
+                            return `
+                                <div class="tree-row" onclick="selectZone('${zoneName}')">
+                                    <div class="left">
+                                        <span class="zone-dot ${dotClass}"></span>
+                                        <span class="label">${zoneName}</span>
+                                    </div>
+                                    <span class="meta">${info.formatted_time}</span>
+                                </div>
+                                <div class="tree-children">
+                                    ${drawings.map((_, idx) => `
+                                        <div class="tree-row tree-leaf" onclick="selectDrawing('${zoneName}', ${idx})">
+                                            <div class="left">
+                                                <span class="label">${iconForDrawing(currentVideo, zoneName, idx)} Dessin ${idx + 1}</span>
+                                            </div>
+                                            <span class="meta">#${idx + 1}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+            zoneListSidebar.innerHTML = root;
+        }
+
+        // Globaux cliquables depuis le HTML (style explorateur)
+        window.selectZone = (zoneName) => {
+            drawZoneSelect.value = zoneName;
+            drawZoneNameGroup.classList.add('hidden');
+            selectedAsset = { zone: zoneName };
+            drawExistingZones();
+        };
+
+        window.selectDrawing = (zoneName, idx) => {
+            selectedAsset = { zone: zoneName, idx };
+            drawExistingZones();
+        };
 
         function updateSteps() {
             Object.values(steps).forEach(s => s.classList.remove('active', 'done'));
@@ -659,17 +2962,16 @@
         }
 
         function updateStatus(status) {
-            statusBadge.className = 'status-badge ' + status;
+            statusBadge.className = 'status-indicator ' + status;
             if (status === 'streaming') {
-                statusText.textContent = 'Detection en cours';
+                statusText.textContent = 'Détection en cours';
             } else if (status === 'drawing') {
                 statusText.textContent = 'Mode dessin';
             } else {
-                statusText.textContent = 'Pret';
+                statusText.textContent = 'Prêt';
             }
         }
 
-        // Sync canvas size with video
         function syncCanvasSize() {
             const img = videoFrame.classList.contains('hidden') ? videoStream : videoFrame;
             if (!img.naturalWidth) return;
@@ -685,30 +2987,35 @@
         videoSelect.addEventListener('change', async () => {
             if (!videoSelect.value) return;
 
-            currentVideo = videoSelect.value;
+            // Stabilisation: changer de vidéo annule tout mode dessin en cours
+            if (isDrawing) {
+                exitDrawingMode();
+            }
+            selectedAsset = null;
+            drawPanel.classList.add('hidden');
 
-            // Get video info
+            currentVideo = videoSelect.value;
+            const cam = getCameraByVideo(currentVideo);
+            currentCameraId = cam ? cam.id : null;
+            currentVideoTitle.textContent = cam ? cam.name : currentVideo;
+
             const infoRes = await fetch(`/api/videos/${encodeURIComponent(currentVideo)}/info`);
             const info = await infoRes.json();
             videoWidth = info.width;
             videoHeight = info.height;
 
-            // Setup canvas with video dimensions
             drawCanvas.width = videoWidth;
             drawCanvas.height = videoHeight;
 
-            // Check if this video is already streaming
             isCurrentVideoStreaming = activeVideoStreams.has(currentVideo);
 
             if (isCurrentVideoStreaming) {
-                // Show stream
                 videoFrame.classList.add('hidden');
                 videoStream.classList.remove('hidden');
                 videoStream.src = `/api/stream/${encodeURIComponent(currentVideo)}`;
                 drawCanvas.classList.add('hidden');
                 updateStatus('streaming');
             } else {
-                // Show first frame
                 videoFrame.src = `/api/videos/${encodeURIComponent(currentVideo)}/frame?t=${Date.now()}`;
                 videoFrame.classList.remove('hidden');
                 videoStream.classList.add('hidden');
@@ -720,7 +3027,6 @@
             placeholder.classList.add('hidden');
             startDetectionBtn.disabled = false;
 
-            // Wait for image to load then sync canvas
             const img = isCurrentVideoStreaming ? videoStream : videoFrame;
             img.onload = () => {
                 syncCanvasSize();
@@ -752,35 +3058,138 @@
             videoUpload.value = '';
         });
 
-        // Drawing
-        startDrawBtn.addEventListener('click', () => {
-            if (!zoneName.value.trim()) {
-                alert('Entrez un nom de zone');
-                zoneName.focus();
-                return;
-            }
-            if (!currentVideo) {
-                alert('Selectionnez d\'abord une video');
-                return;
-            }
-            if (isCurrentVideoStreaming) {
-                alert('Arretez la detection avant de dessiner');
-                return;
-            }
+        function updateFinishButtonState() {
+            const ok = (drawMode === 'poly' && drawPoints.length >= 3) || (drawMode === 'line' && drawPoints.length >= 2);
+            finishBtn.disabled = !ok;
+        }
 
+        function beginDrawing(mode, name) {
+            drawMode = mode;
+            activeDrawZoneName = name;
             isDrawing = true;
             drawPoints = [];
 
-            startDrawBtn.classList.add('hidden');
-            undoBtn.classList.remove('hidden');
-            finishBtn.classList.remove('hidden');
-            cancelBtn.classList.remove('hidden');
-            drawInstructions.classList.add('visible');
-            zoneName.disabled = true;
+            drawHud.classList.remove('hidden');
+            drawHudTitle.textContent = `Mode dessin — ${name}`;
+            drawInstructions.innerHTML = `
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                ${mode === 'line'
+                    ? 'Cliquez pour placer 2 points (ligne).'
+                    : 'Cliquez pour placer les points (min 3) puis enregistrer.'}
+            `;
 
+            // Garantit que le canvas est visible pour capturer les clics
+            drawCanvas.classList.remove('hidden');
             drawCanvas.classList.add('drawing');
+            updateFinishButtonState();
             updateSteps();
             updateStatus('drawing');
+        }
+
+        function exitDrawingMode() {
+            isDrawing = false;
+            drawPoints = [];
+            activeDrawZoneName = '';
+            drawMode = 'poly';
+
+            drawHud.classList.add('hidden');
+            finishBtn.disabled = true;
+            drawCanvas.classList.remove('drawing');
+            updateSteps();
+            updateStatus('ready');
+        }
+
+        // Panneau dessin (remplacé par l'éditeur “paint-like”)
+        // (le toggle du panneau legacy est désactivé)
+
+        drawZoneSelect.addEventListener('change', () => {
+            const v = drawZoneSelect.value;
+            drawZoneNameGroup.classList.toggle('hidden', v !== '__new__');
+            if (v === '__new__') drawZoneName.focus();
+        });
+
+        toolPolyBtn.addEventListener('click', () => setTool('poly'));
+        toolLineBtn.addEventListener('click', () => setTool('line'));
+
+        editSelectedBtn.addEventListener('click', () => {
+            if (!selectedAsset || !selectedAsset.zone || typeof selectedAsset.idx !== 'number') {
+                alert('Sélectionnez un dessin dans la sidebar (Source > Zone > Dessin).');
+                return;
+            }
+            if (isCurrentVideoStreaming) {
+                alert('Arrêtez la détection avant d’éditer.');
+                return;
+            }
+            const poly = cachedZones?.[selectedAsset.zone]?.polygons?.[selectedAsset.idx];
+            if (!poly) {
+                alert('Dessin introuvable.');
+                return;
+            }
+            editPoints = clonePoints(poly);
+            setEditMode(true);
+            drawCanvas.classList.remove('hidden');
+            drawCanvas.classList.add('drawing');
+            redrawCanvas();
+        });
+
+        addPointBtn.addEventListener('click', () => {
+            if (!editMode || !editPoints) return;
+            // Ajout via prochain clic sur une arête (message)
+            alert('Cliquez près d’une arête pour insérer un point.');
+            // Le clic canvas gère l’insertion si editMode et pas sur un point
+        });
+
+        deletePointBtn.addEventListener('click', () => {
+            if (!editMode || !editPoints) return;
+            if (editDragging && typeof editDragging.idx === 'number') {
+                if (editPoints.length <= 3) {
+                    alert('Un polygone doit avoir au moins 3 points.');
+                    return;
+                }
+                editPoints.splice(editDragging.idx, 1);
+                editDragging = null;
+                redrawCanvas();
+                return;
+            }
+            alert('Sélectionnez un point (cliquez dessus) puis supprimez-le.');
+        });
+
+        saveEditBtn.addEventListener('click', async () => {
+            if (!editMode) return;
+            await saveEditedPolygon();
+        });
+
+        startDrawBtn.addEventListener('click', () => {
+            if (!currentVideo) {
+                alert('Sélectionnez d\'abord une vidéo');
+                return;
+            }
+            if (isCurrentVideoStreaming) {
+                alert('Arrêtez la détection avant de dessiner');
+                return;
+            }
+
+            let zoneNameSelected = drawZoneSelect.value;
+            if (!zoneNameSelected) {
+                alert('Choisissez une zone (ou créez-en une)');
+                return;
+            }
+            if (zoneNameSelected === '__new__') {
+                zoneNameSelected = drawZoneName.value.trim();
+                if (!zoneNameSelected) {
+                    alert('Entrez un nom de zone');
+                    drawZoneName.focus();
+                    return;
+                }
+            }
+            beginDrawing(drawMode, zoneNameSelected);
+        });
+
+        stopDrawBtn.addEventListener('click', () => {
+            exitDrawingMode();
+            drawExistingZones();
         });
 
         drawCanvas.addEventListener('click', (e) => {
@@ -793,36 +3202,95 @@
             const x = (e.clientX - rect.left) * scaleX;
             const y = (e.clientY - rect.top) * scaleY;
 
+            if (drawMode === 'line' && drawPoints.length >= 2) return;
+
             drawPoints.push([x, y]);
             redrawCanvas();
+            updateFinishButtonState();
+        });
+
+        // Edition points (drag + insertion)
+        drawCanvas.addEventListener('pointerdown', (e) => {
+            if (!editMode || !editPoints) return;
+            e.preventDefault();
+            const p = getCanvasPointFromEvent(e);
+            const idx = nearestVertexIndex(editPoints, p, HANDLE_RADIUS * 1.6);
+            if (idx >= 0) {
+                editDragging = { idx };
+                drawCanvas.setPointerCapture(e.pointerId);
+                redrawCanvas();
+            } else {
+                // insertion de point sur arête si assez près
+                const inserted = insertPointOnNearestEdge(editPoints, p);
+                if (inserted) {
+                    redrawCanvas();
+                }
+            }
+        });
+
+        drawCanvas.addEventListener('pointermove', (e) => {
+            if (!editMode || !editPoints) return;
+            if (!editDragging) return;
+            const p = getCanvasPointFromEvent(e);
+            const idx = editDragging.idx;
+            if (typeof idx === 'number' && editPoints[idx]) {
+                editPoints[idx][0] = p[0];
+                editPoints[idx][1] = p[1];
+                redrawCanvas();
+            }
+        });
+
+        drawCanvas.addEventListener('pointerup', (e) => {
+            if (!editMode) return;
+            if (editDragging) {
+                editDragging = null;
+                redrawCanvas();
+            }
         });
 
         undoBtn.addEventListener('click', () => {
             if (drawPoints.length > 0) {
                 drawPoints.pop();
                 redrawCanvas();
+                updateFinishButtonState();
             }
         });
 
         finishBtn.addEventListener('click', async () => {
-            if (drawPoints.length < 3) {
-                alert('Il faut au moins 3 points pour creer une zone');
-                return;
-            }
+            const isOk = (drawMode === 'poly' && drawPoints.length >= 3) || (drawMode === 'line' && drawPoints.length >= 2);
+            if (!isOk) return;
+
+            const zoneName = activeDrawZoneName;
+            const polygons = drawMode === 'line'
+                ? [lineToPolygon(drawPoints[0], drawPoints[1], 12)]
+                : [drawPoints];
+
+            const prevCount = zonePolygonCounts[zoneName] ?? 0;
 
             await fetch('/api/zones', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    name: zoneName.value.trim(),
-                    polygons: [drawPoints],
+                    name: zoneName,
+                    polygons,
                     video: currentVideo
                 })
             });
 
-            exitDrawingMode();
+            // Meta: mémorise le type du nouveau dessin côté navigateur (sans back)
+            try {
+                localStorage.setItem(
+                    `drawmeta:${currentVideo}:${zoneName}:${prevCount}`,
+                    drawMode === 'line' ? 'line' : 'include'
+                );
+            } catch {}
+
+            // Recharge et prépare un autre dessin pour la même zone (append)
             await loadZones();
             drawExistingZones();
+            drawPoints = [];
+            redrawCanvas();
+            updateFinishButtonState();
         });
 
         cancelBtn.addEventListener('click', () => {
@@ -830,58 +3298,114 @@
             drawExistingZones();
         });
 
-        function exitDrawingMode() {
-            isDrawing = false;
-            drawPoints = [];
-            zoneName.value = '';
-            zoneName.disabled = false;
-
-            startDrawBtn.classList.remove('hidden');
-            undoBtn.classList.add('hidden');
-            finishBtn.classList.add('hidden');
-            cancelBtn.classList.add('hidden');
-            drawInstructions.classList.remove('visible');
-
-            drawCanvas.classList.remove('drawing');
-            updateSteps();
-            updateStatus('ready');
+        function lineToPolygon(p1, p2, thickness = 12) {
+            const dx = p2[0] - p1[0];
+            const dy = p2[1] - p1[1];
+            const len = Math.hypot(dx, dy) || 1;
+            const nx = -dy / len;
+            const ny = dx / len;
+            const half = thickness / 2;
+            return [
+                [p1[0] + nx * half, p1[1] + ny * half],
+                [p1[0] - nx * half, p1[1] - ny * half],
+                [p2[0] - nx * half, p2[1] - ny * half],
+                [p2[0] + nx * half, p2[1] + ny * half]
+            ];
         }
 
         function redrawCanvas() {
             ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
-
-            // Draw existing zones first (but don't fetch, use cached)
             drawExistingZonesSync();
 
-            // Draw current polygon
-            if (drawPoints.length > 0) {
+            // Overlay édition: points + polygone
+            if (editMode && editPoints && editPoints.length >= 3) {
                 ctx.beginPath();
-                ctx.moveTo(drawPoints[0][0], drawPoints[0][1]);
-
-                for (let i = 1; i < drawPoints.length; i++) {
-                    ctx.lineTo(drawPoints[i][0], drawPoints[i][1]);
-                }
-
-                if (drawPoints.length >= 3) {
-                    ctx.closePath();
-                    ctx.fillStyle = 'rgba(78, 205, 196, 0.3)';
-                    ctx.fill();
-                }
-
-                ctx.strokeStyle = '#4ecdc4';
+                ctx.moveTo(editPoints[0][0], editPoints[0][1]);
+                for (let i = 1; i < editPoints.length; i++) ctx.lineTo(editPoints[i][0], editPoints[i][1]);
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(16, 176, 249, 0.12)';
+                ctx.fill();
+                ctx.strokeStyle = '#10B0F9';
                 ctx.lineWidth = 3;
                 ctx.stroke();
 
-                // Draw points
-                drawPoints.forEach((p, i) => {
+                editPoints.forEach((p, i) => {
+                    const isActive = editDragging && editDragging.idx === i;
                     ctx.beginPath();
-                    ctx.arc(p[0], p[1], 6, 0, Math.PI * 2);
-                    ctx.fillStyle = i === 0 ? '#2ed573' : '#4ecdc4';
+                    ctx.arc(p[0], p[1], HANDLE_RADIUS, 0, Math.PI * 2);
+                    ctx.fillStyle = isActive ? '#F08321' : '#10B0F9';
                     ctx.fill();
-                    ctx.strokeStyle = '#fff';
+                    ctx.strokeStyle = '#ffffff';
                     ctx.lineWidth = 2;
                     ctx.stroke();
                 });
+            }
+
+            if (drawPoints.length > 0) {
+                if (drawMode === 'line') {
+                    // Ligne: 2 points max
+                    const p1 = drawPoints[0];
+                    const p2 = drawPoints[1];
+
+                    if (p2) {
+                        const poly = lineToPolygon(p1, p2, 12);
+                        ctx.beginPath();
+                        ctx.moveTo(poly[0][0], poly[0][1]);
+                        for (let i = 1; i < poly.length; i++) ctx.lineTo(poly[i][0], poly[i][1]);
+                        ctx.closePath();
+                        ctx.fillStyle = 'rgba(16, 176, 249, 0.18)';
+                        ctx.fill();
+                        ctx.strokeStyle = '#10B0F9';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+
+                        // Ligne centrale
+                        ctx.beginPath();
+                        ctx.moveTo(p1[0], p1[1]);
+                        ctx.lineTo(p2[0], p2[1]);
+                        ctx.strokeStyle = '#10B0F9';
+                        ctx.lineWidth = 3;
+                        ctx.stroke();
+                    }
+
+                    drawPoints.forEach((p) => {
+                        ctx.beginPath();
+                        ctx.arc(p[0], p[1], 6, 0, Math.PI * 2);
+                        ctx.fillStyle = '#10B0F9';
+                        ctx.fill();
+                        ctx.strokeStyle = '#fff';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                    });
+                } else {
+                    // Zone: polygone
+                    ctx.beginPath();
+                    ctx.moveTo(drawPoints[0][0], drawPoints[0][1]);
+
+                    for (let i = 1; i < drawPoints.length; i++) {
+                        ctx.lineTo(drawPoints[i][0], drawPoints[i][1]);
+                    }
+
+                    if (drawPoints.length >= 3) {
+                        ctx.closePath();
+                        ctx.fillStyle = 'rgba(16, 176, 249, 0.25)';
+                        ctx.fill();
+                    }
+
+                    ctx.strokeStyle = '#10B0F9';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+
+                    drawPoints.forEach((p, i) => {
+                        ctx.beginPath();
+                        ctx.arc(p[0], p[1], 6, 0, Math.PI * 2);
+                        ctx.fillStyle = i === 0 ? '#22c55e' : '#10B0F9';
+                        ctx.fill();
+                        ctx.strokeStyle = '#fff';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                    });
+                }
             }
         }
 
@@ -898,13 +3422,24 @@
         }
 
         function drawExistingZonesSync() {
-            if (isDrawing) return;
-
             ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
 
             for (const [name, zone] of Object.entries(cachedZones)) {
-                for (const polygon of zone.polygons) {
+                const polygons = zone.polygons || [];
+                for (let idx = 0; idx < polygons.length; idx++) {
+                    const polygon = polygons[idx];
                     if (polygon.length < 3) continue;
+
+                    const isSelectedDrawing =
+                        selectedAsset &&
+                        selectedAsset.zone === name &&
+                        typeof selectedAsset.idx === 'number' &&
+                        selectedAsset.idx === idx;
+
+                    const isSelectedZone =
+                        selectedAsset &&
+                        selectedAsset.zone === name &&
+                        typeof selectedAsset.idx !== 'number';
 
                     ctx.beginPath();
                     ctx.moveTo(polygon[0][0], polygon[0][1]);
@@ -913,16 +3448,18 @@
                     }
                     ctx.closePath();
 
-                    ctx.fillStyle = 'rgba(255, 165, 0, 0.2)';
+                    const type = getDrawType(currentVideo, name, idx);
+                    const c = colorsForType(type, (isSelectedDrawing || isSelectedZone));
+                    ctx.fillStyle = c.fill;
                     ctx.fill();
-                    ctx.strokeStyle = '#ffa500';
-                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = c.stroke;
+                    ctx.lineWidth = isSelectedDrawing ? 4 : (isSelectedZone ? 3 : 2);
                     ctx.stroke();
 
-                    // Zone label
                     ctx.fillStyle = '#fff';
-                    ctx.font = 'bold 14px system-ui';
-                    ctx.fillText(name, polygon[0][0] + 5, polygon[0][1] - 8);
+                    ctx.font = 'bold 14px Manrope, system-ui';
+                    const label = isSelectedDrawing ? `${name} • ${type.toUpperCase()} ${idx + 1}` : name;
+                    ctx.fillText(label, polygon[0][0] + 5, polygon[0][1] - 8);
                 }
             }
         }
@@ -934,7 +3471,6 @@
             isCurrentVideoStreaming = true;
             activeVideoStreams.add(currentVideo);
 
-            // Hide frame, show stream
             videoFrame.classList.add('hidden');
             videoStream.classList.remove('hidden');
             drawCanvas.classList.add('hidden');
@@ -957,7 +3493,6 @@
             isCurrentVideoStreaming = false;
             activeVideoStreams.delete(currentVideo);
 
-            // Show frame again
             videoStream.src = '';
             videoStream.classList.add('hidden');
             videoFrame.src = `/api/videos/${encodeURIComponent(currentVideo)}/frame?t=${Date.now()}`;
@@ -1005,10 +3540,16 @@
         });
 
         resetTimersBtn.addEventListener('click', async () => {
-            if (!confirm('Remettre tous les timers a zero ?')) return;
+            if (!confirm('Remettre tous les timers à zéro ?')) return;
             await fetch('/api/zones/reset', { method: 'POST' });
             await loadZones();
         });
+
+        async function resetZoneTimer(name) {
+            if (!confirm(`Remettre le timer de "${name}" à zéro ?`)) return;
+            await fetch(`/api/zones/reset/${encodeURIComponent(name)}`, { method: 'POST' });
+            await loadZones();
+        }
 
         // Blur toggle
         const toggleBlurBtn = document.getElementById('toggleBlurBtn');
@@ -1017,10 +3558,21 @@
             const res = await fetch('/api/blur');
             const data = await res.json();
             if (data.enabled) {
-                toggleBlurBtn.textContent = 'Floutage: ON';
+                toggleBlurBtn.innerHTML = `
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
+                    Floutage: ON
+                `;
                 toggleBlurBtn.classList.add('btn-blur-on');
             } else {
-                toggleBlurBtn.textContent = 'Floutage: OFF';
+                toggleBlurBtn.innerHTML = `
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                    </svg>
+                    Floutage: OFF
+                `;
                 toggleBlurBtn.classList.remove('btn-blur-on');
             }
         }
@@ -1030,26 +3582,23 @@
             await updateBlurButton();
         });
 
-        // Initialize blur state
         updateBlurButton();
 
         async function deleteZone(name) {
-            if (!confirm(`Supprimer la zone "${name}" de cette video ?`)) return;
+            if (!confirm(`Supprimer la zone "${name}" de cette vidéo ?`)) return;
             await fetch(`/api/zones/${encodeURIComponent(currentVideo)}/${encodeURIComponent(name)}`, { method: 'DELETE' });
             await loadZones();
             drawExistingZones();
         }
 
-        // Delete all zones for current video
         document.getElementById('deleteAllZonesBtn').addEventListener('click', async () => {
             if (!currentVideo) return;
-            if (!confirm('Supprimer TOUTES les zones de cette video ?')) return;
+            if (!confirm('Supprimer TOUTES les zones de cette vidéo ?')) return;
             await fetch(`/api/zones/${encodeURIComponent(currentVideo)}`, { method: 'DELETE' });
             await loadZones();
             drawExistingZones();
         });
 
-        // Handle window resize
         window.addEventListener('resize', syncCanvasSize);
     </script>
 </body>
