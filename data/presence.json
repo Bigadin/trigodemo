@@ -1,11 +1,14 @@
 {
-  "T1": {
-    "total_time": 145.31516456604004
+  "Zone A": {
+    "total_time": 933.4893724918365
+  },
+  "Contr\u00f4le Pi\u00e8ces": {
+    "total_time": 0
+  },
+  "Zone  B": {
+    "total_time": 298.97086095809937
   },
   "T2": {
-    "total_time": 15.975797414779663
-  },
-  "T3": {
-    "total_time": 185.09694123268127
+    "total_time": 125.39246559143066
   }
 }
