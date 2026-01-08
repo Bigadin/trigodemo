@@ -1413,6 +1413,18 @@
             justify-content: center;
         }
 
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
         .tool-btn {
             padding: 12px 14px;
             border-radius: 12px;
@@ -1424,18 +1436,32 @@
             cursor: pointer;
         }
 
+        .tool-btn.icon {
+            padding: 10px;
+            min-width: 44px;
+            height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+        }
+
+        .tool-ico {
+            width: 20px;
+            height: 20px;
+            display: block;
+            opacity: 0.95;
+            filter: brightness(1.15);
+        }
+
         .tool-btn.primary { background: rgba(16,176,249,0.20); border-color: rgba(16,176,249,0.35); }
         .tool-btn.green { background: rgba(34,197,94,0.18); border-color: rgba(34,197,94,0.35); }
         .tool-btn.yellow { background: rgba(240,131,33,0.18); border-color: rgba(240,131,33,0.35); }
         .tool-btn.red { background: rgba(239,68,68,0.18); border-color: rgba(239,68,68,0.35); }
-        .tool-btn.save {
-            background: rgba(16,176,249,0.92);
-            border-color: rgba(16,176,249,1);
-            color: #0B0F14;
-            box-shadow: 0 10px 26px rgba(16,176,249,0.18);
-        }
-        .tool-btn.save:hover { filter: brightness(1.03); }
         .tool-btn.active { outline: 2px solid rgba(16,176,249,0.55); }
+
+        /* Fix contraste croix fermeture (noir sur noir) */
+        #editorCloseBtn { color: #F5F7FF; }
 
         .editor-guide {
             margin-top: 12px;
@@ -1455,6 +1481,25 @@
             align-items: center;
             justify-content: flex-end;
             gap: 12px;
+        }
+
+        /* Save buttons in editor */
+        .editor-save-mini.btn {
+            padding: 10px;
+            min-width: 44px;
+            height: 44px;
+            border-radius: 12px;
+        }
+        .editor-save-mini.btn .tool-ico { filter: none; }
+
+        .editor-save-main.btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px 18px;
+            font-weight: 700;
+            min-width: 260px;
         }
 
         /* Active streams badges */
@@ -1949,13 +1994,31 @@
 
                     <div class="editor-tools">
                         <div class="tool-row">
-                            <button class="tool-btn primary active" id="toolSelectBtn">Sélection</button>
-                            <button class="tool-btn" id="toolCountLineBtn">Ligne de comptage</button>
-                            <button class="tool-btn green" id="toolIncludeBtn">Zone d’inclusion</button>
-                            <button class="tool-btn yellow" id="toolExcludeBtn" title="Zone d’exclusion">Zone d’exclusion</button>
-                            <button class="tool-btn" id="toolUndoBtn" title="Annuler (Ctrl+Z)">↶</button>
-                            <button class="tool-btn red" id="toolClearBtn">Tout effacer</button>
-                            <button class="tool-btn save" id="toolSaveBtn" title="Sauvegarder la forme dans la zone">Sauver</button>
+                            <button class="tool-btn icon primary active" id="toolSelectBtn" title="Sélection">
+                                <img class="tool-ico" src="/static/assets_youn/SvIcons/circle-svgrepo-com.svg" alt="">
+                                <span class="sr-only">Sélection</span>
+                            </button>
+                            <button class="tool-btn icon" id="toolCountLineBtn" title="Ligne de comptage">
+                                <img class="tool-ico" src="/static/assets_youn/SvIcons/user-svgrepo-com.svg" alt="">
+                                <span class="sr-only">Ligne de comptage</span>
+                            </button>
+                            <button class="tool-btn icon green" id="toolIncludeBtn" title="Zone d’inclusion">
+                                <img class="tool-ico" src="/static/assets_youn/SvIcons/includezone.svg" alt="">
+                                <span class="sr-only">Zone d’inclusion</span>
+                            </button>
+                            <button class="tool-btn icon yellow" id="toolExcludeBtn" title="Zone d’exclusion">
+                                <img class="tool-ico" src="/static/assets_youn/SvIcons/intersect-svgrepo-com%20(1).svg" alt="">
+                                <span class="sr-only">Zone d’exclusion</span>
+                            </button>
+                            <button class="tool-btn icon" id="toolUndoBtn" title="Annuler (Ctrl+Z)">
+                                ↶
+                                <span class="sr-only">Annuler</span>
+                            </button>
+                            <button class="tool-btn icon red" id="toolClearBtn" title="Tout effacer">✕</button>
+                            <button class="btn btn-primary btn-icon editor-save-mini" id="toolSaveBtn" title="Sauvegarder toute la configuration">
+                                <img class="tool-ico" src="/static/assets_youn/SvIcons/checkmark-svgrepo-com.svg" alt="">
+                                <span class="sr-only">Sauvegarder tout</span>
+                            </button>
                         </div>
 
                         <div class="editor-guide" id="editorGuide">
@@ -1998,8 +2061,10 @@
             </div>
 
             <div class="editor-bottombar">
-                <button class="tool-btn" id="editorSaveBtn">Save annotations</button>
-                <button class="tool-btn" id="editorCloseBtn2">Close</button>
+                <button class="btn btn-primary editor-save-main" id="editorSaveBtn" title="Sauvegarder toute la configuration">
+                    <img class="tool-ico" src="/static/assets_youn/SvIcons/checkmark-svgrepo-com.svg" alt="">
+                    <span>Sauvegarder tout</span>
+                </button>
             </div>
         </div>
     </div>
@@ -2343,7 +2408,6 @@
         // Editor modal elements
         const editorOverlay = document.getElementById('editorOverlay');
         const editorCloseBtn = document.getElementById('editorCloseBtn');
-        const editorCloseBtn2 = document.getElementById('editorCloseBtn2');
         const editorSaveBtn = document.getElementById('editorSaveBtn');
         const editorTitle = document.getElementById('editorTitle');
         const editorSubtitle = document.getElementById('editorSubtitle');
@@ -2505,8 +2569,8 @@
             });
             if (!putRes.ok) throw new Error('PUT zone failed');
             editorState.dirty = false;
-            // sync main view quietly
-            try { await refreshMainAfterEditor(); } catch {}
+            // sync main view quietly (force pour refléter immédiatement les changements)
+            try { await refreshMainAfterEditor(true); } catch {}
         }
 
         async function editorPostNewPolygon(type, poly, extraMeta = null) {
@@ -2538,19 +2602,41 @@
             editorState.polygonIdx = prevCount;
             editorRenderZoneList();
             editorRender();
-            try { await refreshMainAfterEditor(); } catch {}
+            try { await refreshMainAfterEditor(true); } catch {}
         }
 
-        async function refreshMainAfterEditor() {
+        async function refreshMainAfterEditor(force = false) {
             // Soft refresh (sans recharger la page) pour éviter de perdre l'état multi-site (in-memory)
             if (!currentVideo) return;
-            // refresh KPI / sidebar + redraw zones overlay
+            // Force invalidation defs (très important après sauvegarde/suppression)
+            if (force) {
+                try {
+                    zonesDefsFetchedByVideo[currentVideo] = false;
+                    zonesDefsFetchTsByVideo[currentVideo] = 0;
+                    zonesCacheRefreshTs = 0;
+                } catch {}
+            }
+
+            // refresh KPI / sidebar
             await refreshZonesCacheForSite(true);
             await loadZones();
-            await drawExistingZones();
-            // refresh frame (cache-bust) pour voir immédiatement les changements “propres”
+
+            // IMPORTANT: s'assurer que l'UI principale repasse bien en "frame + overlay" si la détection est stoppée en éditant
             if (!isCurrentVideoStreaming) {
+                videoStream.src = '';
+                videoStream.classList.add('hidden');
+                videoFrame.classList.remove('hidden');
+                drawCanvas.classList.remove('hidden');
+
+                // refresh frame (cache-bust) + redraw overlay *après* chargement image
+                videoFrame.onload = async () => {
+                    syncCanvasSize();
+                    try { await drawExistingZones(true); } catch {}
+                };
                 videoFrame.src = `/api/videos/${encodeURIComponent(currentVideo)}/frame?t=${Date.now()}`;
+            } else {
+                // si stream: on ne redessine pas l'overlay (canvas masqué), mais on garde l'UI à jour
+                try { await drawExistingZones(false); } catch {}
             }
         }
 
@@ -2673,7 +2759,7 @@
             editorState.open = false;
             editorClearTemp();
             // Important: quand on quitte l'éditeur, on force un refresh visuel (évite l'impression que les anciennes formes “persistaient”)
-            refreshMainAfterEditor().catch(() => {});
+            refreshMainAfterEditor(true).catch(() => {});
         }
 
         function editorRender() {
@@ -3254,8 +3340,8 @@
                 editorState.presence = pdata.zones || {};
                 editorRenderZoneList();
                 editorRender();
-                // Soft refresh main (overlay + sidebar) pour que le rendu prenne effet immédiatement
-                await refreshMainAfterEditor();
+            // Soft refresh main (overlay + sidebar) pour que le rendu prenne effet immédiatement
+            await refreshMainAfterEditor(true);
             } catch (e) {
                 uiAlert('Erreur: sauvegarde (PUT).', 'Sauvegarde');
             }
@@ -3297,7 +3383,6 @@
 
         editorSaveBtn.addEventListener('click', editorSave);
         editorCloseBtn.addEventListener('click', editorClose);
-        editorCloseBtn2.addEventListener('click', editorClose);
 
         // Hoverbar: keep it clickable (pause auto-hide while hovering it)
         editorHoverBar?.addEventListener('pointerenter', cancelHoverHide);
@@ -4922,10 +5007,12 @@
 
         let cachedZones = {};
 
-        async function drawExistingZones() {
+        async function drawExistingZones(force = false) {
             if (!currentVideo) return;
 
-            const res = await fetch(`/api/zones/${encodeURIComponent(currentVideo)}`);
+            // cache-bust: après save/edit, certains navigateurs gardent parfois l'ancienne réponse
+            const url = `/api/zones/${encodeURIComponent(currentVideo)}${force ? `?t=${Date.now()}` : ''}`;
+            const res = await fetch(url, { cache: 'no-store' });
             const data = await res.json();
             cachedZones = data.zones;
 
