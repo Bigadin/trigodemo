@@ -1437,13 +1437,13 @@
         }
 
         .tool-btn.icon {
-            padding: 10px;
-            min-width: 44px;
+            padding: 10px 12px;
+            min-width: 108px;
             height: 44px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 0;
+            gap: 10px;
         }
 
         .tool-ico {
@@ -1452,6 +1452,14 @@
             display: block;
             opacity: 0.95;
             filter: brightness(1.15);
+        }
+
+        .tool-label {
+            font-weight: 700;
+            font-size: var(--text-xs);
+            color: rgba(245,247,255,0.92);
+            letter-spacing: 0.2px;
+            white-space: nowrap;
         }
 
         .tool-btn.primary { background: rgba(16,176,249,0.20); border-color: rgba(16,176,249,0.35); }
@@ -1471,6 +1479,11 @@
             background: rgba(0,0,0,0.22);
             color: rgba(245,247,255,0.75);
             font-size: var(--text-sm);
+            line-height: 1.35;
+            /* Stabilise la mise en page: évite que 1 ligne vs 2 lignes fasse "trembler" le modal */
+            min-height: 54px;
+            display: flex;
+            align-items: center;
         }
 
         .editor-bottombar {
@@ -1483,15 +1496,6 @@
             gap: 12px;
         }
 
-        /* Save buttons in editor */
-        .editor-save-mini.btn {
-            padding: 10px;
-            min-width: 44px;
-            height: 44px;
-            border-radius: 12px;
-        }
-        .editor-save-mini.btn .tool-ico { filter: none; }
-
         .editor-save-main.btn {
             display: inline-flex;
             align-items: center;
@@ -1500,6 +1504,17 @@
             padding: 14px 18px;
             font-weight: 700;
             min-width: 260px;
+        }
+
+        /* Save buttons (fixed labels, no "clean/dirty" UI state) */
+        .tool-btn.save {
+            height: 44px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(16,176,249,0.38);
+            background: rgba(16,176,249,0.10);
+            color: rgba(245,247,255,0.94);
+            font-weight: 800;
         }
 
         /* Active streams badges */
@@ -1996,29 +2011,26 @@
                         <div class="tool-row">
                             <button class="tool-btn icon primary active" id="toolSelectBtn" title="Sélection">
                                 <img class="tool-ico" src="/static/assets_youn/SvIcons/circle-svgrepo-com.svg" alt="">
-                                <span class="sr-only">Sélection</span>
+                                <span class="tool-label">Sélect</span>
                             </button>
                             <button class="tool-btn icon" id="toolCountLineBtn" title="Ligne de comptage">
                                 <img class="tool-ico" src="/static/assets_youn/SvIcons/user-svgrepo-com.svg" alt="">
-                                <span class="sr-only">Ligne de comptage</span>
+                                <span class="tool-label">Compter</span>
                             </button>
                             <button class="tool-btn icon green" id="toolIncludeBtn" title="Zone d’inclusion">
                                 <img class="tool-ico" src="/static/assets_youn/SvIcons/includezone.svg" alt="">
-                                <span class="sr-only">Zone d’inclusion</span>
+                                <span class="tool-label">Inclure</span>
                             </button>
                             <button class="tool-btn icon yellow" id="toolExcludeBtn" title="Zone d’exclusion">
                                 <img class="tool-ico" src="/static/assets_youn/SvIcons/intersect-svgrepo-com%20(1).svg" alt="">
-                                <span class="sr-only">Zone d’exclusion</span>
+                                <span class="tool-label">Exclure</span>
                             </button>
                             <button class="tool-btn icon" id="toolUndoBtn" title="Annuler (Ctrl+Z)">
                                 ↶
-                                <span class="sr-only">Annuler</span>
+                                <span class="tool-label">Annuler</span>
                             </button>
                             <button class="tool-btn icon red" id="toolClearBtn" title="Tout effacer">✕</button>
-                            <button class="btn btn-primary btn-icon editor-save-mini" id="toolSaveBtn" title="Sauvegarder toute la configuration">
-                                <img class="tool-ico" src="/static/assets_youn/SvIcons/checkmark-svgrepo-com.svg" alt="">
-                                <span class="sr-only">Sauvegarder tout</span>
-                            </button>
+                            <button class="tool-btn save" id="toolSaveBtn" title="Sauvegarder toute la configuration">Sauvegarder</button>
                         </div>
 
                         <div class="editor-guide" id="editorGuide">
@@ -2061,10 +2073,8 @@
             </div>
 
             <div class="editor-bottombar">
-                <button class="btn btn-primary editor-save-main" id="editorSaveBtn" title="Sauvegarder toute la configuration">
-                    <img class="tool-ico" src="/static/assets_youn/SvIcons/checkmark-svgrepo-com.svg" alt="">
-                    <span>Sauvegarder tout</span>
-                </button>
+                <button class="btn btn-primary editor-save-main" id="editorSaveBtn" title="Sauvegarder toute la configuration">Sauvegarder tout</button>
+                <button class="btn btn-secondary" id="editorCloseBtn2" title="Fermer l’éditeur">Fermer</button>
             </div>
         </div>
     </div>
@@ -2408,6 +2418,7 @@
         // Editor modal elements
         const editorOverlay = document.getElementById('editorOverlay');
         const editorCloseBtn = document.getElementById('editorCloseBtn');
+        const editorCloseBtn2 = document.getElementById('editorCloseBtn2');
         const editorSaveBtn = document.getElementById('editorSaveBtn');
         const editorTitle = document.getElementById('editorTitle');
         const editorSubtitle = document.getElementById('editorSubtitle');
@@ -2484,7 +2495,8 @@
             h: 0,
             dirty: false,
             autosaveTimer: null,
-            didDrag: false
+            didDrag: false,
+            lastSavedTs: 0
         };
 
         function setTool(tool) {
@@ -2569,6 +2581,7 @@
             });
             if (!putRes.ok) throw new Error('PUT zone failed');
             editorState.dirty = false;
+            editorState.lastSavedTs = Date.now();
             // sync main view quietly (force pour refléter immédiatement les changements)
             try { await refreshMainAfterEditor(true); } catch {}
         }
@@ -3284,7 +3297,8 @@
             }
         });
 
-        async function editorSave() {
+        async function editorCommitDraftShape() {
+            // Toolbar "Sauvegarder": confirme la forme actuellement tracée (draft -> forme)
             if (!currentVideo) {
                 uiAlert('Choisissez une caméra avant de dessiner.', 'Sauvegarde');
                 return;
@@ -3292,25 +3306,20 @@
             // UX: si aucune zone n'est sélectionnée mais qu'il en existe, on en choisit une automatiquement.
             if (!editorState.zone) {
                 const keys = Object.keys(editorState.zones || {}).sort();
-                if (keys.length === 1) {
+                if (keys.length >= 1) {
                     editorSelectZone(keys[0]);
-                } else if (keys.length > 1) {
-                    editorSelectZone(keys[0]);
-                    // laisse une trace visuelle (liste à droite) + guide, plutôt qu'un blocage
                 } else {
-                    uiAlert('Créez d’abord une zone à droite (bouton +), puis cliquez sur “Sauver”.', 'Sauvegarde');
+                    uiAlert('Créez d’abord une zone à droite (bouton +), puis cliquez sur “Sauvegarder”.', 'Sauvegarde');
                     try { editorNewZoneName?.focus(); } catch {}
                     return;
                 }
             }
-            const zoneName = editorState.zone;
 
-            // Si un tracé est en cours, on le commit (auto-save “manuel”)
+            // Commit seulement si un tracé est en cours
             if (editorState.tool === 'line' && editorState.points.length === 2) {
                 const p1 = editorState.points[0];
                 const p2 = editorState.points[1];
                 const poly = lineToPolygon(p1, p2, 12);
-                // Direction = vecteur depuis le centre de la ligne vers la flèche
                 const mid = [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
                 const end = editorState.lineDirEnd || getLineDraftMidAndDefaultDir()?.end || add(mid, [0, -60]);
                 const d = norm(sub(end, mid));
@@ -3319,15 +3328,31 @@
                 editorState.lineDirEnd = null;
                 editorRender();
                 await editorPostNewPolygon('line', poly, meta);
-            } else if ((editorState.tool === 'include' || editorState.tool === 'exclude') && editorState.points.length >= 3) {
+                return;
+            }
+
+            if ((editorState.tool === 'include' || editorState.tool === 'exclude') && editorState.points.length >= 3) {
                 const poly = clonePoints(editorState.points);
                 const type = editorState.tool === 'exclude' ? 'exclude' : 'include';
                 editorState.points = [];
                 editorRender();
                 await editorPostNewPolygon(type, poly);
+                return;
             }
 
-            // Force save des modifs (PUT) + refresh editor
+            uiAlert('Aucune forme en cours de tracé à sauvegarder.', 'Sauvegarde');
+        }
+
+        async function editorSaveAll() {
+            // Bouton "Sauvegarder tout" (bas): sauvegarde la configuration entière (PUT)
+            if (!currentVideo) {
+                uiAlert('Choisissez une caméra avant de sauvegarder.', 'Sauvegarde');
+                return;
+            }
+            if (!editorState.zone) {
+                const keys = Object.keys(editorState.zones || {}).sort();
+                if (keys.length >= 1) editorSelectZone(keys[0]);
+            }
             try {
                 await editorPutNow();
                 const [zonesRes, presenceRes] = await Promise.all([
@@ -3340,8 +3365,7 @@
                 editorState.presence = pdata.zones || {};
                 editorRenderZoneList();
                 editorRender();
-            // Soft refresh main (overlay + sidebar) pour que le rendu prenne effet immédiatement
-            await refreshMainAfterEditor(true);
+                await refreshMainAfterEditor(true);
             } catch (e) {
                 uiAlert('Erreur: sauvegarde (PUT).', 'Sauvegarde');
             }
@@ -3379,10 +3403,11 @@
             editorPopUndo();
         });
         toolClearBtn.addEventListener('click', () => { editorPushUndo(); editorClearTemp(); });
-        toolSaveBtn?.addEventListener('click', editorSave);
+        toolSaveBtn?.addEventListener('click', editorCommitDraftShape);
 
-        editorSaveBtn.addEventListener('click', editorSave);
+        editorSaveBtn.addEventListener('click', editorSaveAll);
         editorCloseBtn.addEventListener('click', editorClose);
+        editorCloseBtn2?.addEventListener('click', editorClose);
 
         // Hoverbar: keep it clickable (pause auto-hide while hovering it)
         editorHoverBar?.addEventListener('pointerenter', cancelHoverHide);
