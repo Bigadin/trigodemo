@@ -1,0 +1,1321 @@
+<!doctype html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Liste d'observations – Zone Presence Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --font-sans: "Manrope", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      /* Dark theme (header) */
+      --dark-bg: #0B0F14;
+      --dark-surface: #111825;
+      --dark-text: #F5F7FF;
+      --dark-muted: rgba(245, 247, 255, 0.68);
+      --dark-border: rgba(255, 255, 255, 0.08);
+      /* Light theme (liste) */
+      --light-bg: #E7EBF2;
+      --light-surface: #EEF2F8;
+      --light-surface-2: #F6F8FC;
+      --light-text: #0F172A;
+      --light-muted: rgba(15, 23, 42, 0.65);
+      --light-border: rgba(15, 23, 42, 0.12);
+      /* Accents */
+      --primary: #10B0F9;
+      --primary-hover: #0ea5e9;
+      --ok: #22c55e;
+      --warn: #F08321;
+      --bad: #ef4444;
+      --shadow: 0 10px 40px rgba(0,0,0,0.15);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: var(--font-sans);
+      background: var(--light-bg);
+      color: var(--light-text);
+    }
+    .header{
+      background: var(--dark-surface);
+      border-bottom: 1px solid var(--dark-border);
+      padding: 20px 24px;
+      color: var(--dark-text);
+    }
+    .header h1{
+      margin:0 0 6px 0;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--dark-text);
+    }
+    .header .sub{
+      font-size: 13px;
+      color: var(--dark-muted);
+      line-height: 1.4;
+    }
+    .header .sub code{
+      font-family: var(--mono);
+      background: rgba(255,255,255,0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .createBar{
+      background: var(--dark-surface);
+      border-bottom: 1px solid var(--dark-border);
+      padding: 16px 24px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    .createBar .field{
+      flex: 1;
+      min-width: 200px;
+      display: flex;
+      flex-direction: column;
+    }
+    .createBar .field.wide{
+      flex: 2;
+      min-width: 300px;
+    }
+    .createBar label{
+      display: block;
+      font-size: 14px;
+      color: var(--dark-text);
+      margin-bottom: 8px;
+      font-weight: 600;
+      height: 22px;
+      line-height: 22px;
+    }
+    .createBar input,
+    .createBar textarea{
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--dark-border);
+      background: rgba(0,0,0,0.35);
+      color: var(--dark-text);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      outline: none;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      transition: all 0.15s;
+    }
+    .createBar select{
+      width: 100%;
+      padding: 10px 36px 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--dark-border);
+      background: rgba(0,0,0,0.35);
+      color: var(--dark-text);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      outline: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='%23F5F7FF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      transition: all 0.15s;
+    }
+    .createBar input:focus,
+    .createBar textarea:focus,
+    .createBar select:focus{
+      border-color: var(--primary);
+      background: rgba(0,0,0,0.45);
+      box-shadow: 0 2px 8px rgba(16,176,249,0.3);
+    }
+    .createBar select option{
+      background: var(--dark-surface);
+      color: var(--dark-text);
+      padding: 8px 12px;
+    }
+    .createBar select option:hover,
+    .createBar select option:checked{
+      background: var(--primary);
+      color: white;
+    }
+    .createBar textarea{
+      min-height: 60px;
+      resize: vertical;
+    }
+    .createBar .btn{
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      background: var(--primary);
+      color: white;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+      height: 42px;
+      align-self: flex-end;
+      margin-top: 30px;
+    }
+    .createBar .btn:hover{
+      background: var(--primary-hover);
+    }
+    .createBar .btn:active{
+      transform: translateY(1px);
+    }
+    .content{
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .filters{
+      background: var(--light-surface);
+      border: 1px solid var(--light-border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+    .filters .field{
+      min-width: 180px;
+    }
+    .filters label{
+      display: block;
+      font-size: 12px;
+      color: var(--light-muted);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    .filters input{
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--light-border);
+      background: white;
+      color: var(--light-text);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      outline: none;
+    }
+    .filters select{
+      width: 100%;
+      padding: 8px 36px 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--light-border);
+      background: white;
+      color: var(--light-text);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      outline: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='%230F172A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+    .filters input:focus,
+    .filters select:focus{
+      border-color: var(--primary);
+    }
+    .filters .spacer{
+      flex: 1;
+    }
+    .filters .btn{
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--light-border);
+      background: white;
+      color: var(--light-text);
+      font-weight: 500;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.15s;
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+    }
+    .filters label.btn{
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .filters .btn:hover{
+      background: var(--light-surface-2);
+      border-color: var(--primary);
+    }
+    .filters .btn.danger{
+      border-color: var(--bad);
+      color: var(--bad);
+    }
+    .filters .btn.danger:hover{
+      background: rgba(239,68,68,0.08);
+    }
+    .tableWrap{
+      background: white;
+      border: 1px solid var(--light-border);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .tableWrap table{
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1400px;
+    }
+    .tableWrap thead{
+      background: var(--light-surface-2);
+      border-bottom: 2px solid var(--light-border);
+    }
+    .tableWrap thead th{
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--light-muted);
+      padding: 12px 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .tableWrap thead th.sortable{
+      cursor: pointer;
+      user-select: none;
+    }
+    .tableWrap thead th.sortable:hover{
+      color: var(--light-text);
+    }
+    .tableWrap thead th.sortable .sortMark{
+      margin-left: 6px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--light-muted);
+    }
+    .tableWrap thead th:nth-child(1){ width: 110px; } /* Code */
+    .tableWrap thead th:nth-child(2){ width: 200px; } /* Nom */
+    .tableWrap thead th:nth-child(3){ width: 90px; } /* Criticité */
+    .tableWrap thead th:nth-child(4){ width: 180px; } /* Reproduction */
+    .tableWrap thead th:nth-child(5){ width: 92px; } /* Date */
+    .tableWrap thead th:nth-child(6){ width: 120px; } /* Reporté par */
+    .tableWrap thead th:nth-child(7){ width: 110px; } /* État ticket */
+    .tableWrap thead th:nth-child(8){ width: 140px; } /* État résolution */
+    .tableWrap thead th:nth-child(9){ width: 140px; } /* Test/NR */
+    .tableWrap thead th:nth-child(10){ width: 86px; } /* Actions */
+    .tableWrap tbody tr.disabled{
+      opacity: 0.5;
+      background: var(--light-surface);
+    }
+    .tableWrap tbody tr.disabled td{
+      color: var(--light-muted);
+    }
+    .tableWrap tbody tr.disabled .cellInput,
+    .tableWrap tbody tr.disabled .cellTextarea,
+    .tableWrap tbody tr.disabled .cellSelect{
+      background: var(--light-surface-2);
+      cursor: not-allowed;
+    }
+    .tableWrap tbody td{
+      padding: 12px 10px;
+      border-top: 1px solid var(--light-border);
+      vertical-align: top;
+    }
+    .tableWrap tbody td:nth-child(2){
+      white-space: normal !important;
+      word-wrap: break-word !important;
+      word-break: break-word !important;
+      max-width: 200px;
+      overflow: visible;
+    }
+    .tableWrap tbody td:nth-child(2) .cellInput{
+      white-space: normal !important;
+      word-wrap: break-word !important;
+      word-break: break-word !important;
+      overflow-wrap: break-word !important;
+      height: auto;
+      min-height: 32px;
+      overflow: visible;
+      resize: vertical;
+    }
+    .tableWrap tbody tr:hover{
+      background: var(--light-surface-2);
+    }
+    .codeCell{
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--light-text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .codeCell .code{
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: var(--light-surface);
+      transition: background 0.15s;
+    }
+    .codeCell .code:hover{
+      background: var(--light-surface-2);
+    }
+    .resoHint{
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--light-muted);
+      white-space: normal;
+      word-break: break-word;
+    }
+    .cellInput,
+    .cellTextarea{
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--light-border);
+      background: white;
+      color: var(--light-text);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      outline: none;
+    }
+    .cellSelect{
+      width: 100%;
+      padding: 8px 32px 8px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--light-border);
+      background: white;
+      color: var(--light-text);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      outline: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='%230F172A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+    }
+    .cellInput:focus,
+    .cellTextarea:focus,
+    .cellSelect:focus{
+      border-color: var(--primary);
+    }
+    .cellTextarea{
+      min-height: 50px;
+      resize: vertical;
+    }
+
+    .reproBtn{
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--light-border);
+      background: var(--light-surface-2);
+      color: var(--light-text);
+      font-size: 13px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .reproBtn:hover{ border-color: var(--primary); background: white; }
+    .reproBtn .hint{ font-family: var(--mono); font-size: 11px; color: var(--light-muted); white-space: nowrap; }
+    .small{
+      font-size: 12px;
+      color: var(--light-muted);
+      white-space: nowrap;
+    }
+    .statusPill{
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dot{
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .dot.ok{ background: var(--ok); }
+    .dot.warn{ background: var(--warn); }
+    .dot.bad{ background: var(--bad); }
+    .actions{
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .actions .btn{
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid var(--light-border);
+      background: white;
+      color: var(--light-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+    }
+    .actions .btn:hover{
+      background: var(--light-surface-2);
+      border-color: var(--primary);
+      color: var(--light-text);
+    }
+    .actions .btn[title="Désactiver"]:hover{
+      color: var(--warn);
+    }
+    .actions .btn[title="Réactiver"]:hover{
+      color: var(--ok);
+    }
+    .actions .btn.resolveBtn:hover{
+      color: var(--ok);
+      border-color: rgba(34,197,94,0.35);
+      background: rgba(34,197,94,0.08);
+    }
+    .actions .btn.resolveBtn.resolved{
+      color: var(--ok);
+      border-color: rgba(34,197,94,0.35);
+    }
+    .actions .btn svg{
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Modal (Repro / Résolution) */
+    .modalOverlay{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 2000;
+    }
+    .modalOverlay.hidden{ display: none; }
+    .modal{
+      width: min(760px, 100%);
+      background: white;
+      border: 1px solid var(--light-border);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .modalHeader{
+      padding: 14px 16px;
+      background: var(--dark-surface);
+      color: var(--dark-text);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .modalTitle{
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .modalClose{
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid var(--dark-border);
+      background: rgba(255,255,255,0.08);
+      color: var(--dark-text);
+      cursor: pointer;
+    }
+    .modalBody{
+      padding: 16px;
+      background: white;
+    }
+    .modalMeta{
+      color: var(--light-muted);
+      font-size: 12px;
+      margin-bottom: 10px;
+      font-family: var(--mono);
+    }
+    .modalTextarea{
+      width: 100%;
+      min-height: 180px;
+      resize: vertical;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--light-border);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      outline: none;
+    }
+    .modalTextarea:focus{ border-color: var(--primary); }
+    .modalFooter{
+      padding: 12px 16px;
+      background: var(--light-surface-2);
+      border-top: 1px solid var(--light-border);
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    .modalBtn{
+      padding: 9px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--light-border);
+      background: white;
+      color: var(--light-text);
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .modalBtn.primary{
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+    .modalBtn.ok{
+      background: rgba(34,197,94,0.12);
+      border-color: rgba(34,197,94,0.35);
+      color: #0f172a;
+    }
+    .toast{
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      padding: 12px 18px;
+      border-radius: 8px;
+      background: var(--dark-surface);
+      color: var(--dark-text);
+      box-shadow: var(--shadow);
+      font-size: 14px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+      z-index: 1000;
+    }
+    .toast.show{
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .emptyState{
+      padding: 40px;
+      text-align: center;
+      color: var(--light-muted);
+      font-size: 14px;
+    }
+    .critK1{ color: var(--bad); font-weight: 600; }
+    .critK2{ color: var(--warn); font-weight: 600; }
+    .critK3{ color: var(--light-text); }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Liste d'observations (interne équipe)</h1>
+    <div class="sub">
+      Tableau de suivi des remarques (édition directe, tri par colonnes). Données stockées en <strong>localStorage</strong>.
+      Utilisez <strong>Exporter JSON</strong> pour sauvegarder/partager l’état actuel.
+    </div>
+  </div>
+
+  <div class="createBar">
+    <div class="field wide">
+      <label for="newName">Nom (titre court)</label>
+      <input id="newName" type="text" placeholder="Ex: Bouton pour créer zone plus claire" />
+    </div>
+    <div class="field">
+      <label for="newCrit">Criticité</label>
+      <select id="newCrit">
+        <option value="K1">K1 – Bloquant</option>
+        <option value="K2" selected>K2 – Haute</option>
+        <option value="K3">K3 – Moyen</option>
+      </select>
+    </div>
+    <div class="field wide">
+      <label for="newRepro">Pour reproduire (détails)</label>
+      <textarea id="newRepro" placeholder="Étapes, contexte, vidéo/caméra, attendu vs obtenu…"></textarea>
+    </div>
+    <button id="addBtn" class="btn">Ajouter</button>
+  </div>
+
+  <div class="content">
+    <div class="filters">
+      <div class="field" style="flex: 2;">
+        <label for="search">Recherche</label>
+        <input id="search" type="text" placeholder="Filtrer par code, nom, repro…" />
+      </div>
+      <div class="field">
+        <label for="filterCrit">Criticité</label>
+        <select id="filterCrit">
+          <option value="">Toutes</option>
+          <option value="K1">K1 – Bloquant</option>
+          <option value="K2">K2 – Haute</option>
+          <option value="K3">K3 – Moyen</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="filterTicket">État ticket</label>
+        <select id="filterTicket">
+          <option value="">Tous</option>
+          <option value="Nouveau">Nouveau</option>
+          <option value="Trié">Trié</option>
+          <option value="En cours">En cours</option>
+          <option value="En attente">En attente</option>
+          <option value="Clos">Clos</option>
+        </select>
+      </div>
+      <div class="spacer"></div>
+      <button id="exportBtn" class="btn">Exporter JSON</button>
+    </div>
+
+    <div class="tableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th data-sort="code" class="sortable">Code</th>
+            <th data-sort="name" class="sortable">Nom</th>
+            <th data-sort="crit" class="sortable">Criticité</th>
+            <th data-sort="repro" class="sortable">Reproduction</th>
+            <th data-sort="createdAt" class="sortable">Date</th>
+            <th data-sort="reportedBy" class="sortable">Reporté par</th>
+            <th data-sort="ticketState" class="sortable">État ticket</th>
+            <th data-sort="resolutionState" class="sortable">État résolution</th>
+            <th data-sort="testState" class="sortable">Test / NR</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="modalOverlay hidden" id="obsModalOverlay" aria-modal="true" role="dialog">
+    <div class="modal">
+      <div class="modalHeader">
+        <div class="modalTitle" id="obsModalTitle">Détails</div>
+        <button class="modalClose" id="obsModalClose" title="Fermer">✕</button>
+      </div>
+      <div class="modalBody">
+        <div class="modalMeta" id="obsModalMeta"></div>
+        <textarea class="modalTextarea" id="obsModalTextarea" placeholder="…"></textarea>
+      </div>
+      <div class="modalFooter">
+        <button class="modalBtn" id="obsModalCancel">Fermer</button>
+        <button class="modalBtn ok hidden" id="obsModalResolve">Valider résolu</button>
+        <button class="modalBtn primary" id="obsModalSave">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">Copié.</div>
+
+  <script>
+    const STORAGE_KEY = 'team_observations_v1';
+    const STORAGE_SEQ = 'team_observations_seq_v1';
+
+    const $ = (id) => document.getElementById(id);
+    const tbody = $('tbody');
+    const toast = $('toast');
+
+    // Modal (Repro / Résolution)
+    const obsModalOverlay = $('obsModalOverlay');
+    const obsModalTitle = $('obsModalTitle');
+    const obsModalMeta = $('obsModalMeta');
+    const obsModalTextarea = $('obsModalTextarea');
+    const obsModalClose = $('obsModalClose');
+    const obsModalCancel = $('obsModalCancel');
+    const obsModalSave = $('obsModalSave');
+    const obsModalResolve = $('obsModalResolve');
+    let obsModalMode = null; // 'repro' | 'resolve'
+    let obsModalId = null;
+
+    function closeObsModal() {
+      obsModalOverlay?.classList.add('hidden');
+      obsModalMode = null;
+      obsModalId = null;
+      if (obsModalTextarea) obsModalTextarea.value = '';
+    }
+
+    function openObsModal(mode, item) {
+      if (!obsModalOverlay || !obsModalTitle || !obsModalTextarea || !obsModalMeta || !obsModalSave || !obsModalResolve) return;
+      obsModalMode = mode;
+      obsModalId = item.id;
+      const disabled = Boolean(item.disabled);
+      const title = mode === 'resolve' ? `Résolution — ${item.code}` : `Reproduction — ${item.code}`;
+      obsModalTitle.textContent = title;
+      obsModalMeta.textContent = `${item.name || ''}`.trim();
+      obsModalTextarea.value = mode === 'resolve' ? (item.resolutionComment || '') : (item.repro || '');
+      obsModalTextarea.readOnly = disabled;
+
+      obsModalResolve.classList.toggle('hidden', mode !== 'resolve');
+      obsModalSave.classList.toggle('hidden', disabled);
+      obsModalResolve.disabled = disabled;
+
+      obsModalOverlay.classList.remove('hidden');
+      try { obsModalTextarea.focus(); } catch {}
+    }
+
+    const newName = $('newName');
+    const newCrit = $('newCrit');
+    const newRepro = $('newRepro');
+    const addBtn = $('addBtn');
+
+    const search = $('search');
+    const filterCrit = $('filterCrit');
+    const filterTicket = $('filterTicket');
+
+    const exportBtn = $('exportBtn');
+
+    const TICKET_STATES = ['Nouveau','Trié','En cours','En attente','Clos'];
+    const RESO_STATES = ['Non commencé','En cours','Résolu','Partiel','Ne pas corriger'];
+    const TEST_STATES = ['À tester','Test OK','Test KO','NR OK'];
+
+    const sortState = {
+      key: 'createdAt',
+      dir: 'desc', // 'asc' | 'desc'
+    };
+
+    function resoOrder(val) {
+      const i = RESO_STATES.indexOf(String(val || ''));
+      return i >= 0 ? i : 999;
+    }
+
+    function critOrder(val) {
+      // K1 (bloquant) d'abord
+      if (val === 'K1') return 0;
+      if (val === 'K2') return 1;
+      return 2;
+    }
+
+    function compareStrings(a, b) {
+      return String(a || '').localeCompare(String(b || ''), 'fr', { sensitivity: 'base' });
+    }
+
+    function compareItems(a, b) {
+      const key = sortState.key;
+      const dirMul = sortState.dir === 'asc' ? 1 : -1;
+
+      let cmp = 0;
+      if (key === 'createdAt') {
+        cmp = Number(a.createdAt || 0) - Number(b.createdAt || 0);
+      } else if (key === 'resolutionState') {
+        cmp = resoOrder(a.resolutionState) - resoOrder(b.resolutionState);
+      } else if (key === 'crit') {
+        cmp = critOrder(a.crit) - critOrder(b.crit);
+      } else {
+        cmp = compareStrings(a[key], b[key]);
+      }
+
+      if (cmp !== 0) return cmp * dirMul;
+      // tie-break: newest first
+      return (Number(b.createdAt || 0) - Number(a.createdAt || 0));
+    }
+
+    function updateSortHeaderUi() {
+      const ths = document.querySelectorAll('thead th.sortable[data-sort]');
+      ths.forEach((th) => {
+        const k = th.getAttribute('data-sort');
+        const existing = th.querySelector('.sortMark');
+        if (existing) existing.remove();
+        if (k !== sortState.key) return;
+        const mark = document.createElement('span');
+        mark.className = 'sortMark';
+        mark.textContent = sortState.dir === 'asc' ? '↑' : '↓';
+        th.appendChild(mark);
+      });
+    }
+
+    function nowIsoLocal() {
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2,'0');
+      const months = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+      return `${pad(d.getDate())} ${months[d.getMonth()]}`;
+    }
+
+    function getSeq() {
+      const n = Number(localStorage.getItem(STORAGE_SEQ) || '0');
+      return Number.isFinite(n) ? n : 0;
+    }
+    function setSeq(n) {
+      localStorage.setItem(STORAGE_SEQ, String(n));
+    }
+    function nextCode() {
+      const next = getSeq() + 1;
+      setSeq(next);
+      return `OBS-${String(next).padStart(3,'0')}`;
+    }
+
+    function loadAll() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveAll(items) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    }
+
+    function toastShow(text) {
+      toast.textContent = text || 'OK';
+      toast.classList.add('show');
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    function dotForValue(val, kind) {
+      if (kind === 'ticket') {
+        if (val === 'Clos') return 'ok';
+        if (val === 'En cours') return 'warn';
+        return '';
+      }
+      if (kind === 'reso') {
+        if (val === 'Résolu') return 'ok';
+        if (val === 'En cours') return 'warn';
+        if (val === 'Ne pas corriger') return '';
+        return '';
+      }
+      if (kind === 'test') {
+        if (val === 'NR OK' || val === 'Test OK') return 'ok';
+        if (val === 'Test KO') return 'bad';
+        return 'warn';
+      }
+      return '';
+    }
+
+    function escapeHtml(s) {
+      return String(s ?? '')
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'","&#39;");
+    }
+
+    function matchesFilters(item) {
+      const q = (search.value || '').trim().toLowerCase();
+      const fc = filterCrit.value || '';
+      const ft = filterTicket.value || '';
+      if (fc && item.crit !== fc) return false;
+      if (ft && item.ticketState !== ft) return false;
+      if (!q) return true;
+      const hay = `${item.code} ${item.name} ${item.repro} ${item.resolutionComment || ''} ${item.reportedBy || ''}`.toLowerCase();
+      return hay.includes(q);
+    }
+
+    let saveDebounce = null;
+    function scheduleSave() {
+      clearTimeout(saveDebounce);
+      saveDebounce = setTimeout(() => {
+        saveAll(state.items);
+      }, 180);
+    }
+
+    function updateItem(id, patch) {
+      const idx = state.items.findIndex(x => x.id === id);
+      if (idx < 0) return;
+      state.items[idx] = { ...state.items[idx], ...patch, updatedAt: Date.now() };
+      scheduleSave();
+      render();
+    }
+
+    async function copyText(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        toastShow('Copié.');
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        toastShow('Copié.');
+      }
+    }
+
+    function buildSelect(options, value) {
+      return options.map(opt => `<option value="${escapeHtml(opt)}" ${opt === value ? 'selected' : ''}>${escapeHtml(opt)}</option>`).join('');
+    }
+
+    function getCritClass(crit) {
+      if (crit === 'K1') return 'critK1';
+      if (crit === 'K2') return 'critK2';
+      return 'critK3';
+    }
+
+    function render() {
+      const rows = state.items
+        .slice()
+        .sort(compareItems)
+        .filter(matchesFilters)
+        .map(item => {
+          const dotTicket = dotForValue(item.ticketState, 'ticket');
+          const dotReso = dotForValue(item.resolutionState, 'reso');
+          const dotTest = dotForValue(item.testState, 'test');
+          const critClass = getCritClass(item.crit);
+          return `
+            <tr class="${item.disabled ? 'disabled' : ''}">
+              <td>
+                <div class="codeCell">
+                  <span class="code" title="Copier le code" data-action="copy" data-id="${item.id}">${escapeHtml(item.code)}</span>
+                </div>
+              </td>
+              <td>
+                <textarea class="cellInput" data-field="name" data-id="${item.id}" placeholder="Nom…" style="resize: vertical; min-height: 32px;" ${item.disabled ? 'disabled' : ''}>${escapeHtml(item.name)}</textarea>
+              </td>
+              <td>
+                <select class="cellSelect ${critClass}" data-field="crit" data-id="${item.id}" ${item.disabled ? 'disabled' : ''}>
+                  ${buildSelect(['K1','K2','K3'], item.crit)}
+                </select>
+              </td>
+              <td>
+                <button class="reproBtn" data-action="openRepro" data-id="${item.id}" title="${escapeHtml((item.repro || '').slice(0, 260))}">
+                  <span>${item.repro ? 'Voir' : 'Ajouter'}</span>
+                  <span class="hint">${(item.repro || '').length ? `${String((item.repro || '').length)}c` : ''}</span>
+                </button>
+              </td>
+              <td class="small">${escapeHtml(item.createdAtLabel || '')}</td>
+              <td>
+                <input class="cellInput" value="${escapeHtml(item.reportedBy || 'Yanis')}" data-field="reportedBy" data-id="${item.id}" placeholder="Reporté par…" ${item.disabled ? 'disabled' : ''} />
+              </td>
+              <td>
+                <div class="statusPill"><span class="dot ${dotTicket}"></span>
+                  <select class="cellSelect" data-field="ticketState" data-id="${item.id}" ${item.disabled ? 'disabled' : ''}>
+                    ${buildSelect(TICKET_STATES, item.ticketState)}
+                  </select>
+                </div>
+              </td>
+              <td>
+                <div class="statusPill"><span class="dot ${dotReso}"></span>
+                  <select class="cellSelect" data-field="resolutionState" data-id="${item.id}" ${item.disabled ? 'disabled' : ''}>
+                    ${buildSelect(RESO_STATES, item.resolutionState)}
+                  </select>
+                </div>
+                ${(item.resolutionComment || '').trim() ? `<div class="resoHint">${escapeHtml((item.resolutionComment || '').trim().slice(0, 56))}${(item.resolutionComment || '').trim().length > 56 ? '…' : ''}</div>` : ''}
+              </td>
+              <td>
+                <div class="statusPill"><span class="dot ${dotTest}"></span>
+                  <select class="cellSelect" data-field="testState" data-id="${item.id}" ${item.disabled ? 'disabled' : ''}>
+                    ${buildSelect(TEST_STATES, item.testState)}
+                  </select>
+                </div>
+              </td>
+              <td>
+                <div class="actions">
+                  <button class="btn resolveBtn ${item.resolutionState === 'Résolu' ? 'resolved' : ''}" data-action="openResolve" data-id="${item.id}" title="Résolution" ${item.disabled ? 'disabled' : ''}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 6L9 17l-5-5"></path>
+                    </svg>
+                  </button>
+                  <button class="btn toggleBtn" data-action="toggleDisabled" data-id="${item.id}" title="${item.disabled ? 'Réactiver' : 'Désactiver'}">
+                    ${item.disabled ? `
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                      </svg>
+                    ` : `
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 9.9 1"></path>
+                      </svg>
+                    `}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+      tbody.innerHTML = rows || `
+        <tr>
+          <td colspan="10" class="emptyState">
+            Aucune observation (ou filtre trop restrictif).
+          </td>
+        </tr>
+      `;
+    }
+
+    const state = {
+      items: loadAll()
+    };
+
+    // Migration / init: si seq absent mais items existants, on recalcule seq.
+    (function ensureSeq() {
+      const seq = getSeq();
+      if (seq > 0) return;
+      const max = state.items.reduce((acc, it) => {
+        const m = String(it.code || '').match(/^OBS-(\d+)$/);
+        const n = m ? Number(m[1]) : 0;
+        return Math.max(acc, n || 0);
+      }, 0);
+      if (max > 0) setSeq(max);
+    })();
+
+    function normalizeItem(item) {
+      const createdAt = Number(item.createdAt || Date.now());
+      return {
+        id: String(item.id || crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`),
+        code: String(item.code || nextCode()),
+        name: String(item.name || ''),
+        crit: String(item.crit || 'K2'),
+        repro: String(item.repro || ''),
+        resolutionComment: String(item.resolutionComment || ''),
+        createdAt,
+        createdAtLabel: String(item.createdAtLabel || nowIsoLocal()),
+        reportedBy: String(item.reportedBy || 'Yanis'),
+        ticketState: String(item.ticketState || 'Nouveau'),
+        resolutionState: String(item.resolutionState || 'Non commencé'),
+        testState: String(item.testState || 'À tester'),
+        disabled: Boolean(item.disabled || false),
+        updatedAt: Number(item.updatedAt || createdAt),
+      };
+    }
+
+    // Normalize existing + migration P0/P1/P2/P3 -> K1/K2/K3
+    state.items = state.items.map(item => {
+      const normalized = normalizeItem(item);
+      // Migration anciennes valeurs
+      if (normalized.crit === 'P0') normalized.crit = 'K1';
+      else if (normalized.crit === 'P1') normalized.crit = 'K2';
+      else if (normalized.crit === 'P2') normalized.crit = 'K3';
+      else if (normalized.crit === 'P3') normalized.crit = 'K3';
+      return normalized;
+    });
+    saveAll(state.items);
+
+    // Créer les tickets d'exemple si la liste est vide
+    if (state.items.length === 0) {
+      const examples = [
+        {
+          name: 'Supprimer une caméra',
+          crit: 'K2',
+          repro: 'Actuellement, il n\'y a pas de fonctionnalité pour supprimer une caméra de la liste. Ajouter un bouton de suppression dans la carte caméra ou dans un menu contextuel.'
+        },
+        {
+          name: 'Bouton pour créer zone plus claire',
+          crit: 'K2',
+          repro: 'Le bouton pour créer une zone n\'est pas assez visible. Le placer sous les caméras par exemple, avec un style plus proéminent.'
+        },
+        {
+          name: 'Empêcher le dessin sans zone créée',
+          crit: 'K1',
+          repro: 'Dans le mode dessin de zone, permettre le dessin uniquement si une zone a été créée au préalable. Ne pas laisser dessiner sans zone.'
+        },
+        {
+          name: 'Sauvegarde automatique des zones',
+          crit: 'K2',
+          repro: 'Faire en sorte qu\'on n\'ait pas besoin d\'appuyer sur "Save" pour les zones. Sauvegarder automatiquement lors de la création/modification.'
+        },
+        {
+          name: 'Enlever les formes et les timers',
+          crit: 'K3',
+          repro: 'Retirer l\'affichage des formes et des timers dans l\'interface principale (ou les rendre optionnels).'
+        },
+        {
+          name: 'Régler les boutons pour dessiner',
+          crit: 'K2',
+          repro: 'Améliorer la disposition et la clarté des boutons pour dessiner dans l\'éditeur de zones.'
+        }
+      ];
+      examples.forEach((ex, idx) => {
+        const item = normalizeItem({
+          id: crypto.randomUUID?.() || `${Date.now()}-${idx}-${Math.random().toString(16).slice(2)}`,
+          code: nextCode(),
+          name: ex.name,
+          crit: ex.crit,
+          repro: ex.repro,
+          createdAt: Date.now() - (examples.length - idx) * 60000, // Espacer les dates
+          createdAtLabel: nowIsoLocal(),
+          reportedBy: 'Yanis',
+          ticketState: 'Nouveau',
+          resolutionState: 'Non commencé',
+          testState: 'À tester',
+        });
+        state.items.push(item);
+      });
+      saveAll(state.items);
+    }
+
+    render();
+
+    addBtn.addEventListener('click', () => {
+      const name = (newName.value || '').trim();
+      const repro = (newRepro.value || '').trim();
+      const crit = newCrit.value || 'K2';
+      if (!name) {
+        newName.focus();
+        toastShow('Nom requis.');
+        return;
+      }
+      const item = normalizeItem({
+        id: crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        code: nextCode(),
+        name,
+        crit,
+        repro,
+        createdAt: Date.now(),
+        createdAtLabel: nowIsoLocal(),
+        reportedBy: 'Yanis',
+        ticketState: 'Nouveau',
+        resolutionState: 'Non commencé',
+        testState: 'À tester',
+      });
+      state.items.unshift(item);
+      saveAll(state.items);
+      newName.value = '';
+      newRepro.value = '';
+      newCrit.value = 'K2';
+      toastShow(`${item.code} ajouté.`);
+      render();
+      newName.focus();
+    });
+
+    newName.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        addBtn.click();
+      }
+    });
+
+    function onAnyFilterChange() { render(); }
+    search.addEventListener('input', onAnyFilterChange);
+    filterCrit.addEventListener('change', onAnyFilterChange);
+    filterTicket.addEventListener('change', onAnyFilterChange);
+
+    // Sorting by clicking column headers
+    document.querySelector('thead')?.addEventListener('click', (e) => {
+      const th = e.target.closest('th.sortable[data-sort]');
+      if (!th) return;
+      const key = th.getAttribute('data-sort');
+      if (!key) return;
+      if (sortState.key === key) {
+        sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortState.key = key;
+        // Useful default: resolution = asc (Non commencé -> ...), date = desc (newest first)
+        if (key === 'createdAt') sortState.dir = 'desc';
+        else if (key === 'resolutionState') sortState.dir = 'asc';
+        else sortState.dir = 'asc';
+      }
+      updateSortHeaderUi();
+      render();
+    });
+
+    tbody.addEventListener('click', (e) => {
+      const el = e.target.closest('[data-action]');
+      if (!el) return;
+      const id = el.getAttribute('data-id');
+      const action = el.getAttribute('data-action');
+      const item = state.items.find(x => x.id === id);
+      if (!item) return;
+      if (action === 'copy') {
+        copyText(item.code);
+        return;
+      }
+      if (action === 'openRepro') {
+        openObsModal('repro', item);
+        return;
+      }
+      if (action === 'openResolve') {
+        if (item.disabled) return;
+        openObsModal('resolve', item);
+        return;
+      }
+      if (action === 'toggleDisabled') {
+        updateItem(id, { disabled: !item.disabled });
+        toastShow(item.disabled ? 'Réactivé.' : 'Désactivé.');
+        return;
+      }
+    });
+
+    // Modal interactions
+    obsModalClose?.addEventListener('click', closeObsModal);
+    obsModalCancel?.addEventListener('click', closeObsModal);
+    obsModalOverlay?.addEventListener('click', (e) => {
+      if (e.target === obsModalOverlay) closeObsModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && obsModalMode) closeObsModal();
+    });
+
+    obsModalSave?.addEventListener('click', () => {
+      if (!obsModalId || !obsModalMode) return;
+      const item = state.items.find(x => x.id === obsModalId);
+      if (!item || item.disabled) return;
+      const text = (obsModalTextarea?.value || '').trim();
+      if (obsModalMode === 'repro') {
+        updateItem(obsModalId, { repro: text });
+        toastShow('Reproduction enregistrée.');
+      } else {
+        updateItem(obsModalId, { resolutionComment: text });
+        toastShow('Commentaire enregistré.');
+      }
+      closeObsModal();
+    });
+
+    obsModalResolve?.addEventListener('click', () => {
+      if (!obsModalId) return;
+      const item = state.items.find(x => x.id === obsModalId);
+      if (!item || item.disabled) return;
+      const text = (obsModalTextarea?.value || '').trim();
+      updateItem(obsModalId, {
+        resolutionComment: text,
+        resolutionState: 'Résolu',
+        ticketState: 'Clos',
+      });
+      toastShow('Marqué comme résolu.');
+      closeObsModal();
+    });
+
+    tbody.addEventListener('input', (e) => {
+      const target = e.target;
+      const id = target.getAttribute?.('data-id');
+      const field = target.getAttribute?.('data-field');
+      if (!id || !field) return;
+      const item = state.items.find(x => x.id === id);
+      if (item && item.disabled) return; // Ne pas permettre l'édition si désactivé
+      const val = (target.value ?? '');
+      updateItem(id, { [field]: val });
+    });
+
+    tbody.addEventListener('change', (e) => {
+      const target = e.target;
+      const id = target.getAttribute?.('data-id');
+      const field = target.getAttribute?.('data-field');
+      if (!id || !field) return;
+      const item = state.items.find(x => x.id === id);
+      if (item && item.disabled) return; // Ne pas permettre l'édition si désactivé
+      const val = (target.value ?? '');
+      updateItem(id, { [field]: val });
+    });
+
+    exportBtn.addEventListener('click', () => {
+      const data = JSON.stringify(state.items, null, 2);
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const ts = new Date();
+      const pad = (n) => String(n).padStart(2,'0');
+      const name = `observations-${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}-${pad(ts.getHours())}${pad(ts.getMinutes())}.json`;
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toastShow('Export JSON prêt.');
+    });
+
+    // Init sort UI
+    updateSortHeaderUi();
+
+  </script>
+</body>
+</html>
