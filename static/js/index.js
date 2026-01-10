@@ -24,6 +24,7 @@
         const zonesCacheByVideo = {};      // { [videoName]: zonesWithPolygons } (définitions)
         let zonesCacheRefreshTs = 0;
         const linePassByVideo = {};        // { [videoName]: { [zoneName]: { count:number, lastOcc:boolean, series:number[] } } }
+        const presencePreviewsCollapsedByVideo = {}; // { [videoName]: { [zoneName]: boolean } }
         const zonesDefsFetchTsByVideo = {}; // { [videoName]: epochMs } pour throttle /api/zones/{video}
         const zonesDefsFetchedByVideo = {}; // { [videoName]: boolean } pour distinguer "0 zones" vs "pas encore fetch"
         const presenceOkTsByVideo = {};     // { [videoName]: epochMs } dernier /api/presence OK (anti-stale)
@@ -442,12 +443,16 @@
         }
 
         function editorPushUndo() {
+            const z = editorState.zone;
             const snapshot = {
                 tool: editorState.tool,
-                zone: editorState.zone,
+                zone: z,
                 polygonIdx: editorState.polygonIdx,
                 mode: editorState.mode,
                 points: clonePoints(editorState.points),
+                // IMPORTANT: inclure l'état des polygones de la zone pour que ↶ annule aussi
+                // un ajout de point (Shift + clic) ou tout changement de forme.
+                zonePolys: z ? clonePointsArray(editorState.zones?.[z]?.polygons || []) : null,
             };
             editorState.undo.push(snapshot);
             if (editorState.undo.length > 50) editorState.undo.shift();
@@ -461,8 +466,14 @@
             editorState.polygonIdx = s.polygonIdx;
             editorState.mode = s.mode;
             editorState.points = clonePoints(s.points);
+            if (s.zone && s.zonePolys && editorState.zones?.[s.zone]) {
+                editorState.zones[s.zone].polygons = clonePointsArray(s.zonePolys);
+            }
             editorSetTool(editorState.tool);
             editorRender();
+            // Garder backend en cohérence quand on annule une modification de forme
+            // (ex: ajout point via Shift). La direction de ligne (meta localStorage) ne déclenche pas de PUT.
+            try { editorScheduleAutosave(); } catch {}
         }
 
         function editorClearTemp() {
@@ -974,6 +985,81 @@
             return null;
         }
 
+        function editorPickTarget(p, radiusPx = 34) {
+            // Objectif UX: pouvoir attraper un point même si le clic est *en dehors* de la forme.
+            // Priorité:
+            // 1) hitbox autour des sommets / endpoints (ligne)
+            // 2) poignée de flèche (ligne)
+            // 3) clic sur segment (ligne) pour déplacer la ligne
+            // 4) point-in-poly (fallback)
+            const zoneName = editorState.zone;
+            if (!zoneName) return null;
+            const polys = editorState.zones?.[zoneName]?.polygons || [];
+            const r2 = radiusPx * radiusPx;
+
+            let best = null; // { idx, kind, vIdx?, point?, d2? }
+
+            // 1/2/3) Proximité (sommets, endpoints, poignée flèche, segment)
+            for (let idx = polys.length - 1; idx >= 0; idx--) {
+                const poly = polys[idx];
+                if (!poly || poly.length < 3) continue;
+                const type = getDrawType(currentVideo, zoneName, idx);
+
+                if (type === 'line') {
+                    const meta = getLineMeta(currentVideo, zoneName, idx);
+                    const arrow = computeLineArrowFromMeta(meta, poly);
+                    if (arrow?.end && lineHandleHit(p, arrow.end)) {
+                        // poignée = priorité max (permet de la saisir même hors quad)
+                        return { idx, kind: 'lineHandle', point: arrow.end, mid: arrow.mid };
+                    }
+
+                    const ends = editorLineEndpointsFromPoly(poly);
+                    const a = (meta?.p1 && Array.isArray(meta.p1)) ? meta.p1 : ends?.a;
+                    const b = (meta?.p2 && Array.isArray(meta.p2)) ? meta.p2 : ends?.b;
+                    if (a && b) {
+                        const dA = dist2(a, p);
+                        const dB = dist2(b, p);
+                        if (dA <= r2 || dB <= r2) {
+                            const which = dA <= dB ? 0 : 1;
+                            const d2 = Math.min(dA, dB);
+                            if (!best || d2 < best.d2) best = { idx, kind: 'lineEndpoint', vIdx: which, point: which === 0 ? a : b, d2 };
+                        } else {
+                            // hit sur segment (tolérance plus large) pour déplacer la ligne entière
+                            const dSeg2 = editorPointToSegmentDist2(p, a, b);
+                            if (dSeg2 <= (22 * 22)) {
+                                // priorité plus faible qu'un endpoint, mais permet de sélectionner/drag même hors forme
+                                if (!best || dSeg2 < best.d2) best = { idx, kind: 'lineSegment', point: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], d2: dSeg2 };
+                            }
+                        }
+                    }
+                    continue;
+                }
+
+                // Polygone: hitbox autour des sommets
+                const vIdx = editorNearestVertex(poly, p, radiusPx);
+                if (vIdx >= 0) {
+                    const d2 = dist2(poly[vIdx], p);
+                    if (!best || d2 < best.d2) best = { idx, kind: 'vertex', vIdx, point: poly[vIdx], d2 };
+                    continue;
+                }
+
+                // Polygone: hitbox autour des arêtes (permet de sélectionner / Shift+ajout même si le clic est à l'extérieur)
+                const edgeD2 = editorNearestEdgeDist2(poly, p);
+                const edgeHitR = 22; // px canvas (tolérance visuelle)
+                if (edgeD2 <= edgeHitR * edgeHitR) {
+                    if (!best || edgeD2 < best.d2) best = { idx, kind: 'edge', d2: edgeD2 };
+                }
+            }
+            if (best) return best;
+
+            // 4) Fallback: point dans le polygone
+            for (let idx = polys.length - 1; idx >= 0; idx--) {
+                const poly = polys[idx];
+                if (poly?.length >= 3 && pointInPoly(poly, p)) return { idx, kind: 'poly' };
+            }
+            return null;
+        }
+
         function editorNearestVertex(poly, p, radius = 32) {
             let best = -1;
             let bestD = Infinity;
@@ -982,6 +1068,41 @@
                 if (d < bestD) { bestD = d; best = i; }
             }
             return bestD <= radius * radius ? best : -1;
+        }
+
+        function editorLineEndpointsFromPoly(poly) {
+            // Le backend stocke une ligne comme un quadrilatère fin (4 pts).
+            // On veut 2 poignées seulement = milieux des 2 bords.
+            if (!poly || poly.length !== 4) return null;
+            const a = [(poly[0][0] + poly[1][0]) / 2, (poly[0][1] + poly[1][1]) / 2];
+            const b = [(poly[2][0] + poly[3][0]) / 2, (poly[2][1] + poly[3][1]) / 2];
+            return { a, b };
+        }
+
+        function editorPointToSegmentDist2(p, a, b) {
+            const vx = b[0] - a[0];
+            const vy = b[1] - a[1];
+            const wx = p[0] - a[0];
+            const wy = p[1] - a[1];
+            const c1 = vx * wx + vy * wy;
+            if (c1 <= 0) return dist2(p, a);
+            const c2 = vx * vx + vy * vy;
+            if (c2 <= c1) return dist2(p, b);
+            const t = c1 / (c2 || 1);
+            const proj = [a[0] + t * vx, a[1] + t * vy];
+            return dist2(p, proj);
+        }
+
+        function editorNearestEdgeDist2(poly, p) {
+            if (!poly || poly.length < 3) return Infinity;
+            let best = Infinity;
+            for (let i = 0; i < poly.length; i++) {
+                const a = poly[i];
+                const b = poly[(i + 1) % poly.length];
+                const d2 = editorPointToSegmentDist2(p, a, b);
+                if (d2 < best) best = d2;
+            }
+            return best;
         }
 
         function editorUpdateHoverUI(e) {
@@ -993,18 +1114,21 @@
             const zoneName = editorState.zone;
             if (!zoneName) { scheduleHoverHide(7000); return; }
             const p = editorEventPoint(e);
-            const idx = editorPickPolygon(p);
-            if (idx === null) { scheduleHoverHide(7000); return; }
+            const target = editorPickTarget(p, 36);
+            if (!target) { scheduleHoverHide(7000); return; }
 
             // Prefer hovered polygon as selected (lightweight)
-            editorState.polygonIdx = idx;
-            const poly = editorState.zones?.[zoneName]?.polygons?.[idx];
+            editorState.polygonIdx = target.idx;
+            const poly = editorState.zones?.[zoneName]?.polygons?.[target.idx];
             if (!poly) { scheduleHoverHide(7000); return; }
-            const vIdx = editorNearestVertex(poly, p, 34);
+            const vIdx = (target.kind === 'vertex') ? target.vIdx : -1;
 
             const wrapRect = editorCanvas.getBoundingClientRect();
+            // Hoverbar:
+            // - vertex => bouton "supprimer point" (sauf lignes)
+            // - poly/line* => uniquement "supprimer forme"
             const kind = vIdx >= 0 ? 'vertex' : 'poly';
-            const key = `${idx}:${kind === 'vertex' ? `v${vIdx}` : 'p'}`;
+            const key = `${target.idx}:${kind === 'vertex' ? `v${vIdx}` : (target.kind || 'p')}`;
 
             // IMPORTANT UX:
             // - Le hoverbar doit rester "ancré" (pas suivre la souris) pour pouvoir cliquer dessus.
@@ -1014,7 +1138,7 @@
                 let yCss = 0;
 
                 if (kind === 'vertex') {
-                    // Anchor on vertex position (canvas coords -> CSS coords)
+                    // Anchor sur le sommet (hitbox invisible), même si clic hors polygone
                     const vx = poly[vIdx][0];
                     const vy = poly[vIdx][1];
                     const scaleX = wrapRect.width / editorCanvas.width;
@@ -1027,6 +1151,19 @@
                     // avoidX/avoidY = centre du point
                     showHoverBar(xCss, yCss, kind, kind === 'vertex' ? vIdx : null, key, px, py);
                     // showHoverBar déjà appelé, on sort
+                    editorRender();
+                    return;
+                } else if (target.point) {
+                    // Anchor sur point “spécial” (ligne: poignée flèche / endpoint / segment)
+                    const vx = target.point[0];
+                    const vy = target.point[1];
+                    const scaleX = wrapRect.width / editorCanvas.width;
+                    const scaleY = wrapRect.height / editorCanvas.height;
+                    const px = vx * scaleX;
+                    const py = vy * scaleY;
+                    xCss = px;
+                    yCss = py;
+                    showHoverBar(xCss, yCss, 'poly', null, key, px, py);
                     editorRender();
                     return;
                 } else {
@@ -1106,19 +1243,21 @@
             // select/edit
             const zoneName = editorState.zone;
             if (!zoneName) return;
-            const idx = editorPickPolygon(p);
-            if (idx === null) {
+            const target = editorPickTarget(p, 36);
+            if (!target) {
                 editorState.polygonIdx = null;
                 hideHoverBar();
                 editorRender();
                 return;
             }
+            const idx = target.idx;
             editorState.polygonIdx = idx;
             hideHoverBar();
 
             const poly = editorState.zones[zoneName].polygons[idx];
             // Ligne de comptage sélectionnée: drag la flèche de direction (sans toucher aux points)
             if (getDrawType(currentVideo, zoneName, idx) === 'line') {
+                // 1) flèche (vecteur) : fait partie du même objet
                 const meta = getLineMeta(currentVideo, zoneName, idx);
                 const arrow = computeLineArrowFromMeta(meta, poly);
                 if (arrow?.end && lineHandleHit(p, arrow.end)) {
@@ -1128,6 +1267,34 @@
                     editorCanvas.setPointerCapture(e.pointerId);
                     editorRender();
                     return;
+                }
+
+                // 2) endpoints + déplacement global (pas de coins du quad)
+                const ends = editorLineEndpointsFromPoly(poly);
+                const a = meta?.p1 && Array.isArray(meta.p1) ? meta.p1 : (ends?.a || null);
+                const b = meta?.p2 && Array.isArray(meta.p2) ? meta.p2 : (ends?.b || null);
+                if (a && b) {
+                    const r = 34;
+                    const hitA = dist2(a, p) <= r * r;
+                    const hitB = dist2(b, p) <= r * r;
+                    if (hitA || hitB) {
+                        editorPushUndo();
+                        editorState.drag = { kind: 'lineEnd', zoneName, idx, which: hitA ? 'a' : 'b', a: [...a], b: [...b] };
+                        editorState.didDrag = false;
+                        editorCanvas.setPointerCapture(e.pointerId);
+                        editorRender();
+                        return;
+                    }
+                    // hit sur le segment => move whole line
+                    const d2 = editorPointToSegmentDist2(p, a, b);
+                    if (d2 <= (22 * 22)) {
+                        editorPushUndo();
+                        editorState.drag = { kind: 'lineMove', zoneName, idx, start: p, a: [...a], b: [...b] };
+                        editorState.didDrag = false;
+                        editorCanvas.setPointerCapture(e.pointerId);
+                        editorRender();
+                        return;
+                    }
                 }
             }
             const vIdx = editorNearestVertex(poly, p, 34);
@@ -1190,6 +1357,47 @@
                     setLineMeta(currentVideo, zoneName, idx, meta);
                     editorState.didDrag = true;
                 }
+                editorRender();
+                return;
+            }
+            if (editorState.drag.kind === 'lineMove' || editorState.drag.kind === 'lineEnd') {
+                const p = editorEventPoint(e);
+                const zoneName = editorState.drag.zoneName;
+                const idx = editorState.drag.idx;
+                if (!zoneName || typeof idx !== 'number') return;
+
+                let a = editorState.drag.a;
+                let b = editorState.drag.b;
+                if (!a || !b) return;
+
+                if (editorState.drag.kind === 'lineMove') {
+                    const start = editorState.drag.start;
+                    if (!start) return;
+                    const dx = p[0] - start[0];
+                    const dy = p[1] - start[1];
+                    a = [a[0] + dx, a[1] + dy];
+                    b = [b[0] + dx, b[1] + dy];
+                    editorState.drag.start = p;
+                } else {
+                    const which = editorState.drag.which;
+                    if (which === 'a') a = [p[0], p[1]];
+                    else b = [p[0], p[1]];
+                }
+
+                editorState.drag.a = a;
+                editorState.drag.b = b;
+                // Rebuild a clean quad (no distortion)
+                const polyNew = lineToPolygon(a, b, 12);
+                if (editorState.zones?.[zoneName]?.polygons?.[idx]) {
+                    editorState.zones[zoneName].polygons[idx] = polyNew;
+                }
+                // Update meta endpoints (dir kept)
+                const meta = getLineMeta(currentVideo, zoneName, idx) || {};
+                meta.p1 = a;
+                meta.p2 = b;
+                setLineMeta(currentVideo, zoneName, idx, meta);
+
+                editorState.didDrag = true;
                 editorRender();
                 return;
             }
@@ -2246,29 +2454,56 @@
                 const secFmt = (s) => `${Math.max(0, Math.floor(Number(s) || 0))} s`;
 
                 const isLine = isLineZone(name);
+                const isSingleLineShape = isLine && drawings === 1 && (getDrawType(currentVideo, name, 0) === 'line');
+                // UX: previews repliées par défaut pour les cartes "présence" (zones polygones).
+                // (on laisse le comptage gérer son UI à part)
+                const isPreviewsCollapsed = !isLine ? (presencePreviewsCollapsedByVideo?.[currentVideo]?.[name] ?? true) : false;
                 const linePass = linePassByVideo?.[currentVideo]?.[name] || { count: 0, series: [] };
                 const uptime = denom; // temps total où la détection tournait (par zone)
                 const passageTime = occSec; // temps "actif" sur la ligne (proxy passage)
 
                 zonesGrid.innerHTML += `
-                    <div class="zone-card ${isSelected ? 'selected' : ''}" data-zone="${encodeURIComponent(String(name))}">
+                    <div class="zone-card ${isSelected ? 'selected' : ''} ${(!isLine && isPreviewsCollapsed) ? 'is-previews-collapsed' : ''}" data-zone="${encodeURIComponent(String(name))}">
                         <div class="zone-card-header">
                             <div>
                                 <div class="zone-name-pill">${name}</div>
-                                <div class="zone-forms-count">${drawings} forme(s)</div>
+                                ${!isLine ? `
+                                    <button class="zone-forms-toggle" type="button" data-zone="${encodeURIComponent(String(name))}" aria-label="Afficher/Masquer les formes">
+                                        <span>${drawings} forme(s)</span>
+                                        <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                            <path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </button>
+                                ` : `
+                                    <div class="zone-forms-count">${drawings} forme(s)</div>
+                                `}
                             </div>
                             <div class="zone-card-status ${statusClass}">${statusLabel}</div>
                         </div>
-                        <div class="zone-previews">
-                            ${previewBoxes}
-                        </div>
-                        ${isLine ? `
-                            <div class="line-metrics">
-                                <div class="line-metric"><span>Passages</span><span>${Number(linePass.count || 0)}</span></div>
-                                <div class="line-metric"><span>Uptime</span><span>${formatHMS(uptime)}</span></div>
-                                <div class="line-metric" style="grid-column:1 / -1;"><span>Temps passage</span><span>${secFmt(passageTime)}</span></div>
+                        ${isSingleLineShape ? '' : `
+                            <div class="zone-previews ${(!isLine && isPreviewsCollapsed) ? 'is-collapsed' : ''}">
+                                ${previewBoxes}
                             </div>
-                            <div class="line-spark">${buildSparklineSvg(linePass.series)}</div>
+                        `}
+                        ${isLine ? `
+                            ${isSingleLineShape ? `
+                                <div class="line-kpi-row">
+                                    <div class="line-kpi-left">
+                                        <div class="line-kpi-num">${Number(linePass.count || 0)}</div>
+                                        <div class="line-kpi-label">Passages</div>
+                                    </div>
+                                    <div class="line-kpi-right">
+                                        <div class="line-kpi-mini"><span>Uptime</span><span>${formatHMS(uptime)}</span></div>
+                                        <div class="line-kpi-mini"><span>Temps</span><span>${secFmt(passageTime)}</span></div>
+                                    </div>
+                                </div>
+                            ` : `
+                                <div class="line-metrics">
+                                    <div class="line-metric"><span>Passages</span><span>${Number(linePass.count || 0)}</span></div>
+                                    <div class="line-metric"><span>Uptime</span><span>${formatHMS(uptime)}</span></div>
+                                    <div class="line-metric" style="grid-column:1 / -1;"><span>Temps passage</span><span>${secFmt(passageTime)}</span></div>
+                                </div>
+                            `}
                         ` : `
                             <div class="occ-bars">
                                 <div>
@@ -2573,6 +2808,23 @@
         zonesGrid?.addEventListener('click', (e) => {
             const t = e.target;
             if (!(t instanceof Element)) return;
+            const toggle = t.closest('.zone-forms-toggle');
+            if (toggle) {
+                const z = decodeURIComponent(toggle.getAttribute('data-zone') || '');
+                if (!z || !currentVideo) return;
+                if (!presencePreviewsCollapsedByVideo[currentVideo]) presencePreviewsCollapsedByVideo[currentVideo] = {};
+                // état par défaut = replié (true). Donc au premier clic on déplie.
+                const prev = presencePreviewsCollapsedByVideo[currentVideo][z];
+                const next = (prev == null) ? false : !prev;
+                presencePreviewsCollapsedByVideo[currentVideo][z] = next;
+                // Applique immédiatement au DOM (sans attendre un rerender)
+                const card = toggle.closest('.zone-card[data-zone]');
+                const previewsEl = card?.querySelector('.zone-previews');
+                const collapsed = !!presencePreviewsCollapsedByVideo[currentVideo][z];
+                card?.classList.toggle('is-previews-collapsed', collapsed);
+                previewsEl?.classList.toggle('is-collapsed', collapsed);
+                return;
+            }
             // Ne pas déclencher si clic sur un bouton (reset, etc.)
             if (t.closest('button')) return;
 
