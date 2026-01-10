@@ -631,6 +631,10 @@
         <option value="K3">K3 – Moyen</option>
       </select>
     </div>
+    <div class="field">
+      <label for="newReportedBy">Reporté par</label>
+      <input id="newReportedBy" type="text" placeholder="Ex: Prénom / Nom" />
+    </div>
     <div class="field wide">
       <label for="newRepro">Pour reproduire (détails)</label>
       <textarea id="newRepro" placeholder="Étapes, contexte, vidéo/caméra, attendu vs obtenu…"></textarea>
@@ -712,6 +716,14 @@
   <script>
     const STORAGE_KEY = 'team_observations_v1';
     const STORAGE_SEQ = 'team_observations_seq_v1';
+    const STORAGE_REPORTER = 'team_observations_reporter_v1';
+
+    function getPreferredReporter() {
+      try { return String(localStorage.getItem(STORAGE_REPORTER) || '').trim(); } catch { return ''; }
+    }
+    function setPreferredReporter(name) {
+      try { localStorage.setItem(STORAGE_REPORTER, String(name || '').trim()); } catch {}
+    }
 
     const $ = (id) => document.getElementById(id);
     const tbody = $('tbody');
@@ -757,6 +769,7 @@
 
     const newName = $('newName');
     const newCrit = $('newCrit');
+    const newReportedBy = $('newReportedBy');
     const newRepro = $('newRepro');
     const addBtn = $('addBtn');
 
@@ -915,12 +928,12 @@
       }, 180);
     }
 
-    function updateItem(id, patch) {
+    function updateItem(id, patch, opts = { render: true }) {
       const idx = state.items.findIndex(x => x.id === id);
       if (idx < 0) return;
       state.items[idx] = { ...state.items[idx], ...patch, updatedAt: Date.now() };
       scheduleSave();
-      render();
+      if (opts?.render !== false) render();
     }
 
     async function copyText(text) {
@@ -983,7 +996,7 @@
               </td>
               <td class="small">${escapeHtml(item.createdAtLabel || '')}</td>
               <td>
-                <input class="cellInput" value="${escapeHtml(item.reportedBy || 'Yanis')}" data-field="reportedBy" data-id="${item.id}" placeholder="Reporté par…" ${item.disabled ? 'disabled' : ''} />
+                <input class="cellInput" value="${escapeHtml(item.reportedBy || '')}" data-field="reportedBy" data-id="${item.id}" placeholder="Reporté par…" ${item.disabled ? 'disabled' : ''} />
               </td>
               <td>
                 <div class="statusPill"><span class="dot ${dotTicket}"></span>
@@ -1069,7 +1082,7 @@
         resolutionComment: String(item.resolutionComment || ''),
         createdAt,
         createdAtLabel: String(item.createdAtLabel || nowIsoLocal()),
-        reportedBy: String(item.reportedBy || 'Yanis'),
+        reportedBy: String(item.reportedBy || ''),
         ticketState: String(item.ticketState || 'Nouveau'),
         resolutionState: String(item.resolutionState || 'Non commencé'),
         testState: String(item.testState || 'À tester'),
@@ -1092,6 +1105,7 @@
 
     // Créer les tickets d'exemple si la liste est vide
     if (state.items.length === 0) {
+      const preferredReporter = getPreferredReporter();
       const examples = [
         {
           name: 'Supprimer une caméra',
@@ -1133,7 +1147,7 @@
           repro: ex.repro,
           createdAt: Date.now() - (examples.length - idx) * 60000, // Espacer les dates
           createdAtLabel: nowIsoLocal(),
-          reportedBy: 'Yanis',
+          reportedBy: preferredReporter,
           ticketState: 'Nouveau',
           resolutionState: 'Non commencé',
           testState: 'À tester',
@@ -1145,10 +1159,17 @@
 
     render();
 
+    // Prefill "Reporté par" depuis le dernier nom saisi (si présent)
+    if (newReportedBy) {
+      newReportedBy.value = getPreferredReporter();
+      newReportedBy.addEventListener('input', () => setPreferredReporter(newReportedBy.value || ''));
+    }
+
     addBtn.addEventListener('click', () => {
       const name = (newName.value || '').trim();
       const repro = (newRepro.value || '').trim();
       const crit = newCrit.value || 'K2';
+      const reportedBy = ((newReportedBy?.value || '').trim() || getPreferredReporter());
       if (!name) {
         newName.focus();
         toastShow('Nom requis.');
@@ -1162,7 +1183,7 @@
         repro,
         createdAt: Date.now(),
         createdAtLabel: nowIsoLocal(),
-        reportedBy: 'Yanis',
+        reportedBy,
         ticketState: 'Nouveau',
         resolutionState: 'Non commencé',
         testState: 'À tester',
@@ -1172,6 +1193,7 @@
       newName.value = '';
       newRepro.value = '';
       newCrit.value = 'K2';
+      if (reportedBy) setPreferredReporter(reportedBy);
       toastShow(`${item.code} ajouté.`);
       render();
       newName.focus();
@@ -1282,7 +1304,9 @@
       const item = state.items.find(x => x.id === id);
       if (item && item.disabled) return; // Ne pas permettre l'édition si désactivé
       const val = (target.value ?? '');
-      updateItem(id, { [field]: val });
+      if (field === 'reportedBy' && String(val).trim()) setPreferredReporter(val);
+      // IMPORTANT UX: ne pas re-render à chaque frappe (sinon focus perdu => 1 caractère à la fois)
+      updateItem(id, { [field]: val }, { render: false });
     });
 
     tbody.addEventListener('change', (e) => {

@@ -905,6 +905,28 @@
             --shadow-light: rgba(245, 247, 255, 0.22);
             --shadow-dark: rgba(0, 0, 0, 0.65);
         }
+        /* Variante moins prioritaire (ex: Floutage) */
+        .retro-gray {
+            color: #fff;
+            --bg-color: #3E4654;
+            --bg-color-active: #2A2F3A;
+            --shadow-light: rgba(245, 247, 255, 0.18);
+            --shadow-dark: rgba(0, 0, 0, 0.55);
+        }
+        /* Variante claire (fond gris clair + typo/icône sombres), utile pour hiérarchie basse */
+        .retro-light {
+            color: #0F172A;
+            --bg-color: #E6EBF3;
+            --bg-color-active: #D7DEE9;
+            --shadow-light: rgba(255, 255, 255, 0.85);
+            --shadow-dark: rgba(15, 23, 42, 0.25);
+        }
+        .retro-light .retro-btn-inner {
+            box-shadow:
+                inset 1px 1px 1px var(--shadow-light),
+                inset -1px -1px 1px var(--shadow-dark),
+                2px 2px 4px rgba(0,0,0,0.35);
+        }
 
         .btn-blur-on {
             background: rgba(189, 68, 213, 0.2) !important;

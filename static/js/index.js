@@ -1458,6 +1458,18 @@
                 }
             }
 
+            // UX demandé: en mode "Sélection" (ajustement d'une forme existante), pas de modal.
+            // On fait un "save normal" (PUT) uniquement si quelque chose a changé.
+            if (editorState.tool === 'select') {
+                if (!editorState.dirty) return; // rien à faire
+                try {
+                    await editorPutNow(); // silencieux (pas de modal de succès)
+                } catch (e) {
+                    uiAlert('Erreur: sauvegarde (PUT).', 'Sauvegarde');
+                }
+                return;
+            }
+
             // Commit seulement si un tracé est en cours
             if (editorState.tool === 'line' && editorState.points.length === 2) {
                 const p1 = editorState.points[0];
@@ -1483,7 +1495,9 @@
                 return;
             }
 
-            uiAlert('Aucune forme en cours de tracé à sauvegarder.', 'Sauvegarde');
+            // Ne pas pop de modal si l'utilisateur n'est pas en train de tracer.
+            // (le bouton sert surtout à valider un tracé en cours)
+            return;
         }
 
         async function editorSaveAll() {
@@ -3643,7 +3657,7 @@
         }
 
         document.getElementById('deleteAllZonesBtn').addEventListener('click', async () => {
-            const ok = await uiConfirm('Remettre tous les timers à zéro ?', 'Timers');
+            const ok = await uiConfirm('Reset all : remettre à zéro tous les compteurs et taux (occup./absence + comptage) ?', 'Reset all');
             if (!ok) return;
             await fetch('/api/zones/reset', { method: 'POST' });
             resetLocalTimersAll();
