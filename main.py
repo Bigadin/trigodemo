@@ -3,8 +3,10 @@ import time
 import threading
 from pathlib import Path
 from queue import Queue
+from collections import deque
 import cv2
 import numpy as np
+import psutil
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, StreamingResponse
@@ -12,6 +14,17 @@ from pydantic import BaseModel
 from shapely.geometry import Polygon, box
 from ultralytics import YOLO
 import torch
+
+# TurboJPEG for faster JPEG encoding (with OpenCV fallback)
+try:
+    from turbojpeg import TurboJPEG
+    jpeg_encoder = TurboJPEG()
+    USE_TURBOJPEG = True
+    print("TurboJPEG encoder loaded!")
+except (ImportError, OSError) as e:
+    jpeg_encoder = None
+    USE_TURBOJPEG = False
+    print(f"TurboJPEG not available ({e}), using OpenCV fallback")
 
 app = FastAPI(title="Zone Presence Tracker")
 
@@ -52,6 +65,36 @@ INTERSECTION_THRESHOLD = 0.30
 # Floutage des visages (30% haut de la bbox)
 blur_enabled = False
 blur_lock = threading.Lock()
+
+# Performance metrics storage
+perf_metrics = {
+    "inference_times": deque(maxlen=100),  # Last 100 inference times in ms
+    "frame_times": deque(maxlen=100),      # Last 100 frame processing times
+    "fps_history": deque(maxlen=60),       # FPS history for sparkline (60 samples)
+    "inference_history": deque(maxlen=60), # Inference time history for sparkline
+    "cpu_history": deque(maxlen=60),       # CPU usage history
+    "gpu_history": deque(maxlen=60),       # GPU usage history
+    "ram_history": deque(maxlen=60),       # RAM usage history
+    "last_inference_time": 0,              # Last inference time in ms
+    "last_frame_time": 0,                  # Last frame processing time in ms
+    "current_fps": 0,                      # Current FPS
+    "queue_size": 0,                       # Current detection queue size
+    "total_detections": 0,                 # Total detections count
+    "frames_processed": 0,                 # Total frames processed
+    "batch_size_history": deque(maxlen=60),  # Batch size history
+    "last_batch_size": 0,                    # Last batch size
+    "batch_latency_ms": 0,                   # Batch collection latency
+}
+perf_lock = threading.Lock()
+
+# Batch detection system
+BATCH_MAX_SIZE = 8       # Maximum frames per batch
+BATCH_TIMEOUT = 0.05     # 50ms max wait time for batch collection
+
+batch_queue = Queue(maxsize=32)  # Centralized queue: (video_name, frame, timestamp)
+detection_results = {}           # {video_name: {"detections": [], "timestamp": float}}
+detection_results_lock = threading.Lock()
+batch_worker_running = False
 
 ZONES_FILE = DATA_DIR / "zones.json"
 PRESENCE_FILE = DATA_DIR / "presence.json"
@@ -374,6 +417,125 @@ async def set_blur(state: str):
         return {"enabled": blur_enabled}
 
 
+def get_system_metrics():
+    """Collect system metrics: CPU, RAM, GPU"""
+    metrics = {
+        "cpu_percent": psutil.cpu_percent(interval=None),
+        "ram_used_mb": psutil.Process().memory_info().rss / (1024 * 1024),
+        "ram_total_mb": psutil.virtual_memory().total / (1024 * 1024),
+        "ram_percent": psutil.virtual_memory().percent,
+        "gpu_available": torch.cuda.is_available(),
+        "gpu_percent": 0,
+        "gpu_memory_used_mb": 0,
+        "gpu_memory_total_mb": 0,
+        "gpu_temperature": None,
+        "gpu_name": None,
+    }
+
+    if torch.cuda.is_available():
+        try:
+            metrics["gpu_name"] = torch.cuda.get_device_name(0)
+            metrics["gpu_memory_used_mb"] = torch.cuda.memory_allocated(0) / (1024 * 1024)
+            metrics["gpu_memory_total_mb"] = torch.cuda.get_device_properties(0).total_memory / (1024 * 1024)
+            # GPU utilization requires pynvml or nvidia-smi
+            try:
+                import subprocess
+                result = subprocess.run(
+                    ["nvidia-smi", "--query-gpu=utilization.gpu,temperature.gpu", "--format=csv,noheader,nounits"],
+                    capture_output=True, text=True, timeout=2
+                )
+                if result.returncode == 0:
+                    parts = result.stdout.strip().split(",")
+                    if len(parts) >= 2:
+                        metrics["gpu_percent"] = float(parts[0].strip())
+                        metrics["gpu_temperature"] = float(parts[1].strip())
+            except:
+                pass
+        except:
+            pass
+
+    return metrics
+
+
+@app.get("/api/stats")
+async def get_performance_stats():
+    """Get real-time performance statistics"""
+    system = get_system_metrics()
+
+    # Count active streams
+    with streams_lock:
+        active_count = sum(1 for s in active_streams.values() if s.get("active", False))
+
+    with perf_lock:
+        # Calculate averages
+        inference_times = list(perf_metrics["inference_times"])
+        frame_times = list(perf_metrics["frame_times"])
+        batch_sizes = list(perf_metrics["batch_size_history"])
+
+        avg_inference = sum(inference_times) / len(inference_times) if inference_times else 0
+        avg_frame_time = sum(frame_times) / len(frame_times) if frame_times else 0
+        avg_batch_size = sum(batch_sizes) / len(batch_sizes) if batch_sizes else 0
+
+        # Inference per second (adjusted for batch - counts frames processed, not batches)
+        inferences_per_sec = (1000 / avg_inference * avg_batch_size) if avg_inference > 0 else 0
+
+        # Update history for sparklines
+        perf_metrics["fps_history"].append(perf_metrics["current_fps"])
+        perf_metrics["inference_history"].append(perf_metrics["last_inference_time"])
+        perf_metrics["cpu_history"].append(system["cpu_percent"])
+        perf_metrics["gpu_history"].append(system["gpu_percent"])
+        perf_metrics["ram_history"].append(system["ram_percent"])
+
+        stats = {
+            # Inference metrics
+            "inference_time_ms": round(perf_metrics["last_inference_time"], 2),
+            "inference_avg_ms": round(avg_inference, 2),
+            "inferences_per_sec": round(inferences_per_sec, 1),
+
+            # FPS metrics
+            "current_fps": round(perf_metrics["current_fps"], 1),
+            "frame_time_ms": round(perf_metrics["last_frame_time"], 2),
+            "frame_time_avg_ms": round(avg_frame_time, 2),
+
+            # Queue & Batch
+            "queue_size": perf_metrics["queue_size"],
+            "batch_size": perf_metrics["last_batch_size"],
+            "batch_size_avg": round(avg_batch_size, 1),
+            "batch_latency_ms": round(perf_metrics["batch_latency_ms"], 1),
+            "active_streams": active_count,
+            "detection_skip": DETECTION_SKIP_FRAMES,  # Detect 1 frame every N
+
+            # Totals
+            "total_detections": perf_metrics["total_detections"],
+            "frames_processed": perf_metrics["frames_processed"],
+
+            # System
+            "cpu_percent": round(system["cpu_percent"], 1),
+            "ram_used_mb": round(system["ram_used_mb"], 1),
+            "ram_total_mb": round(system["ram_total_mb"], 1),
+            "ram_percent": round(system["ram_percent"], 1),
+
+            # GPU
+            "gpu_available": system["gpu_available"],
+            "gpu_name": system["gpu_name"],
+            "gpu_percent": round(system["gpu_percent"], 1),
+            "gpu_memory_used_mb": round(system["gpu_memory_used_mb"], 1),
+            "gpu_memory_total_mb": round(system["gpu_memory_total_mb"], 1),
+            "gpu_temperature": system["gpu_temperature"],
+
+            # Sparkline history (last 60 samples)
+            "history": {
+                "fps": list(perf_metrics["fps_history"]),
+                "inference": list(perf_metrics["inference_history"]),
+                "cpu": list(perf_metrics["cpu_history"]),
+                "gpu": list(perf_metrics["gpu_history"]),
+                "ram": list(perf_metrics["ram_history"]),
+            }
+        }
+
+    return stats
+
+
 def bbox_in_zone(x1: float, y1: float, x2: float, y2: float, zone_polygons: list) -> bool:
     """Check if bbox intersects zone with at least INTERSECTION_THRESHOLD (30%) overlap"""
     bbox = box(x1, y1, x2, y2)
@@ -466,45 +628,121 @@ def get_zone_display_time(zone_name: str) -> float:
         return total
 
 
-def detection_worker(video_name: str, frame_queue: Queue):
-    """Background thread that runs YOLO detection for a specific video"""
-    while True:
-        with streams_lock:
-            if video_name not in active_streams or not active_streams[video_name]["active"]:
-                break
+def parse_single_result(result):
+    """Parse detections from a single YOLO result"""
+    detections = []
+    for box in result.boxes:
+        x1, y1, x2, y2 = box.xyxy[0].tolist()
+        conf = float(box.conf[0])
+        detections.append({
+            "x1": x1, "y1": y1, "x2": x2, "y2": y2,
+            "conf": conf
+        })
+    return detections
+
+
+def batch_detection_worker():
+    """
+    Centralized batch detection worker.
+    Collects frames from all videos and processes them in batches for better GPU utilization.
+    """
+    global batch_worker_running
+    batch_worker_running = True
+    print("Batch detection worker started")
+
+    while batch_worker_running:
+        frames_batch = []
+        video_names = []
+        batch_start = time.perf_counter()
+
+        # Collect frames until batch is full or timeout
+        deadline = time.time() + BATCH_TIMEOUT
+        while len(frames_batch) < BATCH_MAX_SIZE and time.time() < deadline:
+            try:
+                # Non-blocking get with small timeout
+                video_name, frame, ts = batch_queue.get(timeout=0.01)
+                frames_batch.append(frame)
+                video_names.append(video_name)
+            except:
+                # Queue empty or timeout, continue collecting
+                continue
+
+        if not frames_batch:
+            # No frames to process, sleep briefly
+            time.sleep(0.005)
+            continue
+
+        batch_size = len(frames_batch)
+        batch_collect_time = (time.perf_counter() - batch_start) * 1000
+
+        # Update queue size metric
+        with perf_lock:
+            perf_metrics["queue_size"] = batch_queue.qsize()
+            perf_metrics["batch_latency_ms"] = batch_collect_time
 
         try:
-            if frame_queue.empty():
-                time.sleep(0.01)
-                continue
-
-            frame = None
-            while not frame_queue.empty():
-                frame = frame_queue.get_nowait()
-
-            if frame is None:
-                continue
+            # Batch inference - single GPU call for all frames
+            inference_start = time.perf_counter()
 
             with model_lock:
-                results = model(frame, verbose=False, classes=[0], conf=YOLO_CONFIDENCE, device=YOLO_DEVICE)
+                results = model(frames_batch, verbose=False, classes=[0], conf=YOLO_CONFIDENCE, device=YOLO_DEVICE)
 
-            detections = []
-            for r in results:
-                for box in r.boxes:
-                    x1, y1, x2, y2 = box.xyxy[0].tolist()
-                    conf = float(box.conf[0])
-                    detections.append({
-                        "x1": x1, "y1": y1, "x2": x2, "y2": y2,
-                        "conf": conf
-                    })
+            inference_time_ms = (time.perf_counter() - inference_start) * 1000
 
+            # Update performance metrics
+            with perf_lock:
+                perf_metrics["inference_times"].append(inference_time_ms)
+                perf_metrics["last_inference_time"] = inference_time_ms
+                perf_metrics["total_detections"] += batch_size
+                perf_metrics["last_batch_size"] = batch_size
+                perf_metrics["batch_size_history"].append(batch_size)
+
+            # Distribute results to each video
+            with detection_results_lock:
+                for i, video_name in enumerate(video_names):
+                    detections = parse_single_result(results[i])
+                    detection_results[video_name] = {
+                        "detections": detections,
+                        "timestamp": time.time()
+                    }
+
+            # Also update active_streams for backward compatibility
             with streams_lock:
-                if video_name in active_streams:
-                    active_streams[video_name]["detections"] = detections
+                for i, video_name in enumerate(video_names):
+                    if video_name in active_streams:
+                        detections = parse_single_result(results[i])
+                        active_streams[video_name]["detections"] = detections
 
         except Exception as e:
-            print(f"Detection error for {video_name}: {e}")
+            print(f"Batch detection error: {e}")
             continue
+
+    print("Batch detection worker stopped")
+
+
+def start_batch_worker():
+    """Start the centralized batch detection worker if not already running"""
+    global batch_worker_running
+    if not batch_worker_running:
+        worker_thread = threading.Thread(target=batch_detection_worker, daemon=True)
+        worker_thread.start()
+
+
+def stop_batch_worker():
+    """Stop the batch detection worker"""
+    global batch_worker_running
+    batch_worker_running = False
+
+
+# Detection skip rate: detect 1 frame every N frames (keep bboxes between detections)
+DETECTION_SKIP_FRAMES = 4  # Detect every 4th frame
+
+# Streaming skip rate: decode/display 1 frame every N frames (uses cap.grab() for skipped frames)
+# Set to 1 for full FPS streaming, 4 for 1/4 FPS (saves CPU on decoding)
+STREAMING_SKIP_FRAMES = 4  # Display every 4th frame (saves ~75% decoding CPU)
+
+# JPEG encoding quality for streaming (lower = smaller size, less CPU)
+JPEG_QUALITY = 75  # Reduced from 85 for streaming
 
 
 def video_processor(video_name: str):
@@ -519,16 +757,13 @@ def video_processor(video_name: str):
     fps = cap.get(cv2.CAP_PROP_FPS) or 30
     frame_delay = 1.0 / fps
 
-    frame_queue = Queue(maxsize=2)
-
-    detection_thread = threading.Thread(
-        target=detection_worker,
-        args=(video_name, frame_queue),
-        daemon=True
-    )
-    detection_thread.start()
+    # Ensure batch worker is running
+    start_batch_worker()
 
     last_save = time.time()
+    fps_counter = 0
+    fps_start_time = time.time()
+    frame_counter = 0  # Counter to track which frames to send for detection
 
     try:
         while True:
@@ -537,27 +772,45 @@ def video_processor(video_name: str):
                     break
 
             frame_start = time.time()
+            frame_counter += 1
 
-            ret, frame = cap.read()
-            if not ret:
-                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                continue
+            # Decide if we should decode this frame for streaming
+            should_decode = (frame_counter % STREAMING_SKIP_FRAMES == 0) or (STREAMING_SKIP_FRAMES == 1)
+            should_detect = (frame_counter % DETECTION_SKIP_FRAMES == 0)
 
-            frame_num = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
+            if should_decode:
+                # Decode frame for streaming display
+                ret, frame = cap.read()
+                if not ret:
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                    frame_counter = 0
+                    continue
 
-            # Store frame for streaming
-            with streams_lock:
-                shared_frames[video_name] = {
-                    "frame": frame.copy(),
-                    "frame_num": frame_num
-                }
+                frame_num = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
 
-            if not frame_queue.full():
-                try:
-                    frame_queue.put_nowait(frame.copy())
-                except:
-                    pass
+                # Store frame for streaming
+                with streams_lock:
+                    shared_frames[video_name] = {
+                        "frame": frame.copy(),
+                        "frame_num": frame_num
+                    }
 
+                # Send frame to batch queue for detection if needed
+                if should_detect:
+                    try:
+                        batch_queue.put_nowait((video_name, frame.copy(), time.time()))
+                    except:
+                        pass  # Queue full, skip this frame
+            else:
+                # Skip frame without decoding (much faster)
+                ret = cap.grab()
+                if not ret:
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                    frame_counter = 0
+                    continue
+                # shared_frames keeps the last decoded frame (reused for streaming)
+
+            # Get detections from batch results (same detections reused between updates)
             with streams_lock:
                 detections = active_streams[video_name]["detections"].copy() if video_name in active_streams else []
 
@@ -567,6 +820,23 @@ def video_processor(video_name: str):
             if time.time() - last_save > 2:
                 save_presence()
                 last_save = time.time()
+
+            # Calculate FPS metrics
+            fps_counter += 1
+            elapsed_since_fps_start = time.time() - fps_start_time
+            if elapsed_since_fps_start >= 1.0:
+                current_fps = fps_counter / elapsed_since_fps_start
+                with perf_lock:
+                    perf_metrics["current_fps"] = current_fps
+                    perf_metrics["frames_processed"] += fps_counter
+                fps_counter = 0
+                fps_start_time = time.time()
+
+            # Track frame processing time
+            frame_time_ms = (time.time() - frame_start) * 1000
+            with perf_lock:
+                perf_metrics["frame_times"].append(frame_time_ms)
+                perf_metrics["last_frame_time"] = frame_time_ms
 
             elapsed = time.time() - frame_start
             sleep_time = frame_delay - elapsed
@@ -710,9 +980,15 @@ def generate_frames(video_name: str):
                 cv2.putText(frame, label, (int(first_point[0]), int(first_point[1])),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
-        _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
+        # Encode frame to JPEG using TurboJPEG (faster) or OpenCV fallback
+        if USE_TURBOJPEG:
+            jpeg_bytes = jpeg_encoder.encode(frame, quality=JPEG_QUALITY)
+        else:
+            _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
+            jpeg_bytes = buffer.tobytes()
+
         yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+               b'Content-Type: image/jpeg\r\n\r\n' + jpeg_bytes + b'\r\n')
 
 
 @app.post("/api/stream/{video_name}/start")

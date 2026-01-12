@@ -461,11 +461,23 @@
         /* Video section */
         .video-section {
             display: grid;
-            grid-template-columns: 1fr 320px;
+            grid-template-columns: 1fr 320px 320px;
             gap: var(--space-5);
         }
 
+        @media (max-width: 1400px) {
+            .video-section {
+                grid-template-columns: 1fr 280px 280px;
+            }
+        }
+
         @media (max-width: 1200px) {
+            .video-section {
+                grid-template-columns: 1fr 300px;
+            }
+        }
+
+        @media (max-width: 900px) {
             .video-section {
                 grid-template-columns: 1fr;
             }
@@ -1694,6 +1706,217 @@
                 margin-left: 0;
             }
         }
+
+        /* ========================================
+           Performance Panel Styles
+           ======================================== */
+        .perf-panel {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-4);
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+        }
+
+        .perf-panel.hidden {
+            display: none;
+        }
+
+        .perf-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: var(--space-3);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .perf-title {
+            font-size: var(--text-md);
+            font-weight: 600;
+            color: var(--color-text);
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .perf-status {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            font-size: var(--text-xs);
+            color: var(--color-text-muted);
+        }
+
+        .perf-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--color-success);
+            animation: pulse-dot 1.5s infinite;
+        }
+
+        .perf-status-dot.inactive {
+            background: var(--gray-04);
+            animation: none;
+        }
+
+        .perf-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-3);
+        }
+
+        .perf-metric {
+            background: var(--color-surface-2);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: var(--space-3);
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+        }
+
+        .perf-metric.full-width {
+            grid-column: span 2;
+        }
+
+        .perf-metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .perf-metric-label {
+            font-size: var(--text-xs);
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+
+        .perf-metric-icon {
+            width: 16px;
+            height: 16px;
+            opacity: 0.5;
+        }
+
+        .perf-metric-value {
+            font-size: var(--text-xl);
+            font-weight: 700;
+            color: var(--color-text);
+            font-family: 'Courier New', monospace;
+            line-height: 1;
+        }
+
+        .perf-metric-value.small {
+            font-size: var(--text-lg);
+        }
+
+        .perf-metric-value .unit {
+            font-size: var(--text-sm);
+            font-weight: 500;
+            color: var(--color-text-muted);
+            margin-left: 2px;
+        }
+
+        .perf-metric-sub {
+            font-size: var(--text-xs);
+            color: var(--color-text-subtle);
+        }
+
+        .perf-sparkline {
+            height: 32px;
+            width: 100%;
+            margin-top: var(--space-1);
+        }
+
+        .perf-sparkline svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .perf-sparkline-path {
+            fill: none;
+            stroke: var(--brand-02);
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .perf-sparkline-area {
+            fill: url(#sparklineGradient);
+            opacity: 0.3;
+        }
+
+        .perf-metric.cpu .perf-sparkline-path { stroke: var(--brand-01); }
+        .perf-metric.cpu .perf-sparkline-area { fill: var(--brand-01); }
+
+        .perf-metric.gpu .perf-sparkline-path { stroke: var(--brand-04); }
+        .perf-metric.gpu .perf-sparkline-area { fill: var(--brand-04); }
+
+        .perf-metric.ram .perf-sparkline-path { stroke: var(--brand-03); }
+        .perf-metric.ram .perf-sparkline-area { fill: var(--brand-03); }
+
+        .perf-metric.fps .perf-sparkline-path { stroke: var(--color-success); }
+        .perf-metric.fps .perf-sparkline-area { fill: var(--color-success); }
+
+        .perf-progress {
+            height: 6px;
+            background: var(--color-surface-3);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: var(--space-1);
+        }
+
+        .perf-progress-bar {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .perf-progress-bar.cpu { background: var(--brand-01); }
+        .perf-progress-bar.gpu { background: var(--brand-04); }
+        .perf-progress-bar.ram { background: var(--brand-03); }
+
+        .perf-section-title {
+            font-size: var(--text-xs);
+            font-weight: 600;
+            color: var(--color-text-subtle);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: var(--space-2);
+            margin-bottom: var(--space-1);
+        }
+
+        .perf-gpu-info {
+            font-size: var(--text-xs);
+            color: var(--color-text-muted);
+            padding: var(--space-2);
+            background: var(--color-surface-3);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .perf-gpu-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            background: var(--brand-04);
+            color: white;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .perf-gpu-chip.cpu-mode {
+            background: var(--gray-05);
+        }
     </style>
 </head>
 <body>
@@ -1956,6 +2179,123 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Performance Panel -->
+                <div class="perf-panel hidden" id="perfPanel">
+                    <div class="perf-header">
+                        <div class="perf-title">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                            Performance
+                        </div>
+                        <div class="perf-status">
+                            <span class="perf-status-dot inactive" id="perfStatusDot"></span>
+                            <span id="perfStatusText">En attente</span>
+                        </div>
+                    </div>
+
+                    <!-- GPU Info -->
+                    <div class="perf-gpu-info" id="perfGpuInfo">
+                        <span class="perf-gpu-chip cpu-mode" id="perfDeviceChip">CPU</span>
+                        <span id="perfDeviceName">Chargement...</span>
+                    </div>
+
+                    <!-- Inference Metrics -->
+                    <div class="perf-section-title">Inférence YOLO</div>
+                    <div class="perf-grid">
+                        <div class="perf-metric">
+                            <div class="perf-metric-header">
+                                <span class="perf-metric-label">Temps</span>
+                            </div>
+                            <div class="perf-metric-value" id="perfInferenceTime">--<span class="unit">ms</span></div>
+                            <div class="perf-metric-sub">Moy: <span id="perfInferenceAvg">--</span> ms</div>
+                            <div class="perf-sparkline" id="sparklineInference"></div>
+                        </div>
+                        <div class="perf-metric">
+                            <div class="perf-metric-header">
+                                <span class="perf-metric-label">Inférences/s</span>
+                            </div>
+                            <div class="perf-metric-value" id="perfInferencesPerSec">--<span class="unit">/s</span></div>
+                            <div class="perf-metric-sub">Batch: <span id="perfBatchSize">0</span> frames</div>
+                        </div>
+                    </div>
+
+                    <!-- Batch Info -->
+                    <div class="perf-grid" style="margin-top: var(--space-2);">
+                        <div class="perf-metric full-width" style="padding: var(--space-2) var(--space-3); background: rgba(16, 176, 249, 0.08);">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span class="perf-metric-label" style="margin: 0;">Streams actifs</span>
+                                <span style="font-weight: 700; color: var(--brand-02);" id="perfActiveStreams">0</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                                <span class="perf-metric-label" style="margin: 0;">Queue</span>
+                                <span style="font-weight: 600; color: var(--color-text-muted);" id="perfQueueSize">0</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                                <span class="perf-metric-label" style="margin: 0;">Skip rate</span>
+                                <span style="font-weight: 600; color: var(--color-text-muted);">1/<span id="perfSkipRate">4</span> frames</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FPS Metrics -->
+                    <div class="perf-section-title">Streaming</div>
+                    <div class="perf-grid">
+                        <div class="perf-metric fps">
+                            <div class="perf-metric-header">
+                                <span class="perf-metric-label">FPS</span>
+                            </div>
+                            <div class="perf-metric-value" id="perfFps">--<span class="unit">fps</span></div>
+                            <div class="perf-metric-sub">Frame: <span id="perfFrameTime">--</span> ms</div>
+                            <div class="perf-sparkline" id="sparklineFps"></div>
+                        </div>
+                        <div class="perf-metric">
+                            <div class="perf-metric-header">
+                                <span class="perf-metric-label">Frames</span>
+                            </div>
+                            <div class="perf-metric-value small" id="perfFramesProcessed">--</div>
+                            <div class="perf-metric-sub">Détections: <span id="perfTotalDetections">--</span></div>
+                        </div>
+                    </div>
+
+                    <!-- System Metrics -->
+                    <div class="perf-section-title">Système</div>
+                    <div class="perf-grid">
+                        <div class="perf-metric cpu">
+                            <div class="perf-metric-header">
+                                <span class="perf-metric-label">CPU</span>
+                            </div>
+                            <div class="perf-metric-value" id="perfCpu">--<span class="unit">%</span></div>
+                            <div class="perf-progress">
+                                <div class="perf-progress-bar cpu" id="perfCpuBar" style="width: 0%"></div>
+                            </div>
+                            <div class="perf-sparkline" id="sparklineCpu"></div>
+                        </div>
+                        <div class="perf-metric gpu">
+                            <div class="perf-metric-header">
+                                <span class="perf-metric-label">GPU</span>
+                            </div>
+                            <div class="perf-metric-value" id="perfGpu">--<span class="unit">%</span></div>
+                            <div class="perf-metric-sub" id="perfGpuTemp">Temp: --°C</div>
+                            <div class="perf-progress">
+                                <div class="perf-progress-bar gpu" id="perfGpuBar" style="width: 0%"></div>
+                            </div>
+                            <div class="perf-sparkline" id="sparklineGpu"></div>
+                        </div>
+                        <div class="perf-metric ram full-width">
+                            <div class="perf-metric-header">
+                                <span class="perf-metric-label">RAM</span>
+                            </div>
+                            <div class="perf-metric-value small" id="perfRam">--<span class="unit">MB</span></div>
+                            <div class="perf-metric-sub" id="perfRamTotal">/ -- MB (<span id="perfRamPercent">--</span>%)</div>
+                            <div class="perf-progress">
+                                <div class="perf-progress-bar ram" id="perfRamBar" style="width: 0%"></div>
+                            </div>
+                            <div class="perf-sparkline" id="sparklineRam"></div>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <!-- Zones Section -->
@@ -2166,6 +2506,173 @@
         const PRESENCE_POLL_IDLE_MS = 1000;
         const ZONES_DEF_TTL_MS = 2500;
         const PRESENCE_STALE_MS = 1400; // si on n'a pas eu de /presence OK depuis trop longtemps, ne pas afficher "Occupé"
+
+        // ========================================
+        // Performance Monitoring
+        // ========================================
+        let perfStatsInterval = null;
+        const PERF_POLL_MS = 500; // Poll every 500ms
+
+        // DOM elements for performance panel
+        const perfPanel = document.getElementById('perfPanel');
+        const perfStatusDot = document.getElementById('perfStatusDot');
+        const perfStatusText = document.getElementById('perfStatusText');
+        const perfDeviceChip = document.getElementById('perfDeviceChip');
+        const perfDeviceName = document.getElementById('perfDeviceName');
+        const perfGpuInfo = document.getElementById('perfGpuInfo');
+
+        function createSparklineSVG(containerId, data, color = '#10B0F9', maxVal = null) {
+            const container = document.getElementById(containerId);
+            if (!container || !data || data.length === 0) return;
+
+            const width = container.offsetWidth || 100;
+            const height = 32;
+            const padding = 2;
+
+            // Calculate max value for scaling
+            const max = maxVal || Math.max(...data, 1);
+            const min = 0;
+
+            // Generate path
+            const points = data.map((val, i) => {
+                const x = padding + (i / (data.length - 1 || 1)) * (width - 2 * padding);
+                const y = height - padding - ((val - min) / (max - min || 1)) * (height - 2 * padding);
+                return `${x},${y}`;
+            });
+
+            // Create area path (closed polygon for fill)
+            const areaPoints = [
+                `${padding},${height - padding}`,
+                ...points,
+                `${width - padding},${height - padding}`
+            ].join(' ');
+
+            container.innerHTML = `
+                <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+                    <defs>
+                        <linearGradient id="grad-${containerId}" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:${color};stop-opacity:0.4"/>
+                            <stop offset="100%" style="stop-color:${color};stop-opacity:0"/>
+                        </linearGradient>
+                    </defs>
+                    <polygon class="perf-sparkline-area" points="${areaPoints}" fill="url(#grad-${containerId})"/>
+                    <polyline class="perf-sparkline-path" points="${points.join(' ')}" style="stroke:${color}"/>
+                </svg>
+            `;
+        }
+
+        function updatePerfUI(stats) {
+            if (!stats) return;
+
+            // Status
+            const isActive = stats.current_fps > 0;
+            perfStatusDot?.classList.toggle('inactive', !isActive);
+            if (perfStatusText) perfStatusText.textContent = isActive ? 'Actif' : 'En attente';
+
+            // Device info
+            if (perfDeviceChip) {
+                if (stats.gpu_available) {
+                    perfDeviceChip.textContent = 'CUDA';
+                    perfDeviceChip.classList.remove('cpu-mode');
+                } else {
+                    perfDeviceChip.textContent = 'CPU';
+                    perfDeviceChip.classList.add('cpu-mode');
+                }
+            }
+            if (perfDeviceName) {
+                perfDeviceName.textContent = stats.gpu_name || (stats.gpu_available ? 'GPU' : 'Mode CPU');
+            }
+
+            // Inference metrics
+            const perfInferenceTime = document.getElementById('perfInferenceTime');
+            const perfInferenceAvg = document.getElementById('perfInferenceAvg');
+            const perfInferencesPerSec = document.getElementById('perfInferencesPerSec');
+            const perfQueueSize = document.getElementById('perfQueueSize');
+            const perfBatchSize = document.getElementById('perfBatchSize');
+            const perfActiveStreams = document.getElementById('perfActiveStreams');
+
+            if (perfInferenceTime) perfInferenceTime.innerHTML = `${stats.inference_time_ms.toFixed(1)}<span class="unit">ms</span>`;
+            if (perfInferenceAvg) perfInferenceAvg.textContent = stats.inference_avg_ms.toFixed(1);
+            if (perfInferencesPerSec) perfInferencesPerSec.innerHTML = `${stats.inferences_per_sec.toFixed(1)}<span class="unit">/s</span>`;
+            if (perfQueueSize) perfQueueSize.textContent = stats.queue_size;
+            if (perfBatchSize) perfBatchSize.textContent = stats.batch_size || 0;
+            if (perfActiveStreams) perfActiveStreams.textContent = stats.active_streams || 0;
+
+            const perfSkipRate = document.getElementById('perfSkipRate');
+            if (perfSkipRate) perfSkipRate.textContent = stats.detection_skip || 4;
+
+            // FPS metrics
+            const perfFps = document.getElementById('perfFps');
+            const perfFrameTime = document.getElementById('perfFrameTime');
+            const perfFramesProcessed = document.getElementById('perfFramesProcessed');
+            const perfTotalDetections = document.getElementById('perfTotalDetections');
+
+            if (perfFps) perfFps.innerHTML = `${stats.current_fps.toFixed(1)}<span class="unit">fps</span>`;
+            if (perfFrameTime) perfFrameTime.textContent = stats.frame_time_ms.toFixed(1);
+            if (perfFramesProcessed) perfFramesProcessed.textContent = stats.frames_processed.toLocaleString();
+            if (perfTotalDetections) perfTotalDetections.textContent = stats.total_detections.toLocaleString();
+
+            // System metrics
+            const perfCpu = document.getElementById('perfCpu');
+            const perfCpuBar = document.getElementById('perfCpuBar');
+            const perfGpu = document.getElementById('perfGpu');
+            const perfGpuBar = document.getElementById('perfGpuBar');
+            const perfGpuTemp = document.getElementById('perfGpuTemp');
+            const perfRam = document.getElementById('perfRam');
+            const perfRamTotal = document.getElementById('perfRamTotal');
+            const perfRamPercent = document.getElementById('perfRamPercent');
+            const perfRamBar = document.getElementById('perfRamBar');
+
+            if (perfCpu) perfCpu.innerHTML = `${stats.cpu_percent.toFixed(0)}<span class="unit">%</span>`;
+            if (perfCpuBar) perfCpuBar.style.width = `${Math.min(100, stats.cpu_percent)}%`;
+
+            if (perfGpu) perfGpu.innerHTML = `${stats.gpu_percent.toFixed(0)}<span class="unit">%</span>`;
+            if (perfGpuBar) perfGpuBar.style.width = `${Math.min(100, stats.gpu_percent)}%`;
+            if (perfGpuTemp) {
+                perfGpuTemp.textContent = stats.gpu_temperature !== null
+                    ? `Temp: ${stats.gpu_temperature}°C`
+                    : 'Temp: N/A';
+            }
+
+            if (perfRam) perfRam.innerHTML = `${stats.ram_used_mb.toFixed(0)}<span class="unit">MB</span>`;
+            if (perfRamTotal) perfRamTotal.innerHTML = `/ ${stats.ram_total_mb.toFixed(0)} MB (<span id="perfRamPercent">${stats.ram_percent.toFixed(0)}</span>%)`;
+            if (perfRamBar) perfRamBar.style.width = `${Math.min(100, stats.ram_percent)}%`;
+
+            // Sparklines
+            if (stats.history) {
+                createSparklineSVG('sparklineInference', stats.history.inference, '#10B0F9');
+                createSparklineSVG('sparklineFps', stats.history.fps, '#22c55e');
+                createSparklineSVG('sparklineCpu', stats.history.cpu, '#F08321', 100);
+                createSparklineSVG('sparklineGpu', stats.history.gpu, '#BD44D5', 100);
+                createSparklineSVG('sparklineRam', stats.history.ram, '#062DB6', 100);
+            }
+        }
+
+        async function fetchPerfStats() {
+            try {
+                const res = await fetch('/api/stats');
+                if (!res.ok) return;
+                const stats = await res.json();
+                updatePerfUI(stats);
+            } catch (e) {
+                console.warn('Failed to fetch perf stats:', e);
+            }
+        }
+
+        function startPerfMonitoring() {
+            if (perfStatsInterval) return;
+            perfPanel?.classList.remove('hidden');
+            fetchPerfStats(); // Initial fetch
+            perfStatsInterval = setInterval(fetchPerfStats, PERF_POLL_MS);
+        }
+
+        function stopPerfMonitoring() {
+            if (perfStatsInterval) {
+                clearInterval(perfStatsInterval);
+                perfStatsInterval = null;
+            }
+            // Don't hide panel, keep showing last stats
+        }
 
         function markVideoRunStart(video) {
             if (!video) return;
@@ -3724,6 +4231,15 @@
 
             if (stepsEl) stepsEl.style.display = isHome ? 'none' : '';
 
+            // Show/hide performance panel based on view
+            if (isHome) {
+                stopPerfMonitoring();
+                perfPanel?.classList.add('hidden');
+            } else {
+                // Show panel in tracker view (start monitoring when detection starts)
+                perfPanel?.classList.remove('hidden');
+            }
+
             if (isHome) {
                 pageTitleEl.textContent = 'Sites';
                 pageSubtitleEl.textContent = 'Choisissez un site ou créez-en un pour démarrer la configuration';
@@ -4194,6 +4710,10 @@
                         </span>`
                     ).join('');
                     stopAllBtn.classList.remove('hidden');
+                    // Start performance monitoring if there are active streams
+                    if (currentView === 'tracker') {
+                        startPerfMonitoring();
+                    }
                 }
 
                 if (currentVideo) {
@@ -5268,6 +5788,9 @@
 
             startDetectionBtn.classList.add('hidden');
             stopDetectionBtn.classList.remove('hidden');
+
+            // Start performance monitoring
+            startPerfMonitoring();
 
             updateSteps();
             updateStatus('streaming');
