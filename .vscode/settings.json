@@ -1,0 +1,12 @@
+{
+  // Position de la barre latérale (fichiers) à gauche
+  "workbench.sideBar.location": "left",
+  
+  // Configuration du panneau de l'agent (Composer) à droite
+  // Note: Ces paramètres peuvent varier selon la version de Cursor
+  "workbench.panel.defaultLocation": "bottom",
+  
+  // Pour forcer le panneau Composer à droite, vous pouvez aussi utiliser:
+  // Ouvrez les paramètres de Cursor (Ctrl+,) et cherchez "composer" ou "agent"
+  // Dans les paramètres UI de Cursor, vous pouvez glisser-déposer les panneaux
+}
