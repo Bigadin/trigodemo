@@ -12,6 +12,8 @@ from pydantic import BaseModel
 from shapely.geometry import Polygon, box
 from ultralytics import YOLO
 
+from conveyor_counter import ConveyorCounter
+
 app = FastAPI(title="Zone Presence Tracker")
 
 # Paths
@@ -40,6 +42,10 @@ active_streams = {}
 streams_lock = threading.Lock()
 # Shared frames for streaming (processor writes, streamer reads)
 shared_frames = {}  # {video_name: {"frame": ndarray, "frame_num": int}}
+
+# Conveyor counters per video
+conveyor_counters = {}  # {video_name: ConveyorCounter}
+conveyor_lock = threading.Lock()
 
 # Seuil minimum d'intersection bbox/zone (30%)
 INTERSECTION_THRESHOLD = 0.30
@@ -91,6 +97,7 @@ class ZoneCreate(BaseModel):
     name: str
     polygons: list
     video: str
+    zone_type: str = "presence"  # "presence", "include", or "counting"
 
 
 class ZoneUpdate(BaseModel):
@@ -167,11 +174,13 @@ async def get_zones_for_video(video_name: str):
     video_zones = zones_by_video.get(video_name, {})
     result = {}
     for zone_name, zone_data in video_zones.items():
+        zone_type = zone_data.get("type", "presence")
         timer = zone_timers.get(zone_name, {})
         result[zone_name] = {
             "polygons": zone_data["polygons"],
-            "total_time": get_zone_display_time(zone_name),
-            "is_occupied": timer.get("occupy_start") is not None
+            "type": zone_type,
+            "total_time": get_zone_display_time(zone_name) if zone_type == "presence" else 0,
+            "is_occupied": timer.get("occupy_start") is not None if zone_type == "presence" else False
         }
     return {"zones": result}
 
@@ -180,6 +189,7 @@ async def get_zones_for_video(video_name: str):
 async def create_zone(zone: ZoneCreate):
     video_name = zone.video
     zone_name = zone.name
+    zone_type = zone.zone_type
 
     with data_lock:
         if video_name not in zones_by_video:
@@ -188,23 +198,35 @@ async def create_zone(zone: ZoneCreate):
         if zone_name in zones_by_video[video_name]:
             zones_by_video[video_name][zone_name]["polygons"].extend(zone.polygons)
         else:
-            zones_by_video[video_name][zone_name] = {"polygons": zone.polygons}
+            zones_by_video[video_name][zone_name] = {
+                "polygons": zone.polygons,
+                "type": zone_type
+            }
 
-        if zone_name not in zone_timers:
-            zone_timers[zone_name] = {"total_time": 0, "occupy_start": None, "last_seen": None}
+        # Only create timer for presence zones
+        if zone_type == "presence":
+            if zone_name not in zone_timers:
+                zone_timers[zone_name] = {"total_time": 0, "occupy_start": None, "last_seen": None}
 
     save_zones()
-    return {"message": "Zone created", "name": zone_name}
+
+    # Update conveyor counter masks if needed
+    if zone_type in ("include", "counting"):
+        update_conveyor_masks(video_name)
+
+    return {"message": "Zone created", "name": zone_name, "type": zone_type}
 
 
 @app.delete("/api/zones/{video_name}/{zone_name}")
 async def delete_zone(video_name: str, zone_name: str):
+    zone_type = None
     with data_lock:
         if video_name not in zones_by_video:
             raise HTTPException(status_code=404, detail="Video not found")
         if zone_name not in zones_by_video[video_name]:
             raise HTTPException(status_code=404, detail="Zone not found")
 
+        zone_type = zones_by_video[video_name][zone_name].get("type", "presence")
         del zones_by_video[video_name][zone_name]
 
         zone_exists_elsewhere = any(
@@ -218,13 +240,25 @@ async def delete_zone(video_name: str, zone_name: str):
 
     save_zones()
     save_presence()
+
+    # Update conveyor masks if needed
+    if zone_type in ("include", "counting"):
+        update_conveyor_masks(video_name)
+
     return {"message": "Zone deleted"}
 
 
 @app.delete("/api/zones/{video_name}")
 async def delete_all_zones_for_video(video_name: str):
+    had_conveyor_zones = False
     with data_lock:
         if video_name in zones_by_video:
+            # Check if any conveyor zones exist
+            for zone_data in zones_by_video[video_name].values():
+                if zone_data.get("type", "presence") in ("include", "counting"):
+                    had_conveyor_zones = True
+                    break
+
             zones_to_check = list(zones_by_video[video_name].keys())
             del zones_by_video[video_name]
 
@@ -238,6 +272,11 @@ async def delete_all_zones_for_video(video_name: str):
 
     save_zones()
     save_presence()
+
+    # Update conveyor masks if needed
+    if had_conveyor_zones:
+        update_conveyor_masks(video_name)
+
     return {"message": "All zones deleted for video"}
 
 
@@ -347,6 +386,80 @@ async def set_blur(state: str):
         return {"enabled": blur_enabled}
 
 
+# =============================================================================
+# CONVEYOR COUNTING ENDPOINTS
+# =============================================================================
+
+@app.get("/api/conveyor/{video_name}")
+async def get_conveyor_count(video_name: str):
+    """Get current conveyor counter stats for a video"""
+    with conveyor_lock:
+        if video_name not in conveyor_counters:
+            return {
+                "count": 0,
+                "state": "inactive",
+                "warning": "Counter not initialized. Start the video stream first."
+            }
+        return conveyor_counters[video_name].get_stats()
+
+
+@app.post("/api/conveyor/{video_name}/reset")
+async def reset_conveyor_count(video_name: str):
+    """Reset conveyor counter to zero"""
+    with conveyor_lock:
+        if video_name in conveyor_counters:
+            conveyor_counters[video_name].reset_count()
+    return {"message": f"Counter reset for {video_name}"}
+
+
+@app.post("/api/conveyor/{video_name}/reset-background")
+async def reset_conveyor_background(video_name: str):
+    """Reset background model (useful after lighting changes)"""
+    with conveyor_lock:
+        if video_name in conveyor_counters:
+            conveyor_counters[video_name].reset_background()
+    return {"message": f"Background model reset for {video_name}"}
+
+
+@app.post("/api/conveyor/{video_name}/calibrate")
+async def calibrate_conveyor(video_name: str):
+    """Manually trigger threshold calibration (belt should be empty)"""
+    with conveyor_lock:
+        if video_name in conveyor_counters:
+            counter = conveyor_counters[video_name]
+            counter.warmup_samples.clear()
+            counter.warmup_complete = False
+            counter.frames_processed = 0
+    return {"message": f"Calibration started for {video_name}"}
+
+
+@app.post("/api/conveyor/{video_name}/flip")
+async def flip_conveyor_direction(video_name: str):
+    """Rotate conveyor direction by 90 degrees - reorients bands perpendicular to new axis"""
+    with conveyor_lock:
+        if video_name in conveyor_counters:
+            counter = conveyor_counters[video_name]
+            # Rotate axis by 90 degrees (perpendicular)
+            ux, uy = counter.axis_u
+            # Rotate 90° counterclockwise: (ux, uy) -> (-uy, ux)
+            counter.axis_u = (-uy, ux)
+            # Update theta by +90°
+            counter.axis_theta_deg = (counter.axis_theta_deg + 90) % 360
+            if counter.axis_theta_deg > 180:
+                counter.axis_theta_deg -= 360
+
+            # Recompute band boundaries with new axis direction
+            if counter.counting_polygon_pts is not None:
+                new_ux, new_uy = counter.axis_u
+                projections = counter.counting_polygon_pts[:, 0] * new_ux + counter.counting_polygon_pts[:, 1] * new_uy
+                counter.p_min = float(np.min(projections))
+                counter.p_max = float(np.max(projections))
+                import conveyor_config as cfg
+                if counter.p_max > counter.p_min:
+                    counter.band_width = (counter.p_max - counter.p_min) / cfg.NUM_BANDS
+    return {"message": f"Direction rotated 90° for {video_name}"}
+
+
 def bbox_in_zone(x1: float, y1: float, x2: float, y2: float, zone_polygons: list) -> bool:
     """Check if bbox intersects zone with at least INTERSECTION_THRESHOLD (30%) overlap"""
     bbox = box(x1, y1, x2, y2)
@@ -439,6 +552,41 @@ def get_zone_display_time(zone_name: str) -> float:
         return total
 
 
+def get_zones_by_type(video_name: str, zone_type: str) -> list:
+    """Get all polygons of a specific type for a video."""
+    video_zones = zones_by_video.get(video_name, {})
+    polygons = []
+    for zone_name, zone_data in video_zones.items():
+        if zone_data.get("type", "presence") == zone_type:
+            polygons.extend(zone_data["polygons"])
+    return polygons
+
+
+def update_conveyor_masks(video_name: str):
+    """Update conveyor counter masks for a video based on current zones."""
+    with conveyor_lock:
+        if video_name not in conveyor_counters:
+            return
+
+        counter = conveyor_counters[video_name]
+        include_polygons = get_zones_by_type(video_name, "include")
+        counting_polygons = get_zones_by_type(video_name, "counting")
+        counter.set_masks(include_polygons, counting_polygons)
+
+
+def init_conveyor_counter(video_name: str, frame_h: int, frame_w: int):
+    """Initialize or get conveyor counter for a video."""
+    with conveyor_lock:
+        if video_name not in conveyor_counters:
+            conveyor_counters[video_name] = ConveyorCounter((frame_h, frame_w))
+
+        counter = conveyor_counters[video_name]
+        include_polygons = get_zones_by_type(video_name, "include")
+        counting_polygons = get_zones_by_type(video_name, "counting")
+        counter.set_masks(include_polygons, counting_polygons)
+        return counter
+
+
 def detection_worker(video_name: str, frame_queue: Queue):
     """Background thread that runs YOLO detection for a specific video"""
     while True:
@@ -491,6 +639,8 @@ def video_processor(video_name: str):
 
     fps = cap.get(cv2.CAP_PROP_FPS) or 30
     frame_delay = 1.0 / fps
+    frame_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    frame_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 
     frame_queue = Queue(maxsize=2)
 
@@ -500,6 +650,9 @@ def video_processor(video_name: str):
         daemon=True
     )
     detection_thread.start()
+
+    # Initialize conveyor counter
+    conveyor_counter = init_conveyor_counter(video_name, frame_h, frame_w)
 
     last_save = time.time()
 
@@ -514,15 +667,27 @@ def video_processor(video_name: str):
             ret, frame = cap.read()
             if not ret:
                 cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                # Reset background model on video loop
+                with conveyor_lock:
+                    if video_name in conveyor_counters:
+                        conveyor_counters[video_name].reset_background()
                 continue
 
             frame_num = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
 
-            # Store frame for streaming
+            # Update conveyor counter
+            with conveyor_lock:
+                if video_name in conveyor_counters:
+                    conveyor_result = conveyor_counters[video_name].update(frame)
+                else:
+                    conveyor_result = None
+
+            # Store frame and conveyor stats for streaming
             with streams_lock:
                 shared_frames[video_name] = {
                     "frame": frame.copy(),
-                    "frame_num": frame_num
+                    "frame_num": frame_num,
+                    "conveyor": conveyor_result
                 }
 
             if not frame_queue.full():
@@ -633,6 +798,7 @@ def generate_frames(video_name: str):
 
             frame = frame_data["frame"].copy()
             last_frame_num = frame_num
+            conveyor_result = frame_data.get("conveyor")
 
             detections = active_streams[video_name]["detections"].copy() if video_name in active_streams else []
 
@@ -653,35 +819,185 @@ def generate_frames(video_name: str):
             cv2.putText(frame, f"{conf:.0%}", (x1, y1 - 5),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-        # Draw zones
+        # Draw zones by type
         video_zones = zones_by_video.get(video_name, {})
         for zone_name, zone_data in video_zones.items():
-            timer = zone_timers.get(zone_name, {})
-            is_occupied = timer.get("occupy_start") is not None
-            color = (0, 0, 255) if is_occupied else (255, 165, 0)
+            zone_type = zone_data.get("type", "presence")
 
-            for polygon_points in zone_data["polygons"]:
-                if len(polygon_points) >= 3:
-                    pts = np.array(polygon_points, np.int32).reshape((-1, 1, 2))
+            if zone_type == "presence":
+                # Original presence zone drawing (orange/red based on occupancy)
+                timer = zone_timers.get(zone_name, {})
+                is_occupied = timer.get("occupy_start") is not None
+                color = (0, 0, 255) if is_occupied else (255, 165, 0)  # Red if occupied, orange otherwise
 
-                    overlay = frame.copy()
-                    cv2.fillPoly(overlay, [pts], color)
-                    cv2.addWeighted(overlay, 0.3, frame, 0.7, 0, frame)
-                    cv2.polylines(frame, [pts], True, color, 3)
+                for polygon_points in zone_data["polygons"]:
+                    if len(polygon_points) >= 3:
+                        pts = np.array(polygon_points, np.int32).reshape((-1, 1, 2))
+                        overlay = frame.copy()
+                        cv2.fillPoly(overlay, [pts], color)
+                        cv2.addWeighted(overlay, 0.3, frame, 0.7, 0, frame)
+                        cv2.polylines(frame, [pts], True, color, 3)
 
-            if zone_data["polygons"] and len(zone_data["polygons"][0]) > 0:
-                first_point = zone_data["polygons"][0][0]
-                display_time = get_zone_display_time(zone_name)
-                time_str = format_time(display_time)
-                label = f"{zone_name}: {time_str}"
+                if zone_data["polygons"] and len(zone_data["polygons"][0]) > 0:
+                    first_point = zone_data["polygons"][0][0]
+                    display_time = get_zone_display_time(zone_name)
+                    time_str = format_time(display_time)
+                    label = f"{zone_name}: {time_str}"
 
-                (w, _), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
-                cv2.rectangle(frame,
-                              (int(first_point[0]) - 5, int(first_point[1]) - 25),
-                              (int(first_point[0]) + w + 5, int(first_point[1]) + 5),
-                              (0, 0, 0), -1)
-                cv2.putText(frame, label, (int(first_point[0]), int(first_point[1])),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                    (w, _), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
+                    cv2.rectangle(frame,
+                                  (int(first_point[0]) - 5, int(first_point[1]) - 25),
+                                  (int(first_point[0]) + w + 5, int(first_point[1]) + 5),
+                                  (0, 0, 0), -1)
+                    cv2.putText(frame, label, (int(first_point[0]), int(first_point[1])),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+
+            elif zone_type == "include":
+                # Include zone: cyan/teal color
+                color = (255, 255, 0)  # Cyan (BGR)
+                for polygon_points in zone_data["polygons"]:
+                    if len(polygon_points) >= 3:
+                        pts = np.array(polygon_points, np.int32).reshape((-1, 1, 2))
+                        overlay = frame.copy()
+                        cv2.fillPoly(overlay, [pts], color)
+                        cv2.addWeighted(overlay, 0.15, frame, 0.85, 0, frame)
+                        cv2.polylines(frame, [pts], True, color, 2)
+
+                if zone_data["polygons"] and len(zone_data["polygons"][0]) > 0:
+                    first_point = zone_data["polygons"][0][0]
+                    label = f"{zone_name} [ROI]"
+                    (w, _), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+                    cv2.rectangle(frame,
+                                  (int(first_point[0]) - 3, int(first_point[1]) - 18),
+                                  (int(first_point[0]) + w + 3, int(first_point[1]) + 3),
+                                  (0, 0, 0), -1)
+                    cv2.putText(frame, label, (int(first_point[0]), int(first_point[1])),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
+
+            elif zone_type == "counting":
+                # Counting zone: magenta/purple, with counter display
+                is_occupied = conveyor_result and conveyor_result.get("is_present", False)
+                color = (255, 0, 255) if is_occupied else (180, 0, 180)  # Bright magenta if occupied
+
+                for polygon_points in zone_data["polygons"]:
+                    if len(polygon_points) >= 3:
+                        pts = np.array(polygon_points, np.int32).reshape((-1, 1, 2))
+                        overlay = frame.copy()
+                        cv2.fillPoly(overlay, [pts], color)
+                        cv2.addWeighted(overlay, 0.25, frame, 0.75, 0, frame)
+                        cv2.polylines(frame, [pts], True, color, 3)
+
+                # Method 6 debug overlay
+                conveyor_counter = conveyor_counters.get(video_name)
+                if conveyor_result and conveyor_counter:
+                    import conveyor_config as cfg
+                    if cfg.USE_METHOD_6 and cfg.DEBUG_OVERLAY:
+                        debug_data = conveyor_counter.get_debug_overlay_data()
+                        min_area_rect = debug_data.get("min_area_rect")
+                        axis_u = debug_data.get("axis_u", (0, 1))
+                        axis_theta = debug_data.get("axis_theta", 0)
+                        p_min = debug_data.get("p_min", 0)
+                        p_max = debug_data.get("p_max", 1)
+                        band_width = debug_data.get("band_width", 1)
+                        band_counts = debug_data.get("band_counts", [])
+
+                        # Draw minAreaRect box
+                        if min_area_rect is not None:
+                            box = cv2.boxPoints(min_area_rect)
+                            box = np.int32(box)
+                            cv2.drawContours(frame, [box], 0, (0, 255, 255), 2)
+
+                            # Draw arrow showing conveyor direction from center
+                            center = min_area_rect[0]
+                            cx, cy = int(center[0]), int(center[1])
+                            ux, uy = axis_u
+                            arrow_len = 60
+                            ax, ay = int(cx + ux * arrow_len), int(cy + uy * arrow_len)
+                            cv2.arrowedLine(frame, (cx, cy), (ax, ay), (0, 255, 0), 3, tipLength=0.3)
+
+                            # Draw band boundaries
+                            if band_width > 0 and len(band_counts) > 0:
+                                # Perpendicular direction for band lines
+                                perp_x, perp_y = -uy, ux
+                                perp_len = 50
+
+                                for i in range(cfg.NUM_BANDS + 1):
+                                    p = p_min + i * band_width
+                                    # Point on axis at projection p
+                                    bx = cx + ux * (p - (p_min + p_max) / 2)
+                                    by = cy + uy * (p - (p_min + p_max) / 2)
+                                    # Draw perpendicular line
+                                    x1 = int(bx - perp_x * perp_len)
+                                    y1 = int(by - perp_y * perp_len)
+                                    x2 = int(bx + perp_x * perp_len)
+                                    y2 = int(by + perp_y * perp_len)
+                                    # Upstream bands (first ones) in orange
+                                    is_upstream = i < cfg.UPSTREAM_BANDS
+                                    band_color = (255, 128, 0) if is_upstream else (128, 128, 128)
+                                    cv2.line(frame, (x1, y1), (x2, y2), band_color, 1)
+
+                            # Draw axis angle text
+                            angle_txt = f"θ:{axis_theta:.1f}°"
+                            cv2.putText(frame, angle_txt, (cx + 10, cy - 10),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
+
+                # Display counter near the counting zone
+                if zone_data["polygons"] and len(zone_data["polygons"][0]) > 0 and conveyor_result:
+                    first_point = zone_data["polygons"][0][0]
+                    count = conveyor_result.get("count", 0)
+                    warmup = conveyor_result.get("warmup_progress", 1.0)
+                    s_norm = conveyor_result.get("s_norm", 0)
+                    threshold = conveyor_result.get("threshold", 0)
+                    state = conveyor_result.get("state", "?")
+
+                    if warmup < 1.0:
+                        label = f"{zone_name}: Calibrating {int(warmup * 100)}%"
+                    else:
+                        label = f"{zone_name}: {count}"
+
+                    # Method 6 debug info
+                    import conveyor_config as cfg
+                    if cfg.USE_METHOD_6:
+                        e_smooth = conveyor_result.get("e_smooth", 0)
+                        armed = conveyor_result.get("armed", False)
+                        cooldown = conveyor_result.get("cooldown", 0)
+                        ds = conveyor_result.get("ds", 0)
+                        dc = conveyor_result.get("dc", 0)
+                        ds1 = conveyor_result.get("ds1", 0)
+
+                        arm_txt = "ARM" if armed else f"CD:{cooldown}"
+                        debug_label = f"E:{e_smooth:.1f} dS1:{ds1:.0f} dC:{dc:.1f} [{arm_txt}]"
+                        debug_label2 = f"S:{s_norm:.3f} dS:{ds:.0f} T_E:{cfg.EVENT_THRESHOLD}"
+                    else:
+                        debug_label = f"S:{s_norm:.3f} T:{threshold:.3f} [{state}]"
+                        debug_label2 = None
+
+                    (w, h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)
+                    cv2.rectangle(frame,
+                                  (int(first_point[0]) - 5, int(first_point[1]) - 28),
+                                  (int(first_point[0]) + w + 5, int(first_point[1]) + 5),
+                                  (0, 0, 0), -1)
+                    cv2.putText(frame, label, (int(first_point[0]), int(first_point[1])),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+
+                    # Debug text below the main label
+                    (w2, _), _ = cv2.getTextSize(debug_label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+                    cv2.rectangle(frame,
+                                  (int(first_point[0]) - 5, int(first_point[1]) + 8),
+                                  (int(first_point[0]) + w2 + 5, int(first_point[1]) + 28),
+                                  (0, 0, 0), -1)
+                    cv2.putText(frame, debug_label, (int(first_point[0]), int(first_point[1]) + 22),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
+
+                    # Second debug line for Method 6
+                    if debug_label2:
+                        (w3, _), _ = cv2.getTextSize(debug_label2, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+                        cv2.rectangle(frame,
+                                      (int(first_point[0]) - 5, int(first_point[1]) + 30),
+                                      (int(first_point[0]) + w3 + 5, int(first_point[1]) + 50),
+                                      (0, 0, 0), -1)
+                        cv2.putText(frame, debug_label2, (int(first_point[0]), int(first_point[1]) + 44),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 200, 200), 1)
 
         _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
         yield (b'--frame\r\n'

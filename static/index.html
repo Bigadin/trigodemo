@@ -417,6 +417,105 @@
         .btn-blur-on:hover {
             background: #8e44ad !important;
         }
+
+        /* Zone type selector */
+        .zone-type-selector {
+            display: flex;
+            gap: 5px;
+            margin-right: 10px;
+        }
+
+        .zone-type-btn {
+            padding: 8px 14px;
+            border: 2px solid #333;
+            border-radius: 6px;
+            background: #0f0f1a;
+            color: #888;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .zone-type-btn:hover {
+            border-color: #555;
+            color: #fff;
+        }
+
+        .zone-type-btn.active {
+            border-color: #4ecdc4;
+            color: #4ecdc4;
+            background: rgba(78, 205, 196, 0.1);
+        }
+
+        .zone-type-btn.active.presence {
+            border-color: #ffa500;
+            color: #ffa500;
+            background: rgba(255, 165, 0, 0.1);
+        }
+
+        .zone-type-btn.active.include {
+            border-color: #00ffff;
+            color: #00ffff;
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        .zone-type-btn.active.counting {
+            border-color: #ff00ff;
+            color: #ff00ff;
+            background: rgba(255, 0, 255, 0.1);
+        }
+
+        /* Zone type badges in cards */
+        .zone-type-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .zone-type-badge.presence {
+            background: rgba(255, 165, 0, 0.3);
+            color: #ffa500;
+        }
+
+        .zone-type-badge.include {
+            background: rgba(0, 255, 255, 0.3);
+            color: #00ffff;
+        }
+
+        .zone-type-badge.counting {
+            background: rgba(255, 0, 255, 0.3);
+            color: #ff00ff;
+        }
+
+        /* Conveyor controls */
+        .conveyor-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            padding: 10px 15px;
+            background: rgba(255, 0, 255, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 0, 255, 0.3);
+        }
+
+        .conveyor-count {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ff00ff;
+            font-family: 'Courier New', monospace;
+        }
+
+        .btn-conveyor {
+            background: #ff00ff !important;
+            color: #000 !important;
+        }
+
+        .btn-conveyor:hover {
+            background: #cc00cc !important;
+        }
     </style>
 </head>
 <body>
@@ -477,8 +576,13 @@
 
             <!-- Drawing toolbar -->
             <div class="draw-toolbar" id="drawToolbar">
-                <label>Nom de la zone:</label>
-                <input type="text" id="zoneName" placeholder="Ex: Zone A" style="min-width: 150px;">
+                <div class="zone-type-selector">
+                    <button class="zone-type-btn active presence" data-type="presence" title="Zone de presence (temps)">Presence</button>
+                    <button class="zone-type-btn include" data-type="include" title="Zone ROI (limite le traitement)">Include</button>
+                    <button class="zone-type-btn counting" data-type="counting" title="Zone de comptage (convoyeur)">Comptage</button>
+                </div>
+                <label>Nom:</label>
+                <input type="text" id="zoneName" placeholder="Ex: Zone A" style="min-width: 120px;">
                 <button class="btn btn-primary" id="startDrawBtn">Dessiner</button>
                 <button class="btn btn-secondary hidden" id="undoBtn">Annuler point</button>
                 <button class="btn btn-primary hidden" id="finishBtn">Valider zone</button>
@@ -495,6 +599,14 @@
                 <button class="btn btn-danger hidden" id="stopAllBtn">Arreter toutes les videos</button>
                 <button class="btn btn-secondary" id="resetTimersBtn">Reset tous les timers</button>
                 <button class="btn btn-secondary" id="toggleBlurBtn">Floutage: OFF</button>
+                <!-- Conveyor controls -->
+                <div class="conveyor-controls hidden" id="conveyorControls">
+                    <span>Comptage:</span>
+                    <span class="conveyor-count" id="conveyorCount">0</span>
+                    <button class="btn btn-small btn-conveyor" id="resetConveyorBtn">Reset</button>
+                    <button class="btn btn-small btn-secondary" id="calibrateConveyorBtn">Calibrer</button>
+                    <button class="btn btn-small btn-secondary" id="flipDirectionBtn" title="Inverser direction convoyeur">⟲ Flip</button>
+                </div>
             </div>
         </div>
 
@@ -519,6 +631,7 @@
         let videoWidth = 0;
         let videoHeight = 0;
         let activeVideoStreams = new Set();
+        let currentZoneType = 'presence';  // 'presence', 'include', 'counting'
 
         // Elements
         const videoSelect = document.getElementById('videoSelect');
@@ -548,6 +661,12 @@
             step2: document.getElementById('step2'),
             step3: document.getElementById('step3')
         };
+        const zoneTypeBtns = document.querySelectorAll('.zone-type-btn');
+        const conveyorControls = document.getElementById('conveyorControls');
+        const conveyorCount = document.getElementById('conveyorCount');
+        const resetConveyorBtn = document.getElementById('resetConveyorBtn');
+        const calibrateConveyorBtn = document.getElementById('calibrateConveyorBtn');
+        const flipDirectionBtn = document.getElementById('flipDirectionBtn');
 
         // Initialize
         init();
@@ -557,10 +676,66 @@
             await loadZones();
             await updateActiveStreams();
             updateSteps();
+            setupZoneTypeSelector();
 
-            // Poll zones and streams every second
+            // Poll zones, streams, and conveyor every second
             setInterval(loadZones, 1000);
             setInterval(updateActiveStreams, 2000);
+            setInterval(updateConveyorCount, 500);
+        }
+
+        function setupZoneTypeSelector() {
+            zoneTypeBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    zoneTypeBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentZoneType = btn.dataset.type;
+                });
+            });
+
+            // Conveyor controls
+            resetConveyorBtn.addEventListener('click', async () => {
+                if (!currentVideo) return;
+                await fetch(`/api/conveyor/${encodeURIComponent(currentVideo)}/reset`, { method: 'POST' });
+            });
+
+            calibrateConveyorBtn.addEventListener('click', async () => {
+                if (!currentVideo) return;
+                if (!confirm('Lancer la calibration ? (le tapis doit etre vide)')) return;
+                await fetch(`/api/conveyor/${encodeURIComponent(currentVideo)}/calibrate`, { method: 'POST' });
+            });
+
+            flipDirectionBtn.addEventListener('click', async () => {
+                if (!currentVideo) return;
+                await fetch(`/api/conveyor/${encodeURIComponent(currentVideo)}/flip`, { method: 'POST' });
+            });
+        }
+
+        async function updateConveyorCount() {
+            if (!currentVideo || !isCurrentVideoStreaming) {
+                conveyorControls.classList.add('hidden');
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/conveyor/${encodeURIComponent(currentVideo)}`);
+                const data = await res.json();
+
+                // Show conveyor controls if there's a counting zone
+                const hasCountingZone = Object.values(cachedZones).some(z => z.type === 'counting');
+                if (hasCountingZone) {
+                    conveyorControls.classList.remove('hidden');
+                    if (data.warmup_complete === false) {
+                        conveyorCount.textContent = 'Cal...';
+                    } else {
+                        conveyorCount.textContent = data.count || 0;
+                    }
+                } else {
+                    conveyorControls.classList.add('hidden');
+                }
+            } catch (e) {
+                console.error('Error fetching conveyor count:', e);
+            }
         }
 
         async function loadVideos() {
@@ -615,25 +790,54 @@
                 return;
             }
 
-            const res = await fetch(`/api/presence/${encodeURIComponent(currentVideo)}`);
-            const data = await res.json();
-            const zones = data.zones;
+            // Fetch zones with type info
+            const zonesRes = await fetch(`/api/zones/${encodeURIComponent(currentVideo)}`);
+            const zonesData = await zonesRes.json();
+            cachedZones = zonesData.zones;
 
-            if (Object.keys(zones).length === 0) {
+            // Fetch presence data for timing
+            const presenceRes = await fetch(`/api/presence/${encodeURIComponent(currentVideo)}`);
+            const presenceData = await presenceRes.json();
+            const presenceZones = presenceData.zones;
+
+            if (Object.keys(cachedZones).length === 0) {
                 zonesGrid.innerHTML = '<div class="no-zones">Aucune zone definie pour cette video</div>';
                 return;
             }
 
             zonesGrid.innerHTML = '';
-            for (const [name, info] of Object.entries(zones)) {
-                const statusClass = info.is_occupied ? 'occupied' : 'empty';
-                const statusLabel = info.is_occupied ? 'Occupe' : 'Vide';
+            for (const [name, zone] of Object.entries(cachedZones)) {
+                const zoneType = zone.type || 'presence';
+                const presenceInfo = presenceZones[name] || {};
+
+                let cardContent = '';
+
+                if (zoneType === 'presence') {
+                    const statusClass = presenceInfo.is_occupied ? 'occupied' : 'empty';
+                    const statusLabel = presenceInfo.is_occupied ? 'Occupe' : 'Vide';
+                    cardContent = `
+                        <div class="zone-type-badge presence">Presence</div>
+                        <div class="zone-name">${name}</div>
+                        <div class="zone-status ${statusClass}">${statusLabel}</div>
+                        <div class="zone-time">${presenceInfo.formatted_time || '00:00:00'}</div>
+                    `;
+                } else if (zoneType === 'include') {
+                    cardContent = `
+                        <div class="zone-type-badge include">ROI</div>
+                        <div class="zone-name">${name}</div>
+                        <div class="zone-status empty">Zone de traitement</div>
+                    `;
+                } else if (zoneType === 'counting') {
+                    cardContent = `
+                        <div class="zone-type-badge counting">Comptage</div>
+                        <div class="zone-name">${name}</div>
+                        <div class="zone-status empty">Zone de comptage</div>
+                    `;
+                }
 
                 zonesGrid.innerHTML += `
                     <div class="zone-card">
-                        <div class="zone-name">${name}</div>
-                        <div class="zone-status ${statusClass}">${statusLabel}</div>
-                        <div class="zone-time">${info.formatted_time}</div>
+                        ${cardContent}
                         <button class="zone-delete" onclick="deleteZone('${name}')">Supprimer</button>
                     </div>
                 `;
@@ -816,7 +1020,8 @@
                 body: JSON.stringify({
                     name: zoneName.value.trim(),
                     polygons: [drawPoints],
-                    video: currentVideo
+                    video: currentVideo,
+                    zone_type: currentZoneType
                 })
             });
 
@@ -903,6 +1108,21 @@
             ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
 
             for (const [name, zone] of Object.entries(cachedZones)) {
+                const zoneType = zone.type || 'presence';
+
+                // Set colors based on zone type
+                let fillColor, strokeColor;
+                if (zoneType === 'presence') {
+                    fillColor = 'rgba(255, 165, 0, 0.2)';
+                    strokeColor = '#ffa500';
+                } else if (zoneType === 'include') {
+                    fillColor = 'rgba(0, 255, 255, 0.15)';
+                    strokeColor = '#00ffff';
+                } else if (zoneType === 'counting') {
+                    fillColor = 'rgba(255, 0, 255, 0.2)';
+                    strokeColor = '#ff00ff';
+                }
+
                 for (const polygon of zone.polygons) {
                     if (polygon.length < 3) continue;
 
@@ -913,9 +1133,9 @@
                     }
                     ctx.closePath();
 
-                    ctx.fillStyle = 'rgba(255, 165, 0, 0.2)';
+                    ctx.fillStyle = fillColor;
                     ctx.fill();
-                    ctx.strokeStyle = '#ffa500';
+                    ctx.strokeStyle = strokeColor;
                     ctx.lineWidth = 2;
                     ctx.stroke();
 
