@@ -170,7 +170,7 @@
         async function refreshZonesCacheForSite(force = false) {
             if (!currentSite?.cameras?.length) return;
             const now = Date.now();
-            if (!force && (now - zonesCacheRefreshTs) < 2000) return; // throttle
+            if (!force && (now - zonesCacheRefreshTs) < 500) return; // throttle réduit pour meilleure réactivité
             zonesCacheRefreshTs = now;
             const videos = currentSite.cameras.map(c => c.video).filter(Boolean);
             await Promise.all(videos.map(async (v) => {
@@ -601,7 +601,7 @@
                     const active = editorState.zone === z ? 'active' : '';
                     const count = (zones[z]?.polygons || []).length;
                     return `
-                        <div class="editor-zone-row ${active}" onclick="window.__editorSelectZone('${z.replace(/'/g, "\\'")}')">
+                        <div class="editor-zone-row ${active}" data-editor-select-zone="${z.replace(/'/g, "\\'")}">
                             <div class="editor-zone-left">
                                 <span class="editor-dot"></span>
                                 <span class="editor-zone-name">${z}</span>
@@ -1543,6 +1543,20 @@
         });
 
         editorDeleteZoneBtn?.addEventListener('click', editorDeleteZone);
+        
+        // Gestionnaire de délégation pour les zones dans l'éditeur
+        editorZoneList?.addEventListener('click', (e) => {
+            const zoneRow = e.target?.closest?.('[data-editor-select-zone]');
+            if (zoneRow) {
+                e.preventDefault();
+                e.stopPropagation();
+                const zoneName = zoneRow.getAttribute('data-editor-select-zone') || '';
+                if (zoneName && window.__editorSelectZone) {
+                    window.__editorSelectZone(zoneName);
+                }
+                return;
+            }
+        });
 
         toolSelectBtn.addEventListener('click', () => editorSetTool('select'));
         toolCountLineBtn.addEventListener('click', () => { editorSetTool('line'); editorState.points = []; editorRender(); });
@@ -2099,11 +2113,66 @@
                 selectSiteByName(name);
             });
             zoneListSidebar?.addEventListener('click', (e) => {
-                const el = e.target?.closest?.('[data-site]');
-                if (!el) return;
-                const key = el.getAttribute('data-site') || '';
-                const name = decodeURIComponent(key);
-                selectSiteByName(name);
+                // Gestion des clics sur les sites
+                const siteEl = e.target?.closest?.('[data-site]');
+                if (siteEl) {
+                    const key = siteEl.getAttribute('data-site') || '';
+                    const name = decodeURIComponent(key);
+                    selectSiteByName(name);
+                    return;
+                }
+                
+                // Gestion des clics sur les zones dans la sidebar
+                const zoneEl = e.target?.closest?.('[data-select-zone]');
+                if (zoneEl) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const zoneName = zoneEl.getAttribute('data-select-zone') || '';
+                    if (zoneName) window.selectZone(zoneName);
+                    return;
+                }
+                
+                // Gestion des clics sur les dessins dans la sidebar
+                const drawingEl = e.target?.closest?.('[data-select-drawing]');
+                if (drawingEl) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const zoneName = drawingEl.getAttribute('data-select-drawing') || '';
+                    const idx = Number(drawingEl.getAttribute('data-drawing-idx'));
+                    if (zoneName && Number.isFinite(idx)) window.selectDrawing(zoneName, idx);
+                    return;
+                }
+                
+                // Gestion des clics sur les caméras dans la sidebar
+                const cameraEl = e.target?.closest?.('[data-select-camera]');
+                if (cameraEl) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const cameraId = cameraEl.getAttribute('data-select-camera') || '';
+                    if (cameraId) selectCamera(cameraId);
+                    return;
+                }
+            });
+            
+            // Gestionnaire pour les caméras dans le panneau caméras
+            cameraGrid?.addEventListener('click', (e) => {
+                const deleteBtn = e.target?.closest?.('[data-delete-camera]');
+                if (deleteBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const cameraId = deleteBtn.getAttribute('data-delete-camera') || '';
+                    if (cameraId) deleteCamera(cameraId);
+                    return;
+                }
+                
+                const selectEl = e.target?.closest?.('[data-select-camera]');
+                if (selectEl) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const cameraId = selectEl.getAttribute('data-select-camera') || '';
+                    if (cameraId) selectCamera(cameraId);
+                    return;
+                }
             });
 
             // DEMO: always start on home; refresh resets sites to DEMO_SITES
@@ -2186,7 +2255,7 @@
                 cameraGrid.innerHTML += `
                     <div class="camera-item ${isCurrent ? 'active' : ''}" data-camera="${cam.id}">
                         <div class="camera-item-header">
-                            <div onclick="selectCamera('${cam.id}')" style="flex:1;cursor:pointer;">
+                            <div data-select-camera="${cam.id}" style="flex:1;cursor:pointer;">
                                 <div class="camera-item-name">${cam.name}</div>
                                 <div class="camera-item-status ${videoExists ? (isActive ? 'online' : 'offline') : 'offline'}">
                                     <span class="camera-status-dot" style="width:6px;height:6px;border-radius:50%;background:currentColor;"></span>
@@ -2196,7 +2265,7 @@
                                     ${(cam.hint || '')} • <span style="font-family: 'Courier New', monospace;">${cam.video}</span>
                                 </div>
                             </div>
-                            <button class="camera-item-delete" onclick="event.stopPropagation(); deleteCamera('${cam.id}')" title="Supprimer cette caméra">
+                            <button class="camera-item-delete" data-delete-camera="${cam.id}" title="Supprimer cette caméra">
                                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                 </svg>
@@ -2537,7 +2606,7 @@
                             </div>
                         `}
                         <div class="zone-card-actions">
-                            <button class="btn btn-ghost btn-icon" onclick="resetZoneTimer('${name}')" title="Reset">
+                            <button class="btn btn-ghost btn-icon" data-reset-zone="${escapeHtml(name)}" title="Reset">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                                 </svg>
@@ -2719,7 +2788,7 @@
 
                             const zoneRow = isCurrent
                                 ? `
-                                    <div class="tree-row" onclick="selectZone('${zoneName}')">
+                                    <div class="tree-row" data-select-zone="${escapeHtml(zoneName)}" style="cursor: pointer;">
                                         <div class="left">
                                             <span class="zone-dot ${dotClass}"></span>
                                             <span class="label">${escapeHtml(zoneName)}</span>
@@ -2740,7 +2809,7 @@
                             const drawingsRows = drawings.map((_, idx) => {
                                 return isCurrent
                                     ? `
-                                        <div class="tree-row tree-leaf" onclick="selectDrawing('${zoneName}', ${idx})">
+                                        <div class="tree-row tree-leaf" data-select-drawing="${escapeHtml(zoneName)}" data-drawing-idx="${idx}" style="cursor: pointer;">
                                             <div class="left">
                                                 <span class="label">Dessin ${idx + 1}</span>
                                             </div>
@@ -2766,7 +2835,7 @@
                 `;
 
                 return `
-                    <div class="tree-row ${isCurrent ? 'active' : ''}" onclick="selectCamera('${escapeHtml(cam.id)}')">
+                    <div class="tree-row ${isCurrent ? 'active' : ''}" data-select-camera="${escapeHtml(cam.id)}" style="cursor: pointer;">
                         <div class="left">
                             <img class="tree-icon-img" src="/static/assets_youn/SvIcons/video-camera-svgrepo-com.svg" alt="">
                             <span class="label">${camLabel}</span>
@@ -2822,8 +2891,22 @@
         zonesGrid?.addEventListener('click', (e) => {
             const t = e.target;
             if (!(t instanceof Element)) return;
+            
+            // Gestion des boutons reset (priorité haute)
+            const resetBtn = t.closest('[data-reset-zone]');
+            if (resetBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                const zoneName = resetBtn.getAttribute('data-reset-zone') || '';
+                if (zoneName) resetZoneTimer(zoneName);
+                return;
+            }
+            
+            // Gestion du toggle des previews
             const toggle = t.closest('.zone-forms-toggle');
             if (toggle) {
+                e.preventDefault();
+                e.stopPropagation();
                 const z = decodeURIComponent(toggle.getAttribute('data-zone') || '');
                 if (!z || !currentVideo) return;
                 if (!presencePreviewsCollapsedByVideo[currentVideo]) presencePreviewsCollapsedByVideo[currentVideo] = {};
@@ -2839,21 +2922,32 @@
                 previewsEl?.classList.toggle('is-collapsed', collapsed);
                 return;
             }
-            // Ne pas déclencher si clic sur un bouton (reset, etc.)
-            if (t.closest('button')) return;
+            
+            // Ne pas déclencher si clic sur un bouton (autres boutons)
+            if (t.closest('button')) {
+                e.stopPropagation();
+                return;
+            }
 
+            // Gestion des previews de dessins
             const preview = t.closest('.zone-preview-box');
             if (preview) {
+                e.preventDefault();
+                e.stopPropagation();
                 const z = decodeURIComponent(preview.getAttribute('data-zone') || '');
                 const idx = Number(preview.getAttribute('data-idx'));
                 if (z && Number.isFinite(idx)) window.selectDrawing(z, idx);
                 return;
             }
 
+            // Gestion des clics sur les cartes de zones
             const card = t.closest('.zone-card[data-zone]');
             if (card) {
+                e.preventDefault();
+                e.stopPropagation();
                 const z = decodeURIComponent(card.getAttribute('data-zone') || '');
                 if (z) window.selectZone(z);
+                return;
             }
         });
 
