@@ -25,6 +25,7 @@
         let zonesCacheRefreshTs = 0;
         const linePassByVideo = {};        // { [videoName]: { [zoneName]: { count:number, lastOcc:boolean, series:number[] } } }
         const presencePreviewsCollapsedByVideo = {}; // { [videoName]: { [zoneName]: boolean } }
+        const sidebarZonesCollapsedByVideo = {}; // { [videoName]: { [zoneName]: boolean } } pour replier les zones dans la sidebar
         const zonesDefsFetchTsByVideo = {}; // { [videoName]: epochMs } pour throttle /api/zones/{video}
         const zonesDefsFetchedByVideo = {}; // { [videoName]: boolean } pour distinguer "0 zones" vs "pas encore fetch"
         const presenceOkTsByVideo = {};     // { [videoName]: epochMs } dernier /api/presence OK (anti-stale)
@@ -2773,36 +2774,38 @@
                             const info = presence?.[zoneName] || { formatted_time: '00:00:00', is_occupied: false };
                             const drawings = defs?.[zoneName]?.polygons || [];
                             const dotClass = info.is_occupied ? 'occupied' : '';
-                            const live = zoneLiveTimersByVideo?.[videoKey]?.zones?.[zoneName] || { occ: 0, abs: 0 };
-                            const isLine = (() => {
-                                const polys = defs?.[zoneName]?.polygons || [];
-                                for (let i = 0; i < polys.length; i++) {
-                                    if (getDrawType(videoKey, zoneName, i) === 'line') return true;
-                                }
-                                return false;
-                            })();
-                            const uptime = Number(live.occ || 0) + Number(live.abs || 0);
-                            const metaTime = (videoHasRunByVideo[videoKey] || activeVideoStreams.has(videoKey))
-                                ? formatHMS(isLine ? uptime : (live.occ || 0))
-                                : '00:00:00';
+                            const isCollapsed = sidebarZonesCollapsedByVideo?.[videoKey]?.[zoneName] ?? true; // Par défaut replié
+                            const hasDrawings = drawings.length > 0;
 
                             const zoneRow = isCurrent
                                 ? `
                                     <div class="tree-row" data-select-zone="${escapeHtml(zoneName)}" style="cursor: pointer;">
                                         <div class="left">
+                                            ${hasDrawings ? `
+                                                <button class="tree-toggle-btn" onclick="event.stopPropagation(); toggleSidebarZone('${videoKey}', '${zoneName}')" type="button" aria-label="${isCollapsed ? 'Déplier' : 'Replier'}">
+                                                    <svg class="tree-chevron ${isCollapsed ? 'collapsed' : 'expanded'}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                                        <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
+                                                    </svg>
+                                                </button>
+                                            ` : '<span style="width: 18px;"></span>'}
                                             <span class="zone-dot ${dotClass}"></span>
                                             <span class="label">${escapeHtml(zoneName)}</span>
                                         </div>
-                                        <span class="meta">${metaTime}</span>
                                     </div>
                                 `
                                 : `
                                     <div class="tree-row" style="cursor: default; opacity: 0.75;">
                                         <div class="left">
+                                            ${hasDrawings ? `
+                                                <button class="tree-toggle-btn" onclick="event.stopPropagation(); toggleSidebarZone('${videoKey}', '${zoneName}')" type="button" aria-label="${isCollapsed ? 'Déplier' : 'Replier'}">
+                                                    <svg class="tree-chevron ${isCollapsed ? 'collapsed' : 'expanded'}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                                        <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
+                                                    </svg>
+                                                </button>
+                                            ` : '<span style="width: 18px;"></span>'}
                                             <span class="zone-dot ${dotClass}"></span>
                                             <span class="label">${escapeHtml(zoneName)}</span>
                                         </div>
-                                        <span class="meta">${metaTime}</span>
                                     </div>
                                 `;
 
@@ -2826,7 +2829,7 @@
 
                             return `
                                 ${zoneRow}
-                                <div class="tree-children">
+                                <div class="tree-children ${isCollapsed ? 'is-collapsed' : ''}">
                                     ${drawingsRows}
                                 </div>
                             `;
@@ -2868,6 +2871,20 @@
             selectedAsset = { zone: zoneName, idx };
             drawExistingZones();
             syncPresenceSelectionUI();
+        };
+
+        window.toggleSidebarZone = (videoKey, zoneName) => {
+            if (!sidebarZonesCollapsedByVideo[videoKey]) {
+                sidebarZonesCollapsedByVideo[videoKey] = {};
+            }
+            const current = sidebarZonesCollapsedByVideo[videoKey][zoneName] ?? true;
+            sidebarZonesCollapsedByVideo[videoKey][zoneName] = !current;
+            // Stabilisation UI: ne déclenche PAS de fetch/rebuild async.
+            // On re-render la sidebar immédiatement depuis les caches en mémoire.
+            const curVideo = currentVideo;
+            const presence = curVideo ? (lastPresenceByVideo[curVideo] || {}) : {};
+            const zonesWithPolygons = curVideo ? (zonesCacheByVideo[curVideo] || {}) : {};
+            renderAssetTree(presence, zonesWithPolygons);
         };
 
         function syncPresenceSelectionUI() {
