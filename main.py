@@ -40,11 +40,13 @@ zones_by_video = {}
 zone_timers = {}
 data_lock = threading.Lock()
 
-# Active streams: {video_name: {"active": bool, "detections": [], "current_frame": int, "frame_lock": Lock}}
+# Active streams: {video_name: {"active": bool, "detections": [], "frame_event": Event, ...}}
 active_streams = {}
 streams_lock = threading.Lock()
 # Shared frames for streaming (processor writes, streamer reads)
+# Using separate lock for frames to reduce contention
 shared_frames = {}  # {video_name: {"frame": ndarray, "frame_num": int}}
+frames_lock = threading.Lock()
 
 # Seuil minimum d'intersection bbox/zone (30%)
 INTERSECTION_THRESHOLD = 0.30
@@ -519,7 +521,8 @@ def video_processor(video_name: str):
     fps = cap.get(cv2.CAP_PROP_FPS) or 30
     frame_delay = 1.0 / fps
 
-    frame_queue = Queue(maxsize=2)
+    # Larger queue to handle processing spikes in Docker
+    frame_queue = Queue(maxsize=5)
 
     detection_thread = threading.Thread(
         target=detection_worker,
@@ -529,6 +532,10 @@ def video_processor(video_name: str):
     detection_thread.start()
 
     last_save = time.time()
+
+    # Get frame_event for signaling new frames
+    with streams_lock:
+        frame_event = active_streams.get(video_name, {}).get("frame_event")
 
     try:
         while True:
@@ -545,13 +552,18 @@ def video_processor(video_name: str):
 
             frame_num = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
 
-            # Store frame for streaming
-            with streams_lock:
+            # Store frame for streaming using dedicated frames_lock (reduces contention)
+            with frames_lock:
                 shared_frames[video_name] = {
-                    "frame": frame.copy(),
+                    "frame": frame,  # No copy needed - we're the only writer
                     "frame_num": frame_num
                 }
 
+            # Signal that a new frame is available
+            if frame_event:
+                frame_event.set()
+
+            # Feed detection queue (non-blocking)
             if not frame_queue.full():
                 try:
                     frame_queue.put_nowait(frame.copy())
@@ -575,7 +587,7 @@ def video_processor(video_name: str):
 
     finally:
         cap.release()
-        with streams_lock:
+        with frames_lock:
             if video_name in shared_frames:
                 del shared_frames[video_name]
         save_presence()
@@ -641,13 +653,26 @@ def generate_frames(video_name: str):
     """Generate frames for streaming - reads from shared_frames written by processor"""
     last_frame_num = -1
 
+    # Get the frame event for this stream
+    with streams_lock:
+        frame_event = active_streams.get(video_name, {}).get("frame_event")
+
     while True:
+        # Check if stream is still active
         with streams_lock:
             if video_name not in active_streams or not active_streams[video_name]["active"]:
                 break
 
+        # Wait for new frame signal instead of polling (with timeout for cleanup)
+        if frame_event:
+            frame_event.wait(timeout=0.1)
+            frame_event.clear()
+        else:
+            time.sleep(0.01)
+
+        # Get frame data with minimal lock time
+        with frames_lock:
             if video_name not in shared_frames:
-                time.sleep(0.01)
                 continue
 
             frame_data = shared_frames[video_name]
@@ -655,12 +680,13 @@ def generate_frames(video_name: str):
 
             # Skip if same frame
             if frame_num == last_frame_num:
-                time.sleep(0.005)
                 continue
 
             frame = frame_data["frame"].copy()
             last_frame_num = frame_num
 
+        # Get detections separately
+        with streams_lock:
             detections = active_streams[video_name]["detections"].copy() if video_name in active_streams else []
 
         # Apply blur if enabled (before drawing boxes)
@@ -728,7 +754,8 @@ async def start_video_processing(video_name: str):
 
         active_streams[video_name] = {
             "active": True,
-            "detections": []
+            "detections": [],
+            "frame_event": threading.Event()  # Event for frame synchronization
         }
 
     # Start background processing thread
@@ -754,7 +781,8 @@ async def video_stream(video_name: str):
         if video_name not in active_streams or not active_streams[video_name]["active"]:
             active_streams[video_name] = {
                 "active": True,
-                "detections": []
+                "detections": [],
+                "frame_event": threading.Event()  # Event for frame synchronization
             }
             processor_thread = threading.Thread(
                 target=video_processor,
