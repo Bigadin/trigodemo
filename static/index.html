@@ -223,6 +223,13 @@
                                 </span>
                             </button>
 
+                            <button class="retro-btn retro-light retro-full" id="editZonesBtn" disabled>
+                                <span class="retro-btn-inner">
+                                    <img class="retro-icon-img" src="/static/assets_youn/SvIcons/draw.svg" alt="">
+                                    Éditer les zones
+                                </span>
+                            </button>
+
                             <!-- (Legacy) conservé hidden pour compat éventuelle -->
                             <button class="btn btn-danger hidden" id="stopDetectionBtn" style="width: 100%;">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -268,6 +275,14 @@
                                     <label class="form-label">Vidéo</label>
                                     <select id="newCamVideo" class="lov-select" style="width:100%;"></select>
                                 </div>
+                            </div>
+                            <div style="display:flex; align-items:center; gap: var(--space-3); padding: var(--space-3); background: var(--color-bg-secondary); border-radius: var(--radius-md);">
+                                <span style="color: var(--color-text-secondary); font-size: 14px;">Ou uploader une nouvelle vidéo :</span>
+                                <label class="btn btn-secondary" id="uploadVideoLabel" style="cursor:pointer; margin:0;">
+                                    <input type="file" id="uploadVideoInput" accept="video/*" style="display:none;">
+                                    Choisir un fichier
+                                </label>
+                                <span id="uploadProgress" style="color: var(--color-text-secondary); font-size: 13px;"></span>
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Description (optionnel)</label>
