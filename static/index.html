@@ -278,10 +278,12 @@
                             </div>
                             <div style="display:flex; align-items:center; gap: var(--space-3); padding: var(--space-3); background: var(--color-bg-secondary); border-radius: var(--radius-md);">
                                 <span style="color: var(--color-text-secondary); font-size: 14px;">Ou uploader une nouvelle vidéo :</span>
-                                <label class="btn btn-secondary" id="uploadVideoLabel" style="cursor:pointer; margin:0;">
-                                    <input type="file" id="uploadVideoInput" accept="video/*" style="display:none;">
-                                    Choisir un fichier
-                                </label>
+                                <form id="uploadVideoForm" style="display:contents;">
+                                    <label class="btn btn-secondary" style="cursor:pointer; margin:0;">
+                                        <input type="file" id="uploadVideoInput" accept="video/*" style="display:none;">
+                                        <span id="uploadVideoLabelText">Choisir un fichier</span>
+                                    </label>
+                                </form>
                                 <span id="uploadProgress" style="color: var(--color-text-secondary); font-size: 13px;"></span>
                             </div>
                             <div class="form-group">
