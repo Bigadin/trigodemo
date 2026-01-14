@@ -2094,21 +2094,28 @@
                 const file = uploadVideoInput.files?.[0];
                 if (!file) return;
 
+                console.log('[Upload] Starting upload for:', file.name);
                 const formData = new FormData();
                 formData.append('file', file);
 
                 if (uploadVideoLabel) uploadVideoLabel.textContent = truncateFilename(file.name);
-                uploadProgress.textContent = 'Upload...';
+                if (uploadProgress) uploadProgress.textContent = 'Upload...';
 
                 try {
                     const resp = await fetch('/api/videos/upload', {
                         method: 'POST',
                         body: formData
                     });
-                    if (!resp.ok) throw new Error('Upload échoué');
+                    console.log('[Upload] Response status:', resp.status);
+                    if (!resp.ok) {
+                        const errText = await resp.text();
+                        console.error('[Upload] Error response:', errText);
+                        throw new Error(`Upload échoué (${resp.status})`);
+                    }
                     const data = await resp.json();
+                    console.log('[Upload] Success:', data);
 
-                    uploadProgress.textContent = 'OK !';
+                    if (uploadProgress) uploadProgress.textContent = 'OK !';
 
                     // Refresh video list
                     await loadVideos();
@@ -2124,9 +2131,10 @@
                         newCamVideo.value = data.filename;
                     }
 
-                    setTimeout(() => { uploadProgress.textContent = ''; }, 2000);
+                    setTimeout(() => { if (uploadProgress) uploadProgress.textContent = ''; }, 2000);
                 } catch (e) {
-                    uploadProgress.textContent = `Erreur: ${e.message}`;
+                    console.error('[Upload] Exception:', e);
+                    if (uploadProgress) uploadProgress.textContent = `Erreur: ${e.message}`;
                 }
             });
 
