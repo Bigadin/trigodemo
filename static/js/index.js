@@ -320,6 +320,7 @@
         const uploadVideoInput = document.getElementById('uploadVideoInput');
         const uploadVideoLabel = document.getElementById('uploadVideoLabel');
         const uploadProgress = document.getElementById('uploadProgress');
+        console.log('[Init] Upload elements:', { uploadVideoInput, uploadVideoLabel, uploadProgress });
 
         // Editor modal elements
         const editorOverlay = document.getElementById('editorOverlay');
@@ -2090,53 +2091,60 @@
             }
 
             // Upload video - auto upload on file select
-            uploadVideoInput?.addEventListener('change', async () => {
-                const file = uploadVideoInput.files?.[0];
-                if (!file) return;
-
-                console.log('[Upload] Starting upload for:', file.name);
-                const formData = new FormData();
-                formData.append('file', file);
-
-                if (uploadVideoLabel) uploadVideoLabel.textContent = truncateFilename(file.name);
-                if (uploadProgress) uploadProgress.textContent = 'Upload...';
-
-                try {
-                    const resp = await fetch('/api/videos/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    console.log('[Upload] Response status:', resp.status);
-                    if (!resp.ok) {
-                        const errText = await resp.text();
-                        console.error('[Upload] Error response:', errText);
-                        throw new Error(`Upload échoué (${resp.status})`);
+            console.log('[Init] Attaching upload listener to:', uploadVideoInput);
+            if (uploadVideoInput) {
+                uploadVideoInput.addEventListener('change', async () => {
+                    console.log('[Upload] Change event fired');
+                    const file = uploadVideoInput.files?.[0];
+                    if (!file) {
+                        console.log('[Upload] No file selected');
+                        return;
                     }
-                    const data = await resp.json();
-                    console.log('[Upload] Success:', data);
 
-                    if (uploadProgress) uploadProgress.textContent = 'OK !';
+                    console.log('[Upload] Starting upload for:', file.name);
+                    const formData = new FormData();
+                    formData.append('file', file);
 
-                    // Refresh video list
-                    await loadVideos();
+                    if (uploadVideoLabel) uploadVideoLabel.textContent = truncateFilename(file.name);
+                    if (uploadProgress) uploadProgress.textContent = 'Upload...';
 
-                    // Rebuild newCamVideo select with updated availableVideosList
-                    if (newCamVideo && data.filename) {
-                        newCamVideo.innerHTML = '';
-                        (availableVideosList || []).forEach((v) => {
-                            const displayName = truncateFilename(v, 30);
-                            newCamVideo.innerHTML += `<option value="${escapeHtml(v)}" title="${escapeHtml(v)}">${escapeHtml(displayName)}</option>`;
+                    try {
+                        const resp = await fetch('/api/videos/upload', {
+                            method: 'POST',
+                            body: formData
                         });
-                        // Select the uploaded video
-                        newCamVideo.value = data.filename;
-                    }
+                        console.log('[Upload] Response status:', resp.status);
+                        if (!resp.ok) {
+                            const errText = await resp.text();
+                            console.error('[Upload] Error response:', errText);
+                            throw new Error(`Upload échoué (${resp.status})`);
+                        }
+                        const data = await resp.json();
+                        console.log('[Upload] Success:', data);
 
-                    setTimeout(() => { if (uploadProgress) uploadProgress.textContent = ''; }, 2000);
-                } catch (e) {
-                    console.error('[Upload] Exception:', e);
-                    if (uploadProgress) uploadProgress.textContent = `Erreur: ${e.message}`;
-                }
-            });
+                        if (uploadProgress) uploadProgress.textContent = 'OK !';
+
+                        // Refresh video list
+                        await loadVideos();
+
+                        // Rebuild newCamVideo select with updated availableVideosList
+                        if (newCamVideo && data.filename) {
+                            newCamVideo.innerHTML = '';
+                            (availableVideosList || []).forEach((v) => {
+                                const displayName = truncateFilename(v, 30);
+                                newCamVideo.innerHTML += `<option value="${escapeHtml(v)}" title="${escapeHtml(v)}">${escapeHtml(displayName)}</option>`;
+                            });
+                            // Select the uploaded video
+                            newCamVideo.value = data.filename;
+                        }
+
+                        setTimeout(() => { if (uploadProgress) uploadProgress.textContent = ''; }, 2000);
+                    } catch (e) {
+                        console.error('[Upload] Exception:', e);
+                        if (uploadProgress) uploadProgress.textContent = `Erreur: ${e.message}`;
+                    }
+                });
+            }
 
             addCameraBtn?.addEventListener('click', () => {
                 if (currentView !== 'tracker') return;
