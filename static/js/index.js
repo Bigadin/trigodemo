@@ -254,6 +254,7 @@
         const placeholder = document.getElementById('placeholder');
         const toggleDrawPanelBtn = document.getElementById('toggleDrawPanelBtn');
         const drawFab = document.getElementById('drawFab');
+        const editZonesBtn = document.getElementById('editZonesBtn');
         const drawPanel = document.getElementById('drawPanel');
         const drawZoneSelect = document.getElementById('drawZoneSelect');
         const drawZoneNameGroup = document.getElementById('drawZoneNameGroup');
@@ -314,6 +315,11 @@
         const newCamHint = document.getElementById('newCamHint');
         const saveCamBtn = document.getElementById('saveCamBtn');
         const cancelCamBtn = document.getElementById('cancelCamBtn');
+
+        // Upload video elements
+        const uploadVideoInput = document.getElementById('uploadVideoInput');
+        const uploadVideoLabel = document.getElementById('uploadVideoLabel');
+        const uploadProgress = document.getElementById('uploadProgress');
 
         // Editor modal elements
         const editorOverlay = document.getElementById('editorOverlay');
@@ -1656,6 +1662,7 @@
         // Open editor when clicking the drawing button (now: overlay icon)
         toggleDrawPanelBtn?.addEventListener('click', () => editorOpen());
         drawFab?.addEventListener('click', () => editorOpen());
+        editZonesBtn?.addEventListener('click', () => editorOpen());
 
         function clonePoints(pts) {
             return (pts || []).map(p => [p[0], p[1]]);
@@ -1885,6 +1892,16 @@
                 .replaceAll("'", '&#39;');
         }
 
+        // Helper to truncate filename for display
+        function truncateFilename(name, maxLen = 20) {
+            if (!name || name.length <= maxLen) return name;
+            const ext = name.lastIndexOf('.') > 0 ? name.slice(name.lastIndexOf('.')) : '';
+            const base = name.slice(0, name.length - ext.length);
+            const availableLen = maxLen - ext.length - 3; // 3 for "..."
+            if (availableLen <= 0) return name.slice(0, maxLen - 3) + '...';
+            return base.slice(0, availableLen) + '...' + ext;
+        }
+
         function renderSitesHome() {
             if (!sitesGrid) return;
             if (!sitesCache || sitesCache.length === 0) {
@@ -2056,7 +2073,8 @@
                 if (newCamVideo) {
                     newCamVideo.innerHTML = '';
                     (availableVideosList || []).forEach((v) => {
-                        newCamVideo.innerHTML += `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`;
+                        const displayName = truncateFilename(v, 30);
+                        newCamVideo.innerHTML += `<option value="${escapeHtml(v)}" title="${escapeHtml(v)}">${escapeHtml(displayName)}</option>`;
                     });
                 }
                 newCamName?.focus();
@@ -2065,7 +2083,53 @@
                 addCameraForm?.classList.add('hidden');
                 if (newCamName) newCamName.value = '';
                 if (newCamHint) newCamHint.value = '';
+                // Reset upload state
+                if (uploadVideoInput) uploadVideoInput.value = '';
+                if (uploadVideoLabel) uploadVideoLabel.textContent = 'Choisir un fichier';
+                if (uploadProgress) uploadProgress.textContent = '';
             }
+
+            // Upload video - auto upload on file select
+            uploadVideoInput?.addEventListener('change', async () => {
+                const file = uploadVideoInput.files?.[0];
+                if (!file) return;
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                if (uploadVideoLabel) uploadVideoLabel.textContent = truncateFilename(file.name);
+                uploadProgress.textContent = 'Upload...';
+
+                try {
+                    const resp = await fetch('/api/videos/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    if (!resp.ok) throw new Error('Upload échoué');
+                    const data = await resp.json();
+
+                    uploadProgress.textContent = 'OK !';
+
+                    // Refresh video list
+                    await loadVideos();
+
+                    // Rebuild newCamVideo select with updated availableVideosList
+                    if (newCamVideo && data.filename) {
+                        newCamVideo.innerHTML = '';
+                        (availableVideosList || []).forEach((v) => {
+                            const displayName = truncateFilename(v, 30);
+                            newCamVideo.innerHTML += `<option value="${escapeHtml(v)}" title="${escapeHtml(v)}">${escapeHtml(displayName)}</option>`;
+                        });
+                        // Select the uploaded video
+                        newCamVideo.value = data.filename;
+                    }
+
+                    setTimeout(() => { uploadProgress.textContent = ''; }, 2000);
+                } catch (e) {
+                    uploadProgress.textContent = `Erreur: ${e.message}`;
+                }
+            });
+
             addCameraBtn?.addEventListener('click', () => {
                 if (currentView !== 'tracker') return;
                 openAddCameraForm();
@@ -2253,6 +2317,7 @@
                 const isCurrent = cam.video === currentVideo;
                 const statusText = videoExists ? (isActive ? 'En ligne' : 'Prête') : 'Manquante';
 
+                const videoDisplayName = truncateFilename(cam.video, 12);
                 cameraGrid.innerHTML += `
                     <div class="camera-item ${isCurrent ? 'active' : ''}" data-camera="${cam.id}">
                         <div class="camera-item-header">
@@ -2263,7 +2328,7 @@
                                     <span class="camera-status-text">${statusText}</span>
                                 </div>
                                 <div style="margin-top: var(--space-2); font-size: var(--text-xs); color: var(--color-text-muted);">
-                                    ${(cam.hint || '')} • <span style="font-family: 'Courier New', monospace;">${cam.video}</span>
+                                    ${(cam.hint || '')} • <span style="font-family: 'Courier New', monospace;" title="${escapeHtml(cam.video)}">${escapeHtml(videoDisplayName)}</span>
                                 </div>
                             </div>
                             <button class="camera-item-delete" data-delete-camera="${cam.id}" title="Supprimer cette caméra">
@@ -3055,6 +3120,7 @@
 
             placeholder.classList.add('hidden');
             startDetectionBtn.disabled = false;
+            if (editZonesBtn) editZonesBtn.disabled = false;
 
             const img = isCurrentVideoStreaming ? videoStream : videoFrame;
             img.onload = () => {
