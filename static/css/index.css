@@ -1,4 +1,4 @@
-﻿/* ========================================
+/* ========================================
            YRYS Design System Tokens
            ======================================== */
         :root {
@@ -13,6 +13,7 @@
             --space-5: 24px;
             --space-6: 32px;
             --space-7: 48px;
+            --space-8: 64px;
 
             /* Radius (un peu plus carré) */
             --radius-sm: 6px;
@@ -182,13 +183,33 @@
         /* Sidebar */
         .sidebar {
             width: 260px;
-            background: var(--sidebar-surface);
+            /* Nav barre: noir + texture dark */
+            background: var(--sidebar-bg);
             border-right: 1px solid var(--sidebar-border);
             display: flex;
             flex-direction: column;
             position: fixed;
             height: 100vh;
             overflow-y: auto;
+            isolation: isolate; /* garantit que ::before reste derrière */
+        }
+
+        .sidebar::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: url("/static/assets_youn/YrysUIPackage/UI_Jatin/Dark%20Texture.png");
+            background-size: 720px auto;
+            background-position: top left;
+            background-repeat: repeat;
+            opacity: 0.85;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .sidebar > * {
+            position: relative;
+            z-index: 1;
         }
 
         .sidebar-header {
@@ -362,6 +383,30 @@
             display: flex;
             flex-direction: column;
             gap: var(--space-5);
+            max-width: 100%;
+            min-width: 0;
+        }
+        
+        /* Responsive main content */
+        @media (min-width: 1024px) and (max-width: 1280px) {
+            .main-content {
+                padding: var(--space-5);
+                gap: var(--space-4);
+            }
+        }
+        
+        @media (min-width: 1920px) {
+            .main-content {
+                padding: var(--space-7);
+                gap: var(--space-6);
+            }
+        }
+        
+        @media (min-width: 2560px) {
+            .main-content {
+                padding: var(--space-7) var(--space-8);
+                gap: var(--space-7);
+            }
         }
 
         /* Header bar */
@@ -369,6 +414,29 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: var(--space-4);
+        }
+        
+        /* Responsive header */
+        @media (min-width: 1920px) {
+            .page-title {
+                font-size: var(--text-2xl);
+            }
+            
+            .page-subtitle {
+                font-size: var(--text-md);
+            }
+        }
+        
+        @media (min-width: 2560px) {
+            .page-title {
+                font-size: 36px;
+            }
+            
+            .page-subtitle {
+                font-size: var(--text-lg);
+            }
         }
 
         .page-title {
@@ -433,6 +501,19 @@
             border-radius: var(--radius-lg);
             padding: var(--space-5);
         }
+        
+        /* Responsive cards */
+        @media (min-width: 1920px) {
+            .camera-panel .card {
+                padding: var(--space-6);
+            }
+        }
+        
+        @media (min-width: 2560px) {
+            .camera-panel .card {
+                padding: var(--space-7);
+            }
+        }
 
         .card-header {
             display: flex;
@@ -461,7 +542,134 @@
             gap: var(--space-5);
         }
 
-        @media (max-width: 1200px) {
+        /* Très grands écrans: on évite que le bloc caméra prenne des proportions déraisonnables */
+        @media (min-width: 1800px) {
+            .video-section {
+                /* IMPORTANT: garder le panneau Actions "collé" au module vidéo.
+                   En grid + 1fr, si la vidéo est plafonnée, on crée un trou au milieu.
+                   En flex, l'espace libre part à droite, pas entre les modules. */
+                display: flex;
+                flex-wrap: nowrap;
+                align-items: flex-start;
+                justify-content: flex-start;
+
+                /* On "regroupe" vidéo + panneau (évite le panneau collé au bord droit en ultra-wide) */
+                width: 100%;
+                max-width: 1840px;
+                margin-inline: auto;
+                gap: var(--space-6);
+            }
+
+            /* Le module vidéo ne s'étire plus indéfiniment: il reste "raisonnable" */
+            .video-card {
+                /* shrinkable: garantit que le panneau Actions reste visible même si padding/sidebar mangent la largeur */
+                flex: 1 1 0;
+                min-width: 0;
+                max-width: 1200px;
+            }
+
+            /* Panneau à droite: largeur stable mais responsive (320 → 450) */
+            .camera-panel {
+                flex: 0 0 clamp(320px, 22vw, 450px);
+                min-width: 320px;
+                /* Confort: le panneau reste visible en haut au scroll, sans perturber le layout */
+                position: sticky;
+                top: var(--space-6);
+            }
+        }
+
+        /* Responsive desktop: 1024px - 1280px */
+        @media (min-width: 1024px) and (max-width: 1280px) {
+            .video-section {
+                grid-template-columns: 1fr 300px;
+                gap: var(--space-4);
+            }
+            
+            .video-wrapper {
+                min-height: 400px;
+            }
+            
+            .camera-panel {
+                gap: var(--space-3);
+            }
+            
+            .camera-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Responsive desktop: 1280px - 1920px (Full HD) */
+        @media (min-width: 1280px) and (max-width: 1920px) {
+            .video-section {
+                grid-template-columns: 1fr 360px;
+                gap: var(--space-5);
+            }
+            
+            .video-wrapper {
+                min-height: 500px;
+            }
+            
+            .camera-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        /* Responsive desktop: 1920px - 2560px (2K/QHD) */
+        @media (min-width: 1920px) and (max-width: 2560px) {
+            .video-section {
+                grid-template-columns: 1fr 400px;
+                gap: var(--space-6);
+            }
+            
+            .video-wrapper {
+                min-height: 600px;
+            }
+            
+            .camera-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: var(--space-4);
+            }
+            
+            .video-card-header {
+                padding: var(--space-5) var(--space-6);
+            }
+            
+            .video-toolbar {
+                padding: var(--space-5) var(--space-6);
+            }
+        }
+
+        /* Responsive desktop: 2560px+ (4K/UHD) */
+        @media (min-width: 2560px) {
+            .video-section {
+                grid-template-columns: 1fr 450px;
+                gap: var(--space-7);
+            }
+            
+            .video-wrapper {
+                min-height: 720px;
+            }
+            
+            .camera-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: var(--space-5);
+            }
+            
+            .video-card-header {
+                padding: var(--space-6) var(--space-7);
+            }
+            
+            .video-toolbar {
+                padding: var(--space-6) var(--space-7);
+            }
+            
+            .camera-panel .card {
+                padding: var(--space-6);
+            }
+        }
+
+        /* Mobile/Tablet: en dessous de 1024px */
+        @media (max-width: 1023px) {
             .video-section {
                 grid-template-columns: 1fr;
             }
@@ -472,14 +680,45 @@
             border: 1px solid var(--color-border);
             border-radius: var(--radius-lg);
             overflow: hidden;
+            position: relative; /* pour overlays (header + badges) */
         }
 
         .video-card-header {
-            padding: var(--space-4) var(--space-5);
-            border-bottom: 1px solid var(--color-border);
+            /* Devient un overlay pour supprimer la "marge" au-dessus du player */
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 6;
+            padding: 10px 12px;
+            border-bottom: none;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: var(--space-3);
+            pointer-events: none;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.55), rgba(0,0,0,0));
+        }
+        
+        /* Responsive video card header */
+        @media (min-width: 1920px) {
+            .video-card-header {
+                padding: var(--space-5) var(--space-6);
+            }
+            
+            .video-title {
+                font-size: var(--text-lg);
+            }
+        }
+        
+        @media (min-width: 2560px) {
+            .video-card-header {
+                padding: var(--space-6) var(--space-7);
+            }
+            
+            .video-title {
+                font-size: var(--text-xl);
+            }
         }
 
         .video-title {
@@ -508,6 +747,78 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            width: 100%;
+            max-width: 100%;
+            /* Empêche le module preview de devenir disproportionné */
+            max-height: 70vh;
+        }
+
+        /* Pastille caméra (overlay top-right) */
+        .video-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            z-index: 7;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.18);
+            background: rgba(17, 24, 37, 0.70);
+            color: #F5F7FF;
+            backdrop-filter: blur(8px);
+            max-width: 55%;
+        }
+        .video-badge-ico {
+            width: 14px;
+            height: 14px;
+            filter: invert(1);
+            opacity: 0.95;
+            flex: 0 0 auto;
+        }
+        .video-badge-text {
+            font-size: var(--text-xs);
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        @media (min-width: 1920px) {
+            .video-badge { top: 14px; right: 14px; padding: 9px 12px; }
+            .video-badge-text { font-size: var(--text-sm); }
+        }
+        
+        /* Responsive video wrapper pour différentes résolutions */
+        @media (min-width: 1024px) and (max-width: 1280px) {
+            .video-wrapper {
+                aspect-ratio: 16/9;
+                max-height: 576px;
+            }
+        }
+        
+        @media (min-width: 1280px) and (max-width: 1920px) {
+            .video-wrapper {
+                aspect-ratio: 16/9;
+                /* 1080p: on limite pour garder le panneau Actions toujours visible */
+                max-height: clamp(520px, 55vh, 680px);
+            }
+        }
+        
+        @media (min-width: 1920px) and (max-width: 2560px) {
+            .video-wrapper {
+                aspect-ratio: 16/9;
+                /* cap volontaire: au-delà de ~1800px, 1080p devient visuellement trop massif dans l'UI */
+                max-height: clamp(560px, 52vh, 720px);
+            }
+        }
+        
+        @media (min-width: 2560px) {
+            .video-wrapper {
+                aspect-ratio: 16/9;
+                /* 4K: on garde grand, mais pas "plein écran" */
+                max-height: clamp(600px, 46vh, 860px);
+            }
         }
 
         .video-fab {
@@ -526,6 +837,40 @@
             cursor: pointer;
             z-index: 5;
             backdrop-filter: blur(6px);
+            transition: transform 0.2s ease;
+        }
+        
+        /* Responsive FAB button pour grands écrans */
+        @media (min-width: 1920px) {
+            .video-fab {
+                width: 52px;
+                height: 52px;
+                right: 18px;
+                bottom: 18px;
+            }
+            
+            .video-fab img {
+                width: 24px;
+                height: 24px;
+            }
+        }
+        
+        @media (min-width: 2560px) {
+            .video-fab {
+                width: 60px;
+                height: 60px;
+                right: 24px;
+                bottom: 24px;
+            }
+            
+            .video-fab img {
+                width: 28px;
+                height: 28px;
+            }
+        }
+        
+        .video-fab:hover {
+            transform: scale(1.05);
         }
 
         .video-fab:hover {
@@ -548,12 +893,24 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            min-height: 0;
         }
 
         #videoFrame, #videoStream {
             max-width: 100%;
             max-height: 100%;
+            width: 100%;
+            height: auto;
             object-fit: contain;
+            display: block;
+        }
+        
+        /* Amélioration de la qualité vidéo sur grands écrans */
+        @media (min-width: 1920px) {
+            #videoFrame, #videoStream {
+                image-rendering: -webkit-optimize-contrast;
+                image-rendering: crisp-edges;
+            }
         }
 
         #drawCanvas {
@@ -562,11 +919,23 @@
             left: 50%;
             transform: translate(-50%, -50%);
             pointer-events: none;
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
         }
 
         #drawCanvas.drawing {
             pointer-events: auto;
             cursor: crosshair;
+        }
+        
+        /* Responsive canvas pour grands écrans */
+        @media (min-width: 1920px) {
+            #drawCanvas {
+                image-rendering: -webkit-optimize-contrast;
+                image-rendering: crisp-edges;
+            }
         }
 
         .video-placeholder {
@@ -584,12 +953,23 @@
 
         /* Video controls toolbar */
         .video-toolbar {
-            padding: var(--space-4) var(--space-5);
-            border-top: 1px solid var(--color-border);
-            display: flex;
-            flex-wrap: wrap;
-            gap: var(--space-3);
-            align-items: center;
+            /* Supprime la "marge" au dessous du player (toolbar interne non utilisée visuellement) */
+            display: none;
+        }
+        
+        /* Responsive toolbar */
+        @media (min-width: 1920px) {
+            .video-toolbar {
+                padding: var(--space-5) var(--space-6);
+                gap: var(--space-4);
+            }
+        }
+        
+        @media (min-width: 2560px) {
+            .video-toolbar {
+                padding: var(--space-6) var(--space-7);
+                gap: var(--space-5);
+            }
         }
 
         /* Camera status panel */
@@ -597,12 +977,39 @@
             display: flex;
             flex-direction: column;
             gap: var(--space-4);
+            min-width: 0;
+        }
+        
+        /* Responsive camera panel */
+        @media (min-width: 1024px) and (max-width: 1280px) {
+            .camera-panel {
+                gap: var(--space-3);
+            }
+        }
+        
+        @media (min-width: 1920px) {
+            .camera-panel {
+                gap: var(--space-5);
+            }
         }
 
         .camera-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: var(--space-3);
+        }
+        
+        /* Responsive camera grid */
+        @media (min-width: 1920px) {
+            .camera-grid {
+                gap: var(--space-4);
+            }
+        }
+        
+        @media (min-width: 2560px) {
+            .camera-grid {
+                gap: var(--space-5);
+            }
         }
 
         .camera-item {
@@ -612,6 +1019,32 @@
             padding: var(--space-3);
             cursor: pointer;
             transition: all 0.2s ease;
+            min-width: 0;
+        }
+        
+        /* Responsive camera items */
+        @media (min-width: 1920px) {
+            .camera-item {
+                padding: var(--space-4);
+            }
+            
+            .camera-item-name {
+                font-size: var(--text-md);
+            }
+        }
+        
+        @media (min-width: 2560px) {
+            .camera-item {
+                padding: var(--space-5);
+            }
+            
+            .camera-item-name {
+                font-size: var(--text-lg);
+            }
+            
+            .camera-item-status {
+                font-size: var(--text-sm);
+            }
         }
 
         .camera-item:hover {
@@ -855,6 +1288,31 @@
                 inset -1px -1px 1px var(--shadow-dark),
                 2px 2px 4px #000;
         }
+        
+        /* Responsive retro buttons */
+        @media (min-width: 1920px) {
+            .retro-btn-inner {
+                padding: 12px 16px;
+                font-size: var(--text-md);
+            }
+            
+            .retro-icon-img {
+                width: 18px;
+                height: 18px;
+            }
+        }
+        
+        @media (min-width: 2560px) {
+            .retro-btn-inner {
+                padding: 14px 20px;
+                font-size: var(--text-lg);
+            }
+            
+            .retro-icon-img {
+                width: 20px;
+                height: 20px;
+            }
+        }
 
         .retro-btn:active .retro-btn-inner {
             transform: scale(0.98);
@@ -944,18 +1402,66 @@
             grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
             gap: var(--space-4);
         }
+        
+        /* Responsive zones grid */
+        @media (min-width: 1920px) {
+            .zones-grid {
+                grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+                gap: var(--space-5);
+            }
+        }
+        
+        @media (min-width: 2560px) {
+            .zones-grid {
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                gap: var(--space-6);
+            }
+        }
+        
+        /* Responsive recap grid */
+        .recap-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: var(--space-4);
+        }
+
+        /* Espace entre les tuiles (zones/bénéfices) et la barre de séparation du récap */
+        #recapGrid {
+            margin-top: var(--space-4);
+        }
+
+        /* Chiffres du récap en vert (au lieu d'un accent bleu) */
+        #recapGrid .card-title {
+            color: var(--color-success);
+        }
+        
+        @media (min-width: 1920px) {
+            .recap-grid {
+                gap: var(--space-5);
+            }
+        }
+        
+        @media (min-width: 2560px) {
+            .recap-grid {
+                gap: var(--space-6);
+            }
+        }
 
         .zone-card {
             background: var(--color-surface-2);
             border: 1px solid var(--color-border);
             border-radius: var(--radius-md);
             padding: var(--space-4);
-            transition: all 0.2s ease;
+            transition: background-color 0.12s ease, border-color 0.12s ease;
+            position: relative;
+            /* Réserve un peu d'espace pour le menu ⋯ en bas à droite */
+            padding-bottom: calc(var(--space-4) + 34px);
         }
 
         .zone-card:hover {
             border-color: var(--color-border-hover);
         }
+        /* Pas d'effet hover sur les tuiles ROI: on garde seulement un état "selected" */
 
         .zone-card-header {
             display: flex;
@@ -1009,6 +1515,121 @@
             margin-top: 12px;
             padding-top: 10px;
             border-top: 1px solid var(--color-border);
+        }
+
+        /* =========================================================
+           Menu ⋯ (LOV) des tuiles Bénéfices (ROI)
+           ========================================================= */
+        .benefit-menu-wrap {
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+            z-index: 5;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .benefit-menu-trigger {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            border: 1px solid var(--color-border);
+            background: rgba(255,255,255,0.04);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+            transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+        }
+
+        .benefit-menu-trigger:hover {
+            background: rgba(16,176,249,0.10);
+            border-color: rgba(16,176,249,0.35);
+        }
+
+        .benefit-menu-trigger:active {
+            transform: scale(0.98);
+        }
+
+        .benefit-menu-trigger img {
+            width: 16px;
+            height: 16px;
+            opacity: 0.85;
+        }
+        :root[data-theme="dark"] .benefit-menu-trigger img { filter: invert(1); }
+
+        .benefit-menu {
+            position: absolute;
+            /* Décale un peu le popover vers la droite par rapport au bouton ⋯ */
+            right: -10px;
+            bottom: 40px;
+            min-width: 210px;
+            border-radius: 14px;
+            border: 1px solid var(--color-border);
+            background: var(--color-surface);
+            box-shadow: 0 24px 60px rgba(0,0,0,0.18);
+            overflow: hidden;
+            /* Un peu d'air sous les tuiles (items) */
+            padding-bottom: 8px;
+        }
+
+        .benefit-menu-title {
+            padding: 10px 12px;
+            font-size: var(--text-xs);
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--color-text-muted);
+            border-bottom: 1px solid var(--color-border);
+            background: var(--color-surface-2);
+        }
+
+        .benefit-menu-item {
+            width: 100%;
+            padding: 10px 12px;
+            border: 0;
+            background: transparent;
+            color: var(--color-text);
+            font-size: var(--text-sm);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+
+        .benefit-menu-item:hover {
+            background: rgba(16,176,249,0.10);
+        }
+
+        .benefit-menu-check {
+            opacity: 0;
+            font-weight: 900;
+            color: var(--color-primary);
+        }
+        .benefit-menu-item.active .benefit-menu-check {
+            opacity: 1;
+        }
+
+        .benefit-menu-item:disabled,
+        .benefit-menu-item.disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .benefit-menu-sep {
+            height: 1px;
+            background: var(--color-border);
+        }
+
+        .benefit-menu-item.danger {
+            color: var(--color-danger);
+        }
+
+        .benefit-menu-item.danger:hover {
+            background: rgba(239,68,68,0.10);
         }
 
         /* =========================================================
@@ -1169,6 +1790,29 @@
             border: 1px solid rgba(255, 255, 255, 0.12);
             z-index: 5;
         }
+        
+        /* Responsive draw-hud */
+        @media (min-width: 1920px) {
+            .draw-hud {
+                left: var(--space-5);
+                right: var(--space-5);
+                bottom: var(--space-5);
+                padding: var(--space-5);
+            }
+        }
+        
+        @media (min-width: 2560px) {
+            .draw-hud {
+                left: var(--space-6);
+                right: var(--space-6);
+                bottom: var(--space-6);
+                padding: var(--space-6);
+            }
+            
+            .draw-hud-title {
+                font-size: var(--text-md);
+            }
+        }
 
         :root[data-theme="light"] .draw-hud {
             background: rgba(255, 255, 255, 0.65);
@@ -1315,46 +1959,6 @@
             font-size: var(--text-xs);
         }
 
-        .tree-toggle-btn {
-            background: none;
-            border: none;
-            padding: 4px;
-            margin: -4px 2px -4px -4px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 22px;
-            height: 22px;
-            color: var(--sidebar-text-muted);
-            opacity: 0.7;
-            transition: opacity 0.2s;
-            border-radius: var(--radius-sm);
-            flex-shrink: 0;
-        }
-
-        .tree-toggle-btn:hover {
-            opacity: 1;
-            background: rgba(255, 255, 255, 0.06);
-        }
-
-        .tree-chevron {
-            transition: transform 0.2s ease;
-            transform-origin: center;
-        }
-
-        .tree-chevron.collapsed {
-            transform: rotate(0deg);
-        }
-
-        .tree-chevron.expanded {
-            transform: rotate(90deg);
-        }
-
-        .tree-children.is-collapsed {
-            display: none !important;
-        }
-
         /* Zone cards: previews + selection */
         .zone-previews {
             display: flex;
@@ -1380,9 +1984,17 @@
             outline-offset: 2px;
             border-color: rgba(16,176,249,0.55);
         }
+        /* Sélection discrète: fond légèrement teinté + bordure neutre */
         .zone-card.selected {
-            border-color: rgba(16,176,249,0.55);
-            box-shadow: 0 0 0 3px rgba(16,176,249,0.15);
+            border-color: var(--color-border-hover);
+            box-shadow: none;
+        }
+        /* La sélection garde la même couleur que le hover (pas de vert plein) */
+        :root[data-theme="dark"] .zone-card.selected {
+            background: rgba(255, 255, 255, 0.03);
+        }
+        :root[data-theme="light"] .zone-card.selected {
+            background: rgba(15, 23, 42, 0.03);
         }
 
         /* LOV selects (dropdown) — give room for arrow and consistent padding */
@@ -1976,9 +2588,9 @@
         }
 
         .step.active {
-            background: rgba(16, 176, 249, 0.15);
-            color: var(--color-primary);
-            border-color: rgba(16, 176, 249, 0.3);
+            background: rgba(34, 197, 94, 0.14);
+            color: var(--color-success);
+            border-color: rgba(34, 197, 94, 0.32);
         }
 
         .step.done {

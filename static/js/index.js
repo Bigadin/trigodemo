@@ -1,4 +1,4 @@
-﻿// State
+// State
         let currentVideo = null;
         let currentCameraId = null;
         let currentView = 'home'; // 'home' | 'tracker'
@@ -25,7 +25,22 @@
         let zonesCacheRefreshTs = 0;
         const linePassByVideo = {};        // { [videoName]: { [zoneName]: { count:number, lastOcc:boolean, series:number[] } } }
         const presencePreviewsCollapsedByVideo = {}; // { [videoName]: { [zoneName]: boolean } }
-        const sidebarZonesCollapsedByVideo = {}; // { [videoName]: { [zoneName]: boolean } } pour replier les zones dans la sidebar
+        // Bénéfices (ROI) par zone: 'presence' | 'count'
+        function benefitViewKey(video, zone) {
+            return `benefitview:${String(video || '')}:${String(zone || '')}`;
+        }
+        function getBenefitView(video, zone, isLine) {
+            try {
+                const raw = localStorage.getItem(benefitViewKey(video, zone));
+                if (raw === 'presence' || raw === 'count') return raw;
+            } catch {}
+            return isLine ? 'count' : 'presence';
+        }
+        function setBenefitView(video, zone, view) {
+            if (!video || !zone) return;
+            if (view !== 'presence' && view !== 'count') return;
+            try { localStorage.setItem(benefitViewKey(video, zone), view); } catch {}
+        }
         const zonesDefsFetchTsByVideo = {}; // { [videoName]: epochMs } pour throttle /api/zones/{video}
         const zonesDefsFetchedByVideo = {}; // { [videoName]: boolean } pour distinguer "0 zones" vs "pas encore fetch"
         const presenceOkTsByVideo = {};     // { [videoName]: epochMs } dernier /api/presence OK (anti-stale)
@@ -242,6 +257,11 @@
         let editPoints = null; // points being edited (array of [x,y])
         let editDragging = null; // { idx: number }
         const HANDLE_RADIUS = 10;
+        // Menu ⋯ (bénéfices): état persistant (sinon le rerender de loadZones() le referme)
+        const openBenefitMenuByVideo = {}; // { [videoName: string]: (string|null) } où la valeur = zoneKeyEnc
+        let benefitMenuCloseTimer = null;
+        const BENEFIT_MENU_CLOSE_DELAY_MS = 350;
+        // NB: pas d'effet hover sur les tuiles "Bénéfices (ROI)" (seulement un état sélection)
 
         // Elements
         const videoSelect = document.getElementById('videoSelect');
@@ -252,6 +272,9 @@
         const drawCanvas = document.getElementById('drawCanvas');
         const ctx = drawCanvas.getContext('2d');
         const placeholder = document.getElementById('placeholder');
+        const placeholderText = document.getElementById('placeholderText');
+        const videoBadge = document.getElementById('videoBadge');
+        const videoBadgeText = document.getElementById('videoBadgeText');
         const toggleDrawPanelBtn = document.getElementById('toggleDrawPanelBtn');
         const drawFab = document.getElementById('drawFab');
         const drawPanel = document.getElementById('drawPanel');
@@ -293,6 +316,42 @@
         const recapDrawingsSub = document.getElementById('recapDrawingsSub');
         const recapActive = document.getElementById('recapActive');
         const recapActiveSub = document.getElementById('recapActiveSub');
+
+        function setVideoEmptyState(kind) {
+            // kind: 'no-camera' | 'no-selection'
+            const cams = getActiveCameras();
+            const hasCams = (cams || []).length > 0;
+            const message =
+                kind === 'no-camera'
+                    ? 'Aucune caméra sur ce site. Cliquez sur + pour en ajouter une.'
+                    : (hasCams ? 'Sélectionnez une caméra à droite pour commencer.' : 'Aucune caméra sur ce site. Cliquez sur + pour en ajouter une.');
+
+            currentVideo = null;
+            currentCameraId = null;
+            isCurrentVideoStreaming = false;
+
+            // Reset media / selection (ne déclenche pas d'événement)
+            if (videoSelect) videoSelect.value = '';
+            if (videoFrame) videoFrame.src = '';
+            if (videoStream) videoStream.src = '';
+
+            // UI visibility
+            placeholder?.classList.remove('hidden');
+            if (placeholderText) placeholderText.textContent = message;
+            videoFrame?.classList.add('hidden');
+            videoStream?.classList.add('hidden');
+            drawCanvas?.classList.add('hidden');
+            videoBadge?.classList.add('hidden');
+            if (videoBadgeText) videoBadgeText.textContent = '—';
+
+            if (currentVideoTitle) {
+                currentVideoTitle.textContent = kind === 'no-camera' ? 'Ajouter une caméra' : 'Sélectionner une caméra';
+            }
+
+            if (startDetectionBtn) startDetectionBtn.disabled = true;
+            updateStatus('ready');
+            updateSteps();
+        }
 
         // Multi-site UI
         const homeView = document.getElementById('homeView');
@@ -1996,6 +2055,8 @@
             currentVideo = null;
             currentCameraId = null;
             selectedAsset = null;
+            if (videoSelect) videoSelect.value = '';
+            setVideoEmptyState((getActiveCameras() || []).length === 0 ? 'no-camera' : 'no-selection');
 
             setView('tracker');
             await loadVideos();
@@ -2230,7 +2291,8 @@
             availableVideosList = data.videos || [];
 
             // Garder la liste de vidéos pour l'interne (upload / fallback)
-            const selected = videoSelect.value || currentVideo || '';
+            // IMPORTANT: ne pas réutiliser videoSelect.value (stale d'un autre site)
+            const selected = currentVideo || '';
             videoSelect.innerHTML = '<option value="">-- Choisir une vidéo --</option>';
             (data.videos || []).forEach((v) => {
                 videoSelect.innerHTML += `<option value="${v}">${v}</option>`;
@@ -2245,6 +2307,7 @@
                         Aucune caméra sur ce site. Cliquez sur <b>+</b> pour en ajouter une.
                     </div>
                 `;
+                setVideoEmptyState('no-camera');
                 return;
             }
             cams.forEach((cam) => {
@@ -2406,8 +2469,13 @@
             if (currentView !== 'tracker') return;
             if (!currentVideo) {
                 const cams = getActiveCameras();
-                zonesGrid.innerHTML = '<div class="no-zones">Sélectionnez une vidéo</div>';
-                zoneListSidebar.innerHTML = '<div style="color: var(--sidebar-text-subtle); font-size: var(--text-sm);">Sélectionnez une vidéo</div>';
+                if (!cams || cams.length === 0) {
+                    zonesGrid.innerHTML = '<div class="no-zones">Aucune caméra. Cliquez sur <b>+</b> pour en ajouter une.</div>';
+                    zoneListSidebar.innerHTML = '<div style="color: var(--sidebar-text-subtle); font-size: var(--text-sm);">Aucune caméra</div>';
+                } else {
+                    zonesGrid.innerHTML = '<div class="no-zones">Sélectionnez une caméra</div>';
+                    zoneListSidebar.innerHTML = '<div style="color: var(--sidebar-text-subtle); font-size: var(--text-sm);">Sélectionnez une caméra</div>';
+                }
                 recapCameras.textContent = `${cams.length}`;
                 recapCamerasSub.textContent = 'Caméras configurées';
             recapZones.textContent = '—';
@@ -2539,15 +2607,18 @@
 
                 const isLine = isLineZone(name);
                 const isSingleLineShape = isLine && drawings === 1 && (getDrawType(currentVideo, name, 0) === 'line');
+                const benefitView = getBenefitView(currentVideo, name, isLine);
                 // UX: previews repliées par défaut pour les cartes "présence" (zones polygones).
                 // (on laisse le comptage gérer son UI à part)
                 const isPreviewsCollapsed = !isLine ? (presencePreviewsCollapsedByVideo?.[currentVideo]?.[name] ?? true) : false;
                 const linePass = linePassByVideo?.[currentVideo]?.[name] || { count: 0, series: [] };
                 const uptime = denom; // temps total où la détection tournait (par zone)
                 const passageTime = occSec; // temps "actif" sur la ligne (proxy passage)
+                const zoneKeyEnc = encodeURIComponent(String(name));
+                const isBenefitMenuOpen = !!currentVideo && openBenefitMenuByVideo[currentVideo] === zoneKeyEnc;
 
                 zonesGrid.innerHTML += `
-                    <div class="zone-card ${isSelected ? 'selected' : ''} ${(!isLine && isPreviewsCollapsed) ? 'is-previews-collapsed' : ''}" data-zone="${encodeURIComponent(String(name))}">
+                    <div class="zone-card ${isSelected ? 'selected' : ''} ${(!isLine && isPreviewsCollapsed) ? 'is-previews-collapsed' : ''}" data-zone="${zoneKeyEnc}">
                         <div class="zone-card-header">
                             <div>
                                 <div class="zone-name-pill">${name}</div>
@@ -2569,7 +2640,7 @@
                                 ${previewBoxes}
                             </div>
                         `}
-                        ${isLine ? `
+                        ${(benefitView === 'count' && isLine) ? `
                             ${isSingleLineShape ? `
                                 <div class="line-kpi-row">
                                     <div class="line-kpi-left">
@@ -2606,12 +2677,24 @@
                                 </div>
                             </div>
                         `}
-                        <div class="zone-card-actions">
-                            <button class="btn btn-ghost btn-icon" data-reset-zone="${escapeHtml(name)}" title="Reset">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="benefit-menu-wrap">
+                            <button class="btn btn-ghost btn-icon" type="button" data-reset-zone="${escapeHtml(name)}" title="Reset">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                                 </svg>
                             </button>
+                            <button class="benefit-menu-trigger" type="button" title="Options" data-benefit-menu="${zoneKeyEnc}" aria-haspopup="menu" aria-expanded="${isBenefitMenuOpen ? 'true' : 'false'}">
+                                <img src="/static/assets_youn/SvIcons/3-dots-horizontal-svgrepo-com.svg" alt="">
+                            </button>
+                            <div class="benefit-menu ${isBenefitMenuOpen ? '' : 'hidden'}" data-benefit-menu-pop="${zoneKeyEnc}" role="menu">
+                                <div class="benefit-menu-title">Bénéfices</div>
+                                <button class="benefit-menu-item ${benefitView === 'presence' ? 'active' : ''}" type="button" data-benefit-view="presence" data-zone="${zoneKeyEnc}">
+                                    <span>Présence</span><span class="benefit-menu-check" aria-hidden="true">✓</span>
+                                </button>
+                                <button class="benefit-menu-item ${benefitView === 'count' ? 'active' : ''}" type="button" data-benefit-view="count" data-zone="${zoneKeyEnc}" ${isLine ? '' : 'disabled'} title="${isLine ? '' : 'Disponible uniquement pour une zone de comptage (ligne)'}">
+                                    <span>Compter</span><span class="benefit-menu-check" aria-hidden="true">✓</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -2774,38 +2857,36 @@
                             const info = presence?.[zoneName] || { formatted_time: '00:00:00', is_occupied: false };
                             const drawings = defs?.[zoneName]?.polygons || [];
                             const dotClass = info.is_occupied ? 'occupied' : '';
-                            const isCollapsed = sidebarZonesCollapsedByVideo?.[videoKey]?.[zoneName] ?? true; // Par défaut replié
-                            const hasDrawings = drawings.length > 0;
+                            const live = zoneLiveTimersByVideo?.[videoKey]?.zones?.[zoneName] || { occ: 0, abs: 0 };
+                            const isLine = (() => {
+                                const polys = defs?.[zoneName]?.polygons || [];
+                                for (let i = 0; i < polys.length; i++) {
+                                    if (getDrawType(videoKey, zoneName, i) === 'line') return true;
+                                }
+                                return false;
+                            })();
+                            const uptime = Number(live.occ || 0) + Number(live.abs || 0);
+                            const metaTime = (videoHasRunByVideo[videoKey] || activeVideoStreams.has(videoKey))
+                                ? formatHMS(isLine ? uptime : (live.occ || 0))
+                                : '00:00:00';
 
                             const zoneRow = isCurrent
                                 ? `
                                     <div class="tree-row" data-select-zone="${escapeHtml(zoneName)}" style="cursor: pointer;">
                                         <div class="left">
-                                            ${hasDrawings ? `
-                                                <button class="tree-toggle-btn" onclick="event.stopPropagation(); toggleSidebarZone('${videoKey}', '${zoneName}')" type="button" aria-label="${isCollapsed ? 'Déplier' : 'Replier'}">
-                                                    <svg class="tree-chevron ${isCollapsed ? 'collapsed' : 'expanded'}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                                        <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-                                                    </svg>
-                                                </button>
-                                            ` : '<span style="width: 18px;"></span>'}
                                             <span class="zone-dot ${dotClass}"></span>
                                             <span class="label">${escapeHtml(zoneName)}</span>
                                         </div>
+                                        <span class="meta">${metaTime}</span>
                                     </div>
                                 `
                                 : `
                                     <div class="tree-row" style="cursor: default; opacity: 0.75;">
                                         <div class="left">
-                                            ${hasDrawings ? `
-                                                <button class="tree-toggle-btn" onclick="event.stopPropagation(); toggleSidebarZone('${videoKey}', '${zoneName}')" type="button" aria-label="${isCollapsed ? 'Déplier' : 'Replier'}">
-                                                    <svg class="tree-chevron ${isCollapsed ? 'collapsed' : 'expanded'}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                                        <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-                                                    </svg>
-                                                </button>
-                                            ` : '<span style="width: 18px;"></span>'}
                                             <span class="zone-dot ${dotClass}"></span>
                                             <span class="label">${escapeHtml(zoneName)}</span>
                                         </div>
+                                        <span class="meta">${metaTime}</span>
                                     </div>
                                 `;
 
@@ -2829,7 +2910,7 @@
 
                             return `
                                 ${zoneRow}
-                                <div class="tree-children ${isCollapsed ? 'is-collapsed' : ''}">
+                                <div class="tree-children">
                                     ${drawingsRows}
                                 </div>
                             `;
@@ -2873,20 +2954,6 @@
             syncPresenceSelectionUI();
         };
 
-        window.toggleSidebarZone = (videoKey, zoneName) => {
-            if (!sidebarZonesCollapsedByVideo[videoKey]) {
-                sidebarZonesCollapsedByVideo[videoKey] = {};
-            }
-            const current = sidebarZonesCollapsedByVideo[videoKey][zoneName] ?? true;
-            sidebarZonesCollapsedByVideo[videoKey][zoneName] = !current;
-            // Stabilisation UI: ne déclenche PAS de fetch/rebuild async.
-            // On re-render la sidebar immédiatement depuis les caches en mémoire.
-            const curVideo = currentVideo;
-            const presence = curVideo ? (lastPresenceByVideo[curVideo] || {}) : {};
-            const zonesWithPolygons = curVideo ? (zonesCacheByVideo[curVideo] || {}) : {};
-            renderAssetTree(presence, zonesWithPolygons);
-        };
-
         function syncPresenceSelectionUI() {
             // Applique la surbrillance immédiatement (sans attendre le prochain loadZones à 1s)
             try {
@@ -2904,10 +2971,69 @@
             } catch {}
         }
 
+        function closeBenefitMenus({ immediate = true } = {}) {
+            if (benefitMenuCloseTimer) {
+                clearTimeout(benefitMenuCloseTimer);
+                benefitMenuCloseTimer = null;
+            }
+            if (!immediate) {
+                benefitMenuCloseTimer = setTimeout(() => closeBenefitMenus({ immediate: true }), BENEFIT_MENU_CLOSE_DELAY_MS);
+                return;
+            }
+            if (currentVideo) openBenefitMenuByVideo[currentVideo] = null;
+            document.querySelectorAll('.benefit-menu').forEach((el) => el.classList.add('hidden'));
+            document.querySelectorAll('[data-benefit-menu]').forEach((el) => el.setAttribute('aria-expanded', 'false'));
+        }
+
+        function syncBenefitMenusFromState() {
+            if (!currentVideo) return;
+            const openKey = openBenefitMenuByVideo[currentVideo];
+            // Close all, then open the one that should be open
+            document.querySelectorAll('.benefit-menu').forEach((el) => el.classList.add('hidden'));
+            document.querySelectorAll('[data-benefit-menu]').forEach((el) => el.setAttribute('aria-expanded', 'false'));
+            if (!openKey) return;
+            const card = document.querySelector(`.zone-card[data-zone="${openKey}"]`);
+            const trig = card?.querySelector(`[data-benefit-menu="${openKey}"]`);
+            const pop = card?.querySelector(`.benefit-menu[data-benefit-menu-pop="${openKey}"]`);
+            if (pop) pop.classList.remove('hidden');
+            if (trig) trig.setAttribute('aria-expanded', 'true');
+        }
+
         // Click sur les cartes de la section "Présences" => surbrillance / sélection (reuse des mêmes fonctions que la sidebar)
         zonesGrid?.addEventListener('click', (e) => {
             const t = e.target;
             if (!(t instanceof Element)) return;
+
+            // Menu ⋯ (bénéfices)
+            const menuTrig = t.closest('[data-benefit-menu]');
+            if (menuTrig) {
+                e.preventDefault();
+                e.stopPropagation();
+                const key = menuTrig.getAttribute('data-benefit-menu') || '';
+                if (!currentVideo) return;
+                // Toggle persistant (survit aux rerenders de loadZones)
+                openBenefitMenuByVideo[currentVideo] = (openBenefitMenuByVideo[currentVideo] === key) ? null : key;
+                syncBenefitMenusFromState();
+                return;
+            }
+
+            const viewBtn = t.closest('[data-benefit-view]');
+            if (viewBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                const view = viewBtn.getAttribute('data-benefit-view');
+                const z = decodeURIComponent(viewBtn.getAttribute('data-zone') || '');
+                if (!currentVideo || !z) return;
+                if (view === 'count') {
+                    // si disabled via attr, ignore
+                    if ((viewBtn instanceof HTMLButtonElement) && viewBtn.disabled) return;
+                }
+                setBenefitView(currentVideo, z, view);
+                // close menus and rerender
+                closeBenefitMenus({ immediate: true });
+                loadZones().catch(() => {});
+                return;
+            }
             
             // Gestion des boutons reset (priorité haute)
             const resetBtn = t.closest('[data-reset-zone]');
@@ -2968,6 +3094,39 @@
             }
         });
 
+        // Menu ⋯ : comportement "fenêtre normale"
+        // - reste ouvert tant que la souris est sur le bouton ou le menu
+        // - fermeture retardée quand on quitte la zone
+        // - clic dehors / Escape = fermeture immédiate
+        document.addEventListener('pointerover', (e) => {
+            const t = e.target;
+            if (!(t instanceof Element)) return;
+            if (!t.closest('.benefit-menu-wrap')) return;
+            if (benefitMenuCloseTimer) {
+                clearTimeout(benefitMenuCloseTimer);
+                benefitMenuCloseTimer = null;
+            }
+        });
+        document.addEventListener('pointerout', (e) => {
+            const t = e.target;
+            if (!(t instanceof Element)) return;
+            const wrap = t.closest('.benefit-menu-wrap');
+            if (!wrap) return;
+            const rt = e.relatedTarget;
+            if (rt instanceof Element && wrap.contains(rt)) return; // encore dans la "fenêtre"
+            closeBenefitMenus({ immediate: false });
+        });
+        document.addEventListener('pointerdown', (e) => {
+            const t = e.target;
+            if (!(t instanceof Element)) return;
+            if (t.closest('.benefit-menu-wrap')) return;
+            closeBenefitMenus({ immediate: true });
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            closeBenefitMenus({ immediate: true });
+        });
+
         function updateSteps() {
             if (currentView !== 'tracker') {
                 Object.values(steps).forEach(s => s.classList.remove('active', 'done'));
@@ -3014,7 +3173,11 @@
 
         // Video selection
         videoSelect.addEventListener('change', async () => {
-            if (!videoSelect.value) return;
+            if (!videoSelect.value) {
+                setVideoEmptyState((getActiveCameras() || []).length === 0 ? 'no-camera' : 'no-selection');
+                await loadZones();
+                return;
+            }
 
             // Stabilisation: changer de vidéo annule tout mode dessin en cours
             if (isDrawing) {
@@ -3027,6 +3190,8 @@
             const cam = getCameraByVideo(currentVideo);
             currentCameraId = cam ? cam.id : null;
             currentVideoTitle.textContent = cam ? cam.name : currentVideo;
+            if (videoBadgeText) videoBadgeText.textContent = cam ? cam.name : currentVideo;
+            videoBadge?.classList.remove('hidden');
 
             const infoRes = await fetch(`/api/videos/${encodeURIComponent(currentVideo)}/info`);
             const info = await infoRes.json();
