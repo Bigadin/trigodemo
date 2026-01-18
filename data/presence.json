@@ -1,6 +1,6 @@
 {
   "Zone A": {
-    "total_time": 1161.9980914592743
+    "total_time": 3460.079185962677
   },
   "Contr\u00f4le Pi\u00e8ces": {
     "total_time": 0
@@ -9,9 +9,9 @@
     "total_time": 125.39246559143066
   },
   "Zone B": {
-    "total_time": 541.0444669723511
+    "total_time": 7361.90497636795
   },
-  "Ligne": {
-    "total_time": 0
+  "Zone C": {
+    "total_time": 72.76107001304626
   }
 }
