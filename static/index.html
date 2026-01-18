@@ -266,17 +266,42 @@
                             <button class="btn btn-secondary btn-icon" id="addCameraBtn" title="Ajouter une caméra" type="button">+</button>
                         </div>
                         <div class="hidden" id="addCameraForm" style="padding: var(--space-4); border-top: 1px solid var(--color-border); display:flex; flex-direction:column; gap: var(--space-3);">
+                            <!-- Source type tabs -->
+                            <div style="display:flex; gap: var(--space-2); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-2);">
+                                <button class="btn btn-secondary cam-source-tab active" data-source="video" type="button">Vidéo</button>
+                                <button class="btn btn-secondary cam-source-tab" data-source="webcam" type="button">Webcam</button>
+                                <button class="btn btn-secondary cam-source-tab" data-source="rtsp" type="button">RTSP</button>
+                            </div>
+
                             <div style="display:flex; gap: var(--space-3); flex-wrap:wrap;">
                                 <div class="form-group" style="flex:1; min-width:200px;">
                                     <label class="form-label">Nom caméra</label>
                                     <input id="newCamName" type="text" placeholder="Ex: Entrepôt" style="width:100%;">
                                 </div>
-                                <div class="form-group" style="flex:1; min-width:200px;">
+                                <!-- Video source -->
+                                <div class="form-group cam-source-panel" data-source="video" style="flex:1; min-width:200px;">
                                     <label class="form-label">Vidéo</label>
                                     <select id="newCamVideo" class="lov-select" style="width:100%;"></select>
                                 </div>
+                                <!-- Webcam source -->
+                                <div class="form-group cam-source-panel hidden" data-source="webcam" style="flex:1; min-width:200px;">
+                                    <label class="form-label">Webcam</label>
+                                    <div style="display:flex; gap: var(--space-2);">
+                                        <select id="newCamWebcam" class="lov-select" style="flex:1;"></select>
+                                        <button class="btn btn-secondary btn-icon" id="detectWebcamsBtn" title="Détecter les webcams" type="button">&#x1F50D;</button>
+                                    </div>
+                                </div>
+                                <!-- RTSP source -->
+                                <div class="form-group cam-source-panel hidden" data-source="rtsp" style="flex:1; min-width:200px;">
+                                    <label class="form-label">URL RTSP</label>
+                                    <div style="display:flex; gap: var(--space-2);">
+                                        <input id="newCamRtspUrl" type="text" placeholder="rtsp://192.168.1.10:554/stream" style="flex:1;">
+                                        <button class="btn btn-secondary btn-icon" id="testRtspBtn" title="Tester la connexion" type="button">&#x2713;</button>
+                                    </div>
+                                </div>
                             </div>
-                            <div style="display:flex; align-items:center; gap: var(--space-3); padding: var(--space-3); background: var(--color-bg-secondary); border-radius: var(--radius-md);">
+                            <!-- Video upload (only for video source) -->
+                            <div class="cam-source-panel" data-source="video" style="display:flex; align-items:center; gap: var(--space-3); padding: var(--space-3); background: var(--color-bg-secondary); border-radius: var(--radius-md);">
                                 <span style="color: var(--color-text-secondary); font-size: 14px;">Ou uploader une nouvelle vidéo :</span>
                                 <form id="uploadVideoForm" style="display:contents;">
                                     <label class="btn btn-secondary" style="cursor:pointer; margin:0;">
@@ -285,6 +310,12 @@
                                     </label>
                                 </form>
                                 <span id="uploadProgress" style="color: var(--color-text-secondary); font-size: 13px;"></span>
+                            </div>
+                            <!-- RTSP scan (only for rtsp source) -->
+                            <div class="cam-source-panel hidden" data-source="rtsp" style="display:flex; align-items:center; gap: var(--space-3); padding: var(--space-3); background: var(--color-bg-secondary); border-radius: var(--radius-md);">
+                                <span style="color: var(--color-text-secondary); font-size: 14px;">Scanner le réseau local :</span>
+                                <button class="btn btn-secondary" id="scanOnvifBtn" type="button">Scan ONVIF</button>
+                                <span id="onvifScanStatus" style="color: var(--color-text-secondary); font-size: 13px;"></span>
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Description (optionnel)</label>

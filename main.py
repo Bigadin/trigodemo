@@ -57,13 +57,17 @@ blur_lock = threading.Lock()
 
 ZONES_FILE = DATA_DIR / "zones.json"
 PRESENCE_FILE = DATA_DIR / "presence.json"
+CAMERAS_FILE = DATA_DIR / "cameras.json"
 
 GRACE_PERIOD = 1.5
 YOLO_CONFIDENCE = 0.45
 
+# Camera sources storage: {camera_id: {"type": "webcam"|"rtsp", "name": str, ...}}
+cameras = {}
+
 
 def load_data():
-    global zones_by_video, zone_timers
+    global zones_by_video, zone_timers, cameras
     if ZONES_FILE.exists():
         with open(ZONES_FILE, "r") as f:
             zones_by_video = json.load(f)
@@ -77,6 +81,9 @@ def load_data():
                     zone_timers[zone_name] = value
                     if "last_occupied" not in zone_timers[zone_name]:
                         zone_timers[zone_name]["last_occupied"] = None
+    if CAMERAS_FILE.exists():
+        with open(CAMERAS_FILE, "r") as f:
+            cameras = json.load(f)
 
 
 def save_zones():
@@ -89,6 +96,41 @@ def save_presence():
         with open(PRESENCE_FILE, "w") as f:
             save_data = {k: {"total_time": v["total_time"]} for k, v in zone_timers.items()}
             json.dump(save_data, f, indent=2)
+
+
+def save_cameras():
+    with open(CAMERAS_FILE, "w") as f:
+        json.dump(cameras, f, indent=2)
+
+
+def get_camera_source(camera_id: str):
+    """Get the OpenCV capture source for a camera (device ID for webcam, URL for RTSP)"""
+    if camera_id not in cameras:
+        return None
+    cam = cameras[camera_id]
+    if cam["type"] == "webcam":
+        return cam["device_id"]
+    elif cam["type"] == "rtsp":
+        return cam["url"]
+    return None
+
+
+def is_camera_source(source_name: str) -> bool:
+    """Check if source_name is a camera (vs a video file)"""
+    return source_name.startswith("camera:")
+
+
+def get_source_identifier(source_name: str):
+    """
+    Get the OpenCV capture source from a source name.
+    - For videos: returns file path string
+    - For cameras: returns device ID (int) or RTSP URL (string)
+    """
+    if is_camera_source(source_name):
+        camera_id = source_name.replace("camera:", "")
+        return get_camera_source(camera_id)
+    else:
+        return str(VIDEOS_DIR / source_name)
 
 
 load_data()
@@ -131,18 +173,52 @@ async def upload_video(file: UploadFile = File(...)):
     return {"message": "Video uploaded", "filename": file.filename}
 
 
-@app.get("/api/videos/{video_name}/frame")
+@app.get("/api/videos/{video_name:path}/frame")
 async def get_video_frame(video_name: str):
-    video_path = VIDEOS_DIR / video_name
-    if not video_path.exists():
-        raise HTTPException(status_code=404, detail="Video not found")
+    # Support both video files and camera sources (camera:xxx)
+    is_camera = is_camera_source(video_name)
 
-    cap = cv2.VideoCapture(str(video_path))
-    ret, frame = cap.read()
+    # For cameras, first try to get frame from active stream (faster, no reconnect)
+    if is_camera:
+        with frames_lock:
+            if video_name in shared_frames and shared_frames[video_name]["frame"] is not None:
+                frame = shared_frames[video_name]["frame"].copy()
+                _, buffer = cv2.imencode('.jpg', frame)
+                return StreamingResponse(
+                    iter([buffer.tobytes()]),
+                    media_type="image/jpeg"
+                )
+
+    # Fallback: open capture directly
+    if is_camera:
+        camera_id = video_name.replace("camera:", "")
+        source = get_camera_source(camera_id)
+        if source is None:
+            raise HTTPException(status_code=404, detail="Camera not found")
+        cap = cv2.VideoCapture(source)
+        # For cameras, wait a bit for connection to establish
+        if not cap.isOpened():
+            cap.release()
+            raise HTTPException(status_code=500, detail="Could not open camera")
+    else:
+        video_path = VIDEOS_DIR / video_name
+        if not video_path.exists():
+            raise HTTPException(status_code=404, detail="Video not found")
+        cap = cv2.VideoCapture(str(video_path))
+
+    # For cameras/RTSP, try multiple reads to get a valid frame
+    frame = None
+    max_attempts = 10 if is_camera else 1
+    for _ in range(max_attempts):
+        ret, frame = cap.read()
+        if ret and frame is not None:
+            break
+        time.sleep(0.1)
+
     cap.release()
 
-    if not ret:
-        raise HTTPException(status_code=500, detail="Could not read video frame")
+    if not ret or frame is None:
+        raise HTTPException(status_code=500, detail="Could not read frame")
 
     _, buffer = cv2.imencode('.jpg', frame)
     return StreamingResponse(
@@ -151,29 +227,41 @@ async def get_video_frame(video_name: str):
     )
 
 
-@app.get("/api/videos/{video_name}/info")
+@app.get("/api/videos/{video_name:path}/info")
 async def get_video_info(video_name: str):
-    video_path = VIDEOS_DIR / video_name
-    if not video_path.exists():
-        raise HTTPException(status_code=404, detail="Video not found")
+    # Support both video files and camera sources (camera:xxx)
+    if is_camera_source(video_name):
+        camera_id = video_name.replace("camera:", "")
+        source = get_camera_source(camera_id)
+        if source is None:
+            raise HTTPException(status_code=404, detail="Camera not found")
+        cap = cv2.VideoCapture(source)
+    else:
+        video_path = VIDEOS_DIR / video_name
+        if not video_path.exists():
+            raise HTTPException(status_code=404, detail="Video not found")
+        cap = cv2.VideoCapture(str(video_path))
 
-    cap = cv2.VideoCapture(str(video_path))
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS)
     frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     cap.release()
 
+    # For cameras, frame_count is 0 or invalid
+    is_live = is_camera_source(video_name)
+
     return {
         "width": width,
         "height": height,
-        "fps": fps,
-        "frame_count": frame_count,
-        "duration": frame_count / fps if fps > 0 else 0
+        "fps": fps if fps > 0 else 30,
+        "frame_count": frame_count if not is_live else 0,
+        "duration": frame_count / fps if fps > 0 and not is_live else 0,
+        "is_live": is_live
     }
 
 
-@app.get("/api/zones/{video_name}")
+@app.get("/api/zones/{video_name:path}")
 async def get_zones_for_video(video_name: str):
     video_zones = zones_by_video.get(video_name, {})
     result = {}
@@ -208,7 +296,7 @@ async def create_zone(zone: ZoneCreate):
     return {"message": "Zone created", "name": zone_name}
 
 
-@app.put("/api/zones/{video_name}/{zone_name}")
+@app.put("/api/zones/{video_name:path}/{zone_name}")
 async def update_zone(video_name: str, zone_name: str, update: ZoneUpdate):
     """
     Replace polygons for an existing zone (edit) WITHOUT touching timers.
@@ -226,7 +314,7 @@ async def update_zone(video_name: str, zone_name: str, update: ZoneUpdate):
     return {"message": "Zone updated", "name": zone_name, "video": video_name}
 
 
-@app.delete("/api/zones/{video_name}/{zone_name}")
+@app.delete("/api/zones/{video_name:path}/{zone_name}")
 async def delete_zone(video_name: str, zone_name: str):
     with data_lock:
         if video_name not in zones_by_video:
@@ -250,7 +338,7 @@ async def delete_zone(video_name: str, zone_name: str):
     return {"message": "Zone deleted"}
 
 
-@app.delete("/api/zones/{video_name}")
+@app.delete("/api/zones/{video_name:path}")
 async def delete_all_zones_for_video(video_name: str):
     with data_lock:
         if video_name in zones_by_video:
@@ -305,7 +393,7 @@ async def get_presence():
     return {"zones": result}
 
 
-@app.get("/api/presence/{video_name}")
+@app.get("/api/presence/{video_name:path}")
 async def get_presence_for_video(video_name: str):
     video_zones = zones_by_video.get(video_name, {})
     result = {}
@@ -333,9 +421,9 @@ async def get_active_streams():
         }
 
 
-@app.post("/api/stream/{video_name}/stop")
+@app.post("/api/stream/{video_name:path}/stop")
 async def stop_video_stream(video_name: str):
-    """Stop a specific video stream"""
+    """Stop a specific video or camera stream"""
     with streams_lock:
         if video_name in active_streams:
             active_streams[video_name]["active"] = False
@@ -374,6 +462,263 @@ async def set_blur(state: str):
     with blur_lock:
         blur_enabled = state.lower() in ("on", "true", "1", "enabled")
         return {"enabled": blur_enabled}
+
+
+# ==================== Camera API Endpoints ====================
+
+class CameraCreate(BaseModel):
+    camera_id: str
+    name: str
+    type: str  # "webcam" or "rtsp"
+    device_id: int | None = None  # For webcam
+    url: str | None = None  # For RTSP
+
+
+@app.get("/api/cameras")
+async def list_cameras():
+    """List all configured cameras"""
+    return {"cameras": cameras}
+
+
+@app.post("/api/cameras")
+async def add_camera(camera: CameraCreate):
+    """Add a new camera source"""
+    if camera.camera_id in cameras:
+        raise HTTPException(status_code=400, detail="Camera ID already exists")
+
+    if camera.type == "webcam":
+        if camera.device_id is None:
+            raise HTTPException(status_code=400, detail="device_id required for webcam")
+        cameras[camera.camera_id] = {
+            "type": "webcam",
+            "name": camera.name,
+            "device_id": camera.device_id
+        }
+    elif camera.type == "rtsp":
+        if not camera.url:
+            raise HTTPException(status_code=400, detail="url required for RTSP")
+        cameras[camera.camera_id] = {
+            "type": "rtsp",
+            "name": camera.name,
+            "url": camera.url
+        }
+    else:
+        raise HTTPException(status_code=400, detail="Invalid camera type")
+
+    save_cameras()
+    return {"message": "Camera added", "camera_id": camera.camera_id}
+
+
+@app.delete("/api/cameras/{camera_id}")
+async def delete_camera(camera_id: str):
+    """Delete a camera"""
+    if camera_id not in cameras:
+        raise HTTPException(status_code=404, detail="Camera not found")
+
+    # Stop stream if active
+    source_name = f"camera:{camera_id}"
+    with streams_lock:
+        if source_name in active_streams:
+            active_streams[source_name]["active"] = False
+
+    del cameras[camera_id]
+    save_cameras()
+    return {"message": "Camera deleted"}
+
+
+@app.get("/api/cameras/detect/webcams")
+async def detect_webcams():
+    """Detect available webcams on the system"""
+    available = []
+    # Test indices 0-4 for common webcam setups
+    for i in range(5):
+        cap = cv2.VideoCapture(i)
+        if cap.isOpened():
+            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            available.append({
+                "device_id": i,
+                "name": f"Webcam {i}",
+                "resolution": f"{width}x{height}"
+            })
+            cap.release()
+    return {"webcams": available}
+
+
+@app.get("/api/cameras/detect/onvif")
+async def detect_onvif_cameras():
+    """Discover ONVIF cameras on the local network using WS-Discovery"""
+    try:
+        from wsdiscovery import WSDiscovery
+        from wsdiscovery import QName, Scope
+
+        discovered = []
+
+        wsd = WSDiscovery()
+        wsd.start()
+
+        # Search for ONVIF devices (NetworkVideoTransmitter type)
+        services = wsd.searchServices(
+            types=[QName("http://www.onvif.org/ver10/network/wsdl", "NetworkVideoTransmitter")]
+        )
+
+        for service in services:
+            xaddrs = service.getXAddrs()
+            scopes = service.getScopes()
+
+            # Extract name from scopes if available
+            name = "ONVIF Camera"
+            for scope in scopes:
+                scope_str = str(scope)
+                if "onvif://www.onvif.org/name/" in scope_str:
+                    name = scope_str.split("/name/")[-1]
+                    break
+
+            for xaddr in xaddrs:
+                discovered.append({
+                    "name": name,
+                    "xaddr": xaddr,
+                    "scopes": [str(s) for s in scopes]
+                })
+
+        wsd.stop()
+        return {"cameras": discovered}
+
+    except ImportError:
+        return {"cameras": [], "error": "WS-Discovery not available. Install with: pip install wsdiscovery"}
+    except Exception as e:
+        return {"cameras": [], "error": str(e)}
+
+
+@app.post("/api/cameras/test-rtsp")
+async def test_rtsp_url(url: str):
+    """Test if an RTSP URL is accessible"""
+    cap = cv2.VideoCapture(url)
+    if not cap.isOpened():
+        return {"success": False, "error": "Could not connect to RTSP stream"}
+
+    ret, frame = cap.read()
+    cap.release()
+
+    if not ret:
+        return {"success": False, "error": "Connected but could not read frame"}
+
+    height, width = frame.shape[:2]
+    return {
+        "success": True,
+        "resolution": f"{width}x{height}"
+    }
+
+
+@app.post("/api/cameras/{camera_id}/test")
+async def test_camera(camera_id: str):
+    """Test if a camera connection works"""
+    if camera_id not in cameras:
+        raise HTTPException(status_code=404, detail="Camera not found")
+
+    source = get_camera_source(camera_id)
+    if source is None:
+        raise HTTPException(status_code=400, detail="Invalid camera configuration")
+
+    cap = cv2.VideoCapture(source)
+    if not cap.isOpened():
+        return {"success": False, "error": "Could not open camera"}
+
+    ret, frame = cap.read()
+    cap.release()
+
+    if not ret:
+        return {"success": False, "error": "Could not read frame"}
+
+    height, width = frame.shape[:2]
+    return {
+        "success": True,
+        "resolution": f"{width}x{height}"
+    }
+
+
+@app.get("/api/cameras/{camera_id}/frame")
+async def get_camera_frame(camera_id: str):
+    """Get a single frame from a camera (for preview)"""
+    if camera_id not in cameras:
+        raise HTTPException(status_code=404, detail="Camera not found")
+
+    source = get_camera_source(camera_id)
+    if source is None:
+        raise HTTPException(status_code=400, detail="Invalid camera configuration")
+
+    cap = cv2.VideoCapture(source)
+    if not cap.isOpened():
+        raise HTTPException(status_code=500, detail="Could not open camera")
+
+    ret, frame = cap.read()
+    cap.release()
+
+    if not ret:
+        raise HTTPException(status_code=500, detail="Could not read frame")
+
+    _, buffer = cv2.imencode('.jpg', frame)
+    return StreamingResponse(
+        iter([buffer.tobytes()]),
+        media_type="image/jpeg"
+    )
+
+
+@app.post("/api/stream/camera/{camera_id}/start")
+async def start_camera_stream(camera_id: str):
+    """Start streaming a camera"""
+    if camera_id not in cameras:
+        raise HTTPException(status_code=404, detail="Camera not found")
+
+    source_name = f"camera:{camera_id}"
+
+    with streams_lock:
+        if source_name in active_streams and active_streams[source_name]["active"]:
+            return {"message": "Stream already active", "source": source_name}
+
+        active_streams[source_name] = {
+            "active": True,
+            "detections": [],
+            "frame_event": threading.Event()
+        }
+
+    processor_thread = threading.Thread(
+        target=video_processor,
+        args=(source_name,),
+        daemon=True
+    )
+    processor_thread.start()
+
+    return {"message": "Camera stream started", "source": source_name}
+
+
+@app.get("/api/stream/camera/{camera_id}")
+async def camera_stream(camera_id: str):
+    """Get camera stream with detections overlay"""
+    if camera_id not in cameras:
+        raise HTTPException(status_code=404, detail="Camera not found")
+
+    source_name = f"camera:{camera_id}"
+
+    # Auto-start processing if not already running
+    with streams_lock:
+        if source_name not in active_streams or not active_streams[source_name]["active"]:
+            active_streams[source_name] = {
+                "active": True,
+                "detections": [],
+                "frame_event": threading.Event()
+            }
+            processor_thread = threading.Thread(
+                target=video_processor,
+                args=(source_name,),
+                daemon=True
+            )
+            processor_thread.start()
+
+    return StreamingResponse(
+        generate_frames(source_name),
+        media_type="multipart/x-mixed-replace; boundary=frame"
+    )
 
 
 def bbox_in_zone(x1: float, y1: float, x2: float, y2: float, zone_polygons: list) -> bool:
@@ -509,16 +854,25 @@ def detection_worker(video_name: str, frame_queue: Queue):
             continue
 
 
-def video_processor(video_name: str):
-    """Background thread that processes a video continuously"""
-    video_path = VIDEOS_DIR / video_name
-    cap = cv2.VideoCapture(str(video_path))
+def video_processor(source_name: str):
+    """Background thread that processes a video or camera stream continuously"""
+    source = get_source_identifier(source_name)
+    is_camera = is_camera_source(source_name)
 
-    if not cap.isOpened():
-        print(f"Error: Could not open video {video_path}")
+    if source is None:
+        print(f"Error: Could not find source for {source_name}")
         return
 
-    fps = cap.get(cv2.CAP_PROP_FPS) or 30
+    cap = cv2.VideoCapture(source)
+
+    if not cap.isOpened():
+        print(f"Error: Could not open source {source}")
+        return
+
+    # For cameras, use a default FPS since they may not report it correctly
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    if fps <= 0 or fps > 120:  # Invalid or unrealistic FPS
+        fps = 30
     frame_delay = 1.0 / fps
 
     # Larger queue to handle processing spikes in Docker
@@ -526,35 +880,48 @@ def video_processor(video_name: str):
 
     detection_thread = threading.Thread(
         target=detection_worker,
-        args=(video_name, frame_queue),
+        args=(source_name, frame_queue),
         daemon=True
     )
     detection_thread.start()
 
     last_save = time.time()
+    frame_num = 0
 
     # Get frame_event for signaling new frames
     with streams_lock:
-        frame_event = active_streams.get(video_name, {}).get("frame_event")
+        frame_event = active_streams.get(source_name, {}).get("frame_event")
 
     try:
         while True:
             with streams_lock:
-                if video_name not in active_streams or not active_streams[video_name]["active"]:
+                if source_name not in active_streams or not active_streams[source_name]["active"]:
                     break
 
             frame_start = time.time()
 
             ret, frame = cap.read()
             if not ret:
-                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                continue
+                if is_camera:
+                    # For cameras, try to reconnect
+                    print(f"Lost connection to camera {source_name}, attempting reconnect...")
+                    cap.release()
+                    time.sleep(1)
+                    cap = cv2.VideoCapture(source)
+                    if not cap.isOpened():
+                        print(f"Reconnect failed for {source_name}")
+                        break
+                    continue
+                else:
+                    # For video files, loop back to start
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                    continue
 
-            frame_num = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
+            frame_num += 1
 
             # Store frame for streaming using dedicated frames_lock (reduces contention)
             with frames_lock:
-                shared_frames[video_name] = {
+                shared_frames[source_name] = {
                     "frame": frame,  # No copy needed - we're the only writer
                     "frame_num": frame_num
                 }
@@ -571,10 +938,10 @@ def video_processor(video_name: str):
                     pass
 
             with streams_lock:
-                detections = active_streams[video_name]["detections"].copy() if video_name in active_streams else []
+                detections = active_streams[source_name]["detections"].copy() if source_name in active_streams else []
 
             # Check zones and update timers (uses real wall-clock time internally)
-            check_zones(detections, video_name)
+            check_zones(detections, source_name)
 
             if time.time() - last_save > 2:
                 save_presence()
@@ -588,10 +955,10 @@ def video_processor(video_name: str):
     finally:
         cap.release()
         with frames_lock:
-            if video_name in shared_frames:
-                del shared_frames[video_name]
+            if source_name in shared_frames:
+                del shared_frames[source_name]
         save_presence()
-        print(f"Video processor stopped for {video_name}")
+        print(f"Video processor stopped for {source_name}")
 
 
 def apply_smooth_blur(frame: np.ndarray, x1: int, y1: int, x2: int, y2: int) -> np.ndarray:
@@ -741,12 +1108,18 @@ def generate_frames(video_name: str):
                b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
 
 
-@app.post("/api/stream/{video_name}/start")
+@app.post("/api/stream/{video_name:path}/start")
 async def start_video_processing(video_name: str):
-    """Start processing a video (detection + zone tracking) in background"""
-    video_path = VIDEOS_DIR / video_name
-    if not video_path.exists():
-        raise HTTPException(status_code=404, detail="Video not found")
+    """Start processing a video or camera (detection + zone tracking) in background"""
+    # Support both video files and camera sources (camera:xxx)
+    if is_camera_source(video_name):
+        camera_id = video_name.replace("camera:", "")
+        if camera_id not in cameras:
+            raise HTTPException(status_code=404, detail="Camera not found")
+    else:
+        video_path = VIDEOS_DIR / video_name
+        if not video_path.exists():
+            raise HTTPException(status_code=404, detail="Video not found")
 
     with streams_lock:
         if video_name in active_streams and active_streams[video_name]["active"]:
@@ -769,12 +1142,18 @@ async def start_video_processing(video_name: str):
     return {"message": "Stream started", "video": video_name}
 
 
-@app.get("/api/stream/{video_name}")
+@app.get("/api/stream/{video_name:path}")
 async def video_stream(video_name: str):
     """Get video stream with detections overlay"""
-    video_path = VIDEOS_DIR / video_name
-    if not video_path.exists():
-        raise HTTPException(status_code=404, detail="Video not found")
+    # Support both video files and camera sources (camera:xxx)
+    if is_camera_source(video_name):
+        camera_id = video_name.replace("camera:", "")
+        if camera_id not in cameras:
+            raise HTTPException(status_code=404, detail="Camera not found")
+    else:
+        video_path = VIDEOS_DIR / video_name
+        if not video_path.exists():
+            raise HTTPException(status_code=404, detail="Video not found")
 
     # Auto-start processing if not already running
     with streams_lock:
@@ -808,4 +1187,18 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 if __name__ == "__main__":
     import uvicorn
+    import logging
+
+    # Filter out static file requests from logs
+    class StaticFileFilter(logging.Filter):
+        def filter(self, record):
+            msg = record.getMessage()
+            # Filter out static assets, SVG, CSS, JS file requests
+            if '/static/' in msg or '.svg' in msg or '.css' in msg or '.js' in msg:
+                return False
+            return True
+
+    # Apply filter to uvicorn access logger
+    logging.getLogger("uvicorn.access").addFilter(StaticFileFilter())
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

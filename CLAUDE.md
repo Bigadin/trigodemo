@@ -18,6 +18,11 @@ pip install -r requirements.txt
 python main.py
 ```
 
+**Docker (with GPU):**
+```bash
+docker-compose up --build
+```
+
 Requires:
 - YOLO model file `human.pt` in root directory
 - Video files in `/videos` directory
@@ -27,11 +32,16 @@ Requires:
 ### Backend (main.py)
 
 **Threading Model:**
-- `video_processor()` - Reads video frames into a queue
+- `video_processor()` - Reads video frames into a queue (maxsize=5)
 - `detection_worker()` - Runs YOLO inference on queued frames
 - `generate_frames()` - Streams processed frames to frontend via MJPEG
 
-**Thread Safety:** Uses locks (`data_lock`, `streams_lock`, `blur_lock`, `model_lock`) for shared state access.
+**Thread Safety:** Uses locks for shared state:
+- `data_lock` - zones and timers
+- `streams_lock` - active stream metadata and detections
+- `frames_lock` - shared frame buffer (separate to reduce contention)
+- `blur_lock` - blur state toggle
+- `model_lock` - YOLO model inference
 
 **Key Constants:**
 ```python
@@ -50,6 +60,11 @@ YOLO_CONFIDENCE = 0.45         # Detection confidence threshold
 - Sites View - Multi-camera site management
 - Tracker View - Zone editing with canvas-based polygon drawing, presence monitoring
 
+**Polling Intervals:**
+- Active streams: 350ms for presence updates
+- Idle streams: 1000ms polling
+- Zone cache TTL: 2500ms
+
 ### Data Storage
 
 - `data/zones.json` - Zone polygon definitions per video
@@ -61,6 +76,8 @@ YOLO_CONFIDENCE = 0.45         # Detection confidence threshold
 - `POST /api/stream/{video_name}/start` - Start video processing
 - `GET /api/stream/{video_name}` - MJPEG stream with overlays
 - `POST /api/stream/{video_name}/stop` - Stop stream
+- `POST /api/streams/stop` - Stop all streams
+- `GET /api/streams` - List active streams
 
 **Zones:**
 - `GET /api/zones/{video_name}` - Get zones
@@ -76,6 +93,11 @@ YOLO_CONFIDENCE = 0.45         # Detection confidence threshold
 - `GET /api/videos` - List videos
 - `POST /api/videos/upload` - Upload video
 - `GET /api/videos/{video_name}/frame` - Get first frame
+
+**Blur:**
+- `GET /api/blur` - Get blur state
+- `POST /api/blur/toggle` - Toggle blur
+- `POST /api/blur/{state}` - Set blur on/off
 
 ## Key Patterns
 

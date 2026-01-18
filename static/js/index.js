@@ -316,6 +316,108 @@
         const saveCamBtn = document.getElementById('saveCamBtn');
         const cancelCamBtn = document.getElementById('cancelCamBtn');
 
+        // Camera source tabs and panels
+        const camSourceTabs = document.querySelectorAll('.cam-source-tab');
+        const camSourcePanels = document.querySelectorAll('.cam-source-panel');
+        let currentCamSourceType = 'video'; // 'video' | 'webcam' | 'rtsp'
+
+        // Webcam source elements
+        const newCamWebcam = document.getElementById('newCamWebcam');
+        const detectWebcamsBtn = document.getElementById('detectWebcamsBtn');
+
+        // RTSP source elements
+        const newCamRtspUrl = document.getElementById('newCamRtspUrl');
+        const testRtspBtn = document.getElementById('testRtspBtn');
+        const scanOnvifBtn = document.getElementById('scanOnvifBtn');
+        const onvifScanStatus = document.getElementById('onvifScanStatus');
+
+        // Backend cameras (webcam/rtsp) - loaded from /api/cameras
+        let backendCameras = {};
+
+        async function loadBackendCameras() {
+            try {
+                const res = await fetch('/api/cameras');
+                const data = await res.json();
+                backendCameras = data.cameras || {};
+                // Sync backend cameras to a special "Caméras" site
+                syncBackendCamerasToSite();
+            } catch (e) {
+                console.error('Failed to load backend cameras:', e);
+                backendCameras = {};
+            }
+        }
+
+        function syncBackendCamerasToSite() {
+            // Create or update a "Caméras" site with backend cameras (webcam/rtsp)
+            const CAMERAS_SITE_NAME = 'Caméras';
+            let camerasSite = sitesCache.find(s => s.name === CAMERAS_SITE_NAME);
+
+            if (!camerasSite) {
+                camerasSite = { name: CAMERAS_SITE_NAME, cameras: [] };
+                sitesCache.push(camerasSite);
+            }
+
+            // Build cameras array from backend cameras
+            const syncedCameras = [];
+            for (const [backendId, camData] of Object.entries(backendCameras)) {
+                // Check if this camera already exists in the site
+                const existing = camerasSite.cameras.find(c => c.backendCameraId === backendId);
+                if (existing) {
+                    syncedCameras.push(existing);
+                } else {
+                    // Create new camera entry
+                    const camType = camData.type; // 'webcam' or 'rtsp'
+                    syncedCameras.push({
+                        id: backendId,
+                        name: camData.name || backendId,
+                        hint: camType === 'webcam' ? 'Webcam' : 'RTSP',
+                        sourceType: camType,
+                        backendCameraId: backendId
+                    });
+                }
+            }
+
+            camerasSite.cameras = syncedCameras;
+
+            // Also sync cameras across all sites - if a camera in any site matches a backend camera ID pattern,
+            // ensure it has the correct sourceType and backendCameraId
+            for (const site of sitesCache) {
+                if (site.name === CAMERAS_SITE_NAME) continue;
+                for (const cam of site.cameras || []) {
+                    // Check if this camera's ID matches a backend camera
+                    if (backendCameras[cam.id]) {
+                        const backendCam = backendCameras[cam.id];
+                        cam.backendCameraId = cam.id;
+                        cam.sourceType = backendCam.type;
+                    }
+                    // Or if backendCameraId was set but we need to verify it still exists
+                    if (cam.backendCameraId && backendCameras[cam.backendCameraId]) {
+                        const backendCam = backendCameras[cam.backendCameraId];
+                        cam.sourceType = backendCam.type;
+                    }
+                }
+            }
+        }
+
+        async function addBackendCamera(cameraId, name, type, deviceIdOrUrl) {
+            const body = { camera_id: cameraId, name, type };
+            if (type === 'webcam') {
+                body.device_id = parseInt(deviceIdOrUrl, 10);
+            } else if (type === 'rtsp') {
+                body.url = deviceIdOrUrl;
+            }
+            const res = await fetch('/api/cameras', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || 'Failed to add camera');
+            }
+            await loadBackendCameras();
+        }
+
         // Upload video elements
         const uploadVideoInput = document.getElementById('uploadVideoInput');
         const uploadVideoLabelText = document.getElementById('uploadVideoLabelText');
@@ -2034,6 +2136,7 @@
         async function init() {
             // Important: récupérer d'abord les streams, puis construire l'UI (évite les resets)
             await updateActiveStreams();
+            await loadBackendCameras();
             loadSites();
 
             // Nav
@@ -2068,9 +2171,99 @@
             });
 
             // Add camera (site)
+            function switchCamSourceTab(sourceType) {
+                currentCamSourceType = sourceType;
+                // Update tabs
+                camSourceTabs.forEach(tab => {
+                    if (tab.dataset.source === sourceType) {
+                        tab.classList.add('active');
+                    } else {
+                        tab.classList.remove('active');
+                    }
+                });
+                // Update panels
+                camSourcePanels.forEach(panel => {
+                    if (panel.dataset.source === sourceType) {
+                        panel.classList.remove('hidden');
+                    } else {
+                        panel.classList.add('hidden');
+                    }
+                });
+            }
+
+            async function detectWebcams() {
+                if (newCamWebcam) newCamWebcam.innerHTML = '<option value="">Détection...</option>';
+                try {
+                    const res = await fetch('/api/cameras/detect/webcams');
+                    const data = await res.json();
+                    if (newCamWebcam) {
+                        newCamWebcam.innerHTML = '';
+                        if (data.webcams && data.webcams.length > 0) {
+                            data.webcams.forEach(w => {
+                                newCamWebcam.innerHTML += `<option value="${w.device_id}">${escapeHtml(w.name)} (${w.resolution})</option>`;
+                            });
+                        } else {
+                            newCamWebcam.innerHTML = '<option value="">Aucune webcam détectée</option>';
+                        }
+                    }
+                } catch (e) {
+                    console.error('Webcam detection failed:', e);
+                    if (newCamWebcam) newCamWebcam.innerHTML = '<option value="">Erreur de détection</option>';
+                }
+            }
+
+            async function testRtspConnection() {
+                const url = newCamRtspUrl?.value?.trim();
+                if (!url) {
+                    uiAlert('Entrez une URL RTSP', 'Test RTSP');
+                    return;
+                }
+                if (testRtspBtn) testRtspBtn.textContent = '...';
+                try {
+                    const res = await fetch(`/api/cameras/test-rtsp?url=${encodeURIComponent(url)}`, { method: 'POST' });
+                    const data = await res.json();
+                    if (data.success) {
+                        uiAlert(`Connexion réussie ! Résolution: ${data.resolution}`, 'Test RTSP');
+                        if (testRtspBtn) testRtspBtn.textContent = '\u2713';
+                    } else {
+                        uiAlert(`Échec: ${data.error}`, 'Test RTSP');
+                        if (testRtspBtn) testRtspBtn.textContent = '\u2717';
+                    }
+                } catch (e) {
+                    uiAlert(`Erreur: ${e.message}`, 'Test RTSP');
+                    if (testRtspBtn) testRtspBtn.textContent = '\u2717';
+                }
+                setTimeout(() => { if (testRtspBtn) testRtspBtn.textContent = '\u2713'; }, 2000);
+            }
+
+            async function scanOnvifCameras() {
+                if (onvifScanStatus) onvifScanStatus.textContent = 'Scan en cours...';
+                try {
+                    const res = await fetch('/api/cameras/detect/onvif');
+                    const data = await res.json();
+                    if (data.error) {
+                        if (onvifScanStatus) onvifScanStatus.textContent = data.error;
+                        return;
+                    }
+                    if (data.cameras && data.cameras.length > 0) {
+                        const names = data.cameras.map(c => c.name).join(', ');
+                        if (onvifScanStatus) onvifScanStatus.textContent = `Trouvé: ${names}`;
+                        // TODO: Could show a picker modal
+                        uiAlert(`${data.cameras.length} caméra(s) ONVIF trouvée(s):\n${data.cameras.map(c => `${c.name}: ${c.xaddr}`).join('\n')}`, 'Scan ONVIF');
+                    } else {
+                        if (onvifScanStatus) onvifScanStatus.textContent = 'Aucune caméra trouvée';
+                    }
+                } catch (e) {
+                    console.error('ONVIF scan failed:', e);
+                    if (onvifScanStatus) onvifScanStatus.textContent = 'Erreur de scan';
+                }
+            }
+
             function openAddCameraForm() {
                 if (!addCameraForm) return;
                 addCameraForm.classList.remove('hidden');
+                // Reset to video tab
+                switchCamSourceTab('video');
                 // populate videos
                 if (newCamVideo) {
                     newCamVideo.innerHTML = '';
@@ -2079,16 +2272,20 @@
                         newCamVideo.innerHTML += `<option value="${escapeHtml(v)}" title="${escapeHtml(v)}">${escapeHtml(displayName)}</option>`;
                     });
                 }
+                // Auto-detect webcams when opening form
+                detectWebcams();
                 newCamName?.focus();
             }
             function closeAddCameraForm() {
                 addCameraForm?.classList.add('hidden');
                 if (newCamName) newCamName.value = '';
                 if (newCamHint) newCamHint.value = '';
+                if (newCamRtspUrl) newCamRtspUrl.value = '';
                 // Reset upload state - use form.reset() which properly clears file inputs
                 if (uploadVideoForm) uploadVideoForm.reset();
                 if (uploadVideoLabelText) uploadVideoLabelText.textContent = 'Choisir un fichier';
                 if (uploadProgress) uploadProgress.textContent = '';
+                if (onvifScanStatus) onvifScanStatus.textContent = '';
             }
 
             // Upload video handler function (extracted so we can re-attach after clone)
@@ -2156,24 +2353,78 @@
                 openAddCameraForm();
             });
             cancelCamBtn?.addEventListener('click', closeAddCameraForm);
+
+            // Camera source tab switching
+            camSourceTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const sourceType = tab.dataset.source;
+                    if (sourceType) switchCamSourceTab(sourceType);
+                });
+            });
+
+            // Webcam detection button
+            detectWebcamsBtn?.addEventListener('click', detectWebcams);
+
+            // RTSP test button
+            testRtspBtn?.addEventListener('click', testRtspConnection);
+
+            // ONVIF scan button
+            scanOnvifBtn?.addEventListener('click', scanOnvifCameras);
+
             saveCamBtn?.addEventListener('click', async () => {
                 const name = (newCamName?.value || '').trim();
-                const video = (newCamVideo?.value || '').trim();
                 const hint = (newCamHint?.value || '').trim();
-                if (!name || !video) {
-                    uiAlert('Nom et vidéo requis.', 'Caméras');
+
+                if (!name) {
+                    uiAlert('Nom de caméra requis.', 'Caméras');
                     return;
                 }
+
                 try {
                     const cams = Array.isArray(currentSite?.cameras) ? [...currentSite.cameras] : [];
                     const desired = cameraIdFromName(name);
                     const id = makeUniqueCameraId(cams, desired);
-                    cams.push({ id, name, hint, video });
+
+                    let camData = { id, name, hint };
+
+                    if (currentCamSourceType === 'video') {
+                        const video = (newCamVideo?.value || '').trim();
+                        if (!video) {
+                            uiAlert('Sélectionnez une vidéo.', 'Caméras');
+                            return;
+                        }
+                        camData.video = video;
+                        camData.sourceType = 'video';
+                    } else if (currentCamSourceType === 'webcam') {
+                        const deviceId = newCamWebcam?.value;
+                        if (deviceId === '' || deviceId === undefined) {
+                            uiAlert('Sélectionnez une webcam.', 'Caméras');
+                            return;
+                        }
+                        // Add camera to backend
+                        const backendCamId = `webcam_${id}`;
+                        await addBackendCamera(backendCamId, name, 'webcam', deviceId);
+                        camData.backendCameraId = backendCamId;
+                        camData.sourceType = 'webcam';
+                    } else if (currentCamSourceType === 'rtsp') {
+                        const rtspUrl = (newCamRtspUrl?.value || '').trim();
+                        if (!rtspUrl) {
+                            uiAlert('Entrez une URL RTSP.', 'Caméras');
+                            return;
+                        }
+                        // Add camera to backend
+                        const backendCamId = `rtsp_${id}`;
+                        await addBackendCamera(backendCamId, name, 'rtsp', rtspUrl);
+                        camData.backendCameraId = backendCamId;
+                        camData.sourceType = 'rtsp';
+                    }
+
+                    cams.push(camData);
                     saveCurrentSiteCameras(cams);
                     loadSites();
                     closeAddCameraForm();
                     await loadVideos();
-                    if (!currentVideo) selectCamera(id);
+                    if (!currentVideo && !currentCameraId) selectCamera(id);
                     await loadZones();
                 } catch (e) {
                     uiAlert(`Erreur ajout caméra: ${e?.message || e}`, 'Caméras');
@@ -2241,25 +2492,27 @@
             });
             
             // Gestionnaire pour les caméras dans le panneau caméras
-            cameraGrid?.addEventListener('click', (e) => {
-                const deleteBtn = e.target?.closest?.('[data-delete-camera]');
-                if (deleteBtn) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const cameraId = deleteBtn.getAttribute('data-delete-camera') || '';
-                    if (cameraId) deleteCamera(cameraId);
-                    return;
-                }
-                
-                const selectEl = e.target?.closest?.('[data-select-camera]');
-                if (selectEl) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const cameraId = selectEl.getAttribute('data-select-camera') || '';
-                    if (cameraId) selectCamera(cameraId);
-                    return;
-                }
-            });
+            if (cameraGrid) {
+                cameraGrid.addEventListener('click', (e) => {
+                    const deleteBtn = e.target?.closest?.('[data-delete-camera]');
+                    if (deleteBtn) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const cameraId = deleteBtn.getAttribute('data-delete-camera') || '';
+                        if (cameraId) deleteCamera(cameraId);
+                        return;
+                    }
+
+                    const selectEl = e.target?.closest?.('[data-select-camera]');
+                    if (selectEl) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const cameraId = selectEl.getAttribute('data-select-camera') || '';
+                        if (cameraId) selectCamera(cameraId);
+                        return;
+                    }
+                });
+            }
 
             // DEMO: always start on home; refresh resets sites to DEMO_SITES
             setView('home');
@@ -2300,6 +2553,11 @@
         }
 
         function getCameraByVideo(videoName) {
+            // Support both video files and camera sources (camera:xxx)
+            if (videoName && videoName.startsWith('camera:')) {
+                const backendId = videoName.replace('camera:', '');
+                return getActiveCameras().find(c => c.backendCameraId === backendId) || null;
+            }
             return getActiveCameras().find(c => c.video === videoName) || null;
         }
 
@@ -2320,6 +2578,16 @@
             (data.videos || []).forEach((v) => {
                 videoSelect.innerHTML += `<option value="${v}">${v}</option>`;
             });
+
+            // Add backend cameras (webcam/rtsp) to the select
+            cams.forEach((cam) => {
+                if (cam.sourceType === 'webcam' || cam.sourceType === 'rtsp') {
+                    const sourceKey = `camera:${cam.backendCameraId}`;
+                    videoSelect.innerHTML += `<option value="${sourceKey}">[${cam.sourceType.toUpperCase()}] ${cam.name}</option>`;
+                    available.add(sourceKey); // Mark as available
+                }
+            });
+
             if (selected && available.has(selected)) videoSelect.value = selected;
 
             // UI: 2 caméras fixes (simple & fiable)
@@ -2333,12 +2601,25 @@
                 return;
             }
             cams.forEach((cam) => {
-                const videoExists = available.has(cam.video);
-                const isActive = activeVideoStreams.has(cam.video);
-                const isCurrent = cam.video === currentVideo;
-                const statusText = videoExists ? (isActive ? 'En ligne' : 'Prête') : 'Manquante';
+                // Support both video files and backend cameras (webcam/rtsp)
+                const isBackendCamera = cam.sourceType === 'webcam' || cam.sourceType === 'rtsp';
+                const sourceKey = isBackendCamera ? `camera:${cam.backendCameraId}` : cam.video;
 
-                const videoDisplayName = truncateFilename(cam.video, 12);
+                const videoExists = isBackendCamera ? !!cam.backendCameraId : available.has(cam.video);
+                const isActive = activeVideoStreams.has(sourceKey);
+                const isCurrent = sourceKey === currentVideo;
+
+                let statusText = 'Prête';
+                if (!videoExists) {
+                    statusText = 'Manquante';
+                } else if (isActive) {
+                    statusText = 'En ligne';
+                }
+
+                const sourceDisplayName = isBackendCamera
+                    ? `${cam.sourceType.toUpperCase()}`
+                    : truncateFilename(cam.video || '', 12);
+
                 cameraGrid.innerHTML += `
                     <div class="camera-item ${isCurrent ? 'active' : ''}" data-camera="${cam.id}">
                         <div class="camera-item-header">
@@ -2349,7 +2630,7 @@
                                     <span class="camera-status-text">${statusText}</span>
                                 </div>
                                 <div style="margin-top: var(--space-2); font-size: var(--text-xs); color: var(--color-text-muted);">
-                                    ${(cam.hint || '')} • <span style="font-family: 'Courier New', monospace;" title="${escapeHtml(cam.video)}">${escapeHtml(videoDisplayName)}</span>
+                                    ${(cam.hint || '')} • <span style="font-family: 'Courier New', monospace;" title="${escapeHtml(sourceKey || '')}">${escapeHtml(sourceDisplayName)}</span>
                                 </div>
                             </div>
                             <button class="camera-item-delete" data-delete-camera="${cam.id}" title="Supprimer cette caméra">
@@ -2372,7 +2653,20 @@
             const cam = getCameraById(cameraId);
             if (!cam) return;
             currentCameraId = cameraId;
-            selectVideo(cam.video);
+
+            // Handle different source types
+            if (cam.sourceType === 'webcam' || cam.sourceType === 'rtsp') {
+                // Use backend camera - treat it like a video with name "camera:xxx"
+                if (cam.backendCameraId) {
+                    selectVideo(`camera:${cam.backendCameraId}`);
+                }
+            } else if (cam.backendCameraId) {
+                // Fallback: if backendCameraId is set, use it even without sourceType
+                selectVideo(`camera:${cam.backendCameraId}`);
+            } else if (cam.video) {
+                // Default: video file
+                selectVideo(cam.video);
+            }
         }
 
         async function deleteCamera(cameraId) {
@@ -2381,6 +2675,16 @@
 
             const confirmed = await uiConfirm(`Supprimer la caméra "${cam.name}" ?`, 'Suppression');
             if (!confirmed) return;
+
+            // If it's a backend camera (webcam/rtsp), delete from backend too
+            if (cam.backendCameraId) {
+                try {
+                    await fetch(`/api/cameras/${encodeURIComponent(cam.backendCameraId)}`, { method: 'DELETE' });
+                    await loadBackendCameras();
+                } catch (e) {
+                    console.error('Failed to delete backend camera:', e);
+                }
+            }
 
             // Remove from currentSite.cameras
             if (currentSite && Array.isArray(currentSite.cameras)) {
@@ -3114,10 +3418,35 @@
             currentCameraId = cam ? cam.id : null;
             currentVideoTitle.textContent = cam ? cam.name : currentVideo;
 
-            const infoRes = await fetch(`/api/videos/${encodeURIComponent(currentVideo)}/info`);
-            const info = await infoRes.json();
-            videoWidth = info.width;
-            videoHeight = info.height;
+            // Update UI immediately to show selection
+            placeholder.classList.add('hidden');
+            startDetectionBtn.disabled = false;
+            if (editZonesBtn) editZonesBtn.disabled = false;
+            updateStatus('ready');
+
+            // Refresh camera grid to show active state FIRST
+            await loadVideos();
+
+            // Then fetch video/camera info
+            const infoUrl = `/api/videos/${encodeURIComponent(currentVideo)}/info`;
+            try {
+                const infoRes = await fetch(infoUrl);
+                if (!infoRes.ok) {
+                    console.error('[videoSelect change] API error:', await infoRes.text());
+                    // Don't return - continue with default dimensions
+                    videoWidth = 1280;
+                    videoHeight = 720;
+                } else {
+                    const info = await infoRes.json();
+                    videoWidth = info.width || 1280;
+                    videoHeight = info.height || 720;
+                }
+            } catch (err) {
+                console.error('[videoSelect change] fetch error:', err);
+                // Use default dimensions
+                videoWidth = 1280;
+                videoHeight = 720;
+            }
 
             drawCanvas.width = videoWidth;
             drawCanvas.height = videoHeight;
@@ -3125,23 +3454,20 @@
             isCurrentVideoStreaming = activeVideoStreams.has(currentVideo);
 
             if (isCurrentVideoStreaming) {
+                // Already streaming - show the stream
                 videoFrame.classList.add('hidden');
                 videoStream.classList.remove('hidden');
                 videoStream.src = `/api/stream/${encodeURIComponent(currentVideo)}`;
                 drawCanvas.classList.add('hidden');
                 updateStatus('streaming');
             } else {
+                // Not streaming - show a static frame (user must click "Lancer détection")
                 videoFrame.src = `/api/videos/${encodeURIComponent(currentVideo)}/frame?t=${Date.now()}`;
                 videoFrame.classList.remove('hidden');
                 videoStream.classList.add('hidden');
                 videoStream.src = '';
                 drawCanvas.classList.remove('hidden');
-                updateStatus('ready');
             }
-
-            placeholder.classList.add('hidden');
-            startDetectionBtn.disabled = false;
-            if (editZonesBtn) editZonesBtn.disabled = false;
 
             const img = isCurrentVideoStreaming ? videoStream : videoFrame;
             img.onload = () => {

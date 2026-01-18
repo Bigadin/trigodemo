@@ -5,3 +5,4 @@ ultralytics>=8.1.0
 opencv-python>=4.8.0
 numpy>=1.24.0
 shapely>=2.0.0
+wsdiscovery>=2.0.0  # Optional: for ONVIF camera discovery
