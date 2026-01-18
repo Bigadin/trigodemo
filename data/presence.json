@@ -6,12 +6,15 @@
     "total_time": 0
   },
   "T2": {
-    "total_time": 125.39246559143066
+    "total_time": 172.98625683784485
   },
   "Zone B": {
     "total_time": 544.658360004425
   },
   "Ligne": {
     "total_time": 0
+  },
+  "Z2": {
+    "total_time": 51.49583888053894
   }
 }

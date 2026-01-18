@@ -1,0 +1,12 @@
+{
+  "rtsp_popo": {
+    "type": "rtsp",
+    "name": "popo",
+    "url": "rtsp://rtspstream:WyiuHW-4kMT44rRzCYWW1@zephyr.rtsp.stream/movie"
+  },
+  "webcam_sqd": {
+    "type": "webcam",
+    "name": "sqd",
+    "device_id": 0
+  }
+}

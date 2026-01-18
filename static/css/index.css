@@ -1231,6 +1231,12 @@
             color: var(--color-text);
         }
 
+        /* Camera source tabs */
+        .cam-source-tab.active {
+            background: var(--color-primary);
+            color: white;
+        }
+
         .draw-tree {
             display: flex;
             flex-direction: column;
