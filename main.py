@@ -817,91 +817,78 @@ def get_zone_display_time(zone_name: str) -> float:
 def detection_worker(video_name: str, frame_queue: Queue):
     """
     Background thread that runs YOLO tracking for a specific video.
-    Uses tracking instead of pure detection - only runs full inference every N frames
-    or when a tracked ID is lost.
+    Uses a SEPARATE model instance per stream to avoid tracker state pollution.
     """
     frame_count = 0
-    last_track_ids = set()
 
-    while True:
-        with streams_lock:
-            if video_name not in active_streams or not active_streams[video_name]["active"]:
-                break
+    # Create a separate model instance for this stream's tracking
+    # This prevents tracker state from leaking between different video streams
+    local_model = YOLO("human.pt")
+    print(f"[{video_name}] Created dedicated YOLO tracker instance")
 
-        try:
-            if frame_queue.empty():
-                time.sleep(0.01)
-                continue
+    try:
+        while True:
+            with streams_lock:
+                if video_name not in active_streams or not active_streams[video_name]["active"]:
+                    break
 
-            frame = None
-            while not frame_queue.empty():
-                frame = frame_queue.get_nowait()
+            try:
+                if frame_queue.empty():
+                    time.sleep(0.01)
+                    continue
 
-            if frame is None:
-                continue
+                frame = None
+                while not frame_queue.empty():
+                    frame = frame_queue.get_nowait()
 
-            frame_count += 1
+                if frame is None:
+                    continue
 
-            # Decide whether to run full inference or just tracking
-            # Run full inference if:
-            # 1. It's the first frame
-            # 2. Every TRACKING_REINFERENCE_INTERVAL frames
-            # 3. We lost a tracked ID (someone left the frame)
-            run_full_inference = (
-                frame_count == 1 or
-                frame_count % TRACKING_REINFERENCE_INTERVAL == 0
-            )
+                frame_count += 1
 
-            with model_lock:
-                # Use model.track() instead of model() for tracking
-                # persist=True keeps track IDs across frames
-                results = model.track(
+                # Use model.track() with persist=True for this stream only
+                # Each stream has its own model instance, so no state pollution
+                results = local_model.track(
                     frame,
                     verbose=False,
                     classes=[0],
                     conf=YOLO_CONFIDENCE,
                     device=YOLO_DEVICE,
                     persist=True,
-                    tracker="bytetrack.yaml"  # ByteTrack is fast and efficient
+                    tracker="bytetrack.yaml"
                 )
 
-            detections = []
-            current_track_ids = set()
+                detections = []
 
-            for r in results:
-                if r.boxes is None:
-                    continue
-                for i, box in enumerate(r.boxes):
-                    x1, y1, x2, y2 = box.xyxy[0].tolist()
-                    conf = float(box.conf[0])
+                for r in results:
+                    if r.boxes is None:
+                        continue
+                    for box in r.boxes:
+                        x1, y1, x2, y2 = box.xyxy[0].tolist()
+                        conf = float(box.conf[0])
 
-                    # Get track ID if available
-                    track_id = None
-                    if box.id is not None:
-                        track_id = int(box.id[0])
-                        current_track_ids.add(track_id)
+                        # Get track ID if available
+                        track_id = None
+                        if box.id is not None:
+                            track_id = int(box.id[0])
 
-                    detections.append({
-                        "x1": x1, "y1": y1, "x2": x2, "y2": y2,
-                        "conf": conf,
-                        "track_id": track_id
-                    })
+                        detections.append({
+                            "x1": x1, "y1": y1, "x2": x2, "y2": y2,
+                            "conf": conf,
+                            "track_id": track_id
+                        })
 
-            # Check if any tracked IDs were lost (for next iteration)
-            lost_ids = last_track_ids - current_track_ids
-            if lost_ids:
-                # IDs were lost, next frame should run full inference
-                pass  # The tracker handles this automatically
+                with streams_lock:
+                    if video_name in active_streams:
+                        active_streams[video_name]["detections"] = detections
 
-            last_track_ids = current_track_ids
-
-            with streams_lock:
-                if video_name in active_streams:
-                    active_streams[video_name]["detections"] = detections
-
-        except Exception as e:
-            print(f"Detection error for {video_name}: {e}")
-            continue
+            except Exception as e:
+                print(f"Detection error for {video_name}: {e}")
+                continue
+    finally:
+        # Clean up the local model when stream ends
+        del local_model
+        print(f"[{video_name}] Released YOLO tracker instance")
 
 
 def video_processor(source_name: str):
@@ -1004,9 +991,15 @@ def video_processor(source_name: str):
 
     finally:
         cap.release()
+        # Clean up shared frames
         with frames_lock:
             if source_name in shared_frames:
                 del shared_frames[source_name]
+        # Mark stream as inactive and clean up
+        with streams_lock:
+            if source_name in active_streams:
+                active_streams[source_name]["active"] = False
+                active_streams[source_name]["detections"] = []
         save_presence()
         print(f"Video processor stopped for {source_name}")
 
