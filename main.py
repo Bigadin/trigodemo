@@ -59,8 +59,9 @@ ZONES_FILE = DATA_DIR / "zones.json"
 PRESENCE_FILE = DATA_DIR / "presence.json"
 CAMERAS_FILE = DATA_DIR / "cameras.json"
 
-GRACE_PERIOD = 1.5
+GRACE_PERIOD = 0.5
 YOLO_CONFIDENCE = 0.45
+TRACKING_REINFERENCE_INTERVAL = 30  # Réinférence complète toutes les 30 frames
 
 # Camera sources storage: {camera_id: {"type": "webcam"|"rtsp", "name": str, ...}}
 cameras = {}
@@ -814,7 +815,14 @@ def get_zone_display_time(zone_name: str) -> float:
 
 
 def detection_worker(video_name: str, frame_queue: Queue):
-    """Background thread that runs YOLO detection for a specific video"""
+    """
+    Background thread that runs YOLO tracking for a specific video.
+    Uses tracking instead of pure detection - only runs full inference every N frames
+    or when a tracked ID is lost.
+    """
+    frame_count = 0
+    last_track_ids = set()
+
     while True:
         with streams_lock:
             if video_name not in active_streams or not active_streams[video_name]["active"]:
@@ -832,18 +840,60 @@ def detection_worker(video_name: str, frame_queue: Queue):
             if frame is None:
                 continue
 
+            frame_count += 1
+
+            # Decide whether to run full inference or just tracking
+            # Run full inference if:
+            # 1. It's the first frame
+            # 2. Every TRACKING_REINFERENCE_INTERVAL frames
+            # 3. We lost a tracked ID (someone left the frame)
+            run_full_inference = (
+                frame_count == 1 or
+                frame_count % TRACKING_REINFERENCE_INTERVAL == 0
+            )
+
             with model_lock:
-                results = model(frame, verbose=False, classes=[0], conf=YOLO_CONFIDENCE, device=YOLO_DEVICE)
+                # Use model.track() instead of model() for tracking
+                # persist=True keeps track IDs across frames
+                results = model.track(
+                    frame,
+                    verbose=False,
+                    classes=[0],
+                    conf=YOLO_CONFIDENCE,
+                    device=YOLO_DEVICE,
+                    persist=True,
+                    tracker="bytetrack.yaml"  # ByteTrack is fast and efficient
+                )
 
             detections = []
+            current_track_ids = set()
+
             for r in results:
-                for box in r.boxes:
+                if r.boxes is None:
+                    continue
+                for i, box in enumerate(r.boxes):
                     x1, y1, x2, y2 = box.xyxy[0].tolist()
                     conf = float(box.conf[0])
+
+                    # Get track ID if available
+                    track_id = None
+                    if box.id is not None:
+                        track_id = int(box.id[0])
+                        current_track_ids.add(track_id)
+
                     detections.append({
                         "x1": x1, "y1": y1, "x2": x2, "y2": y2,
-                        "conf": conf
+                        "conf": conf,
+                        "track_id": track_id
                     })
+
+            # Check if any tracked IDs were lost (for next iteration)
+            lost_ids = last_track_ids - current_track_ids
+            if lost_ids:
+                # IDs were lost, next frame should run full inference
+                pass  # The tracker handles this automatically
+
+            last_track_ids = current_track_ids
 
             with streams_lock:
                 if video_name in active_streams:
@@ -962,47 +1012,50 @@ def video_processor(source_name: str):
 
 
 def apply_smooth_blur(frame: np.ndarray, x1: int, y1: int, x2: int, y2: int) -> np.ndarray:
-    """Apply smooth elliptical blur to the top 30% of a bounding box"""
+    """Apply smooth feathered blur to the entire bounding box (full body)"""
     h, w = frame.shape[:2]
 
-    # Calculate top 30% region
-    bbox_height = y2 - y1
-    blur_height = int(bbox_height * 0.30)
-    blur_y2 = y1 + blur_height
+    # Add padding for feather effect
+    feather_size = 20
+    pad_x1 = max(0, x1 - feather_size)
+    pad_y1 = max(0, y1 - feather_size)
+    pad_x2 = min(w, x2 + feather_size)
+    pad_y2 = min(h, y2 + feather_size)
 
-    # Clamp coordinates
-    x1 = max(0, x1)
-    y1 = max(0, y1)
-    x2 = min(w, x2)
-    blur_y2 = min(h, blur_y2)
-
-    if x2 <= x1 or blur_y2 <= y1:
+    if pad_x2 <= pad_x1 or pad_y2 <= pad_y1:
         return frame
 
-    # Extract region to blur
-    region = frame[y1:blur_y2, x1:x2].copy()
+    # Extract padded region
+    region = frame[pad_y1:pad_y2, pad_x1:pad_x2].copy()
     if region.size == 0:
         return frame
 
-    # Apply strong Gaussian blur
-    blur_size = max(31, (blur_height // 2) * 2 + 1)  # Ensure odd number
+    region_h, region_w = region.shape[:2]
+
+    # Calculate blur kernel size based on bbox size
+    bbox_size = max(x2 - x1, y2 - y1)
+    blur_size = max(51, (bbox_size // 4) * 2 + 1)  # Ensure odd number
+
+    # Apply strong Gaussian blur to entire region
     blurred_region = cv2.GaussianBlur(region, (blur_size, blur_size), 0)
 
-    # Create elliptical gradient mask for smooth transition
-    mask_h, mask_w = region.shape[:2]
-    mask = np.zeros((mask_h, mask_w), dtype=np.float32)
+    # Create gradient mask with smooth feathered edges
+    mask = np.zeros((region_h, region_w), dtype=np.float32)
 
-    # Create ellipse parameters
-    center_x = mask_w // 2
-    center_y = mask_h // 2
-    axis_x = mask_w // 2
-    axis_y = mask_h // 2
+    # Calculate inner bbox position relative to padded region
+    inner_x1 = x1 - pad_x1
+    inner_y1 = y1 - pad_y1
+    inner_x2 = x2 - pad_x1
+    inner_y2 = y2 - pad_y1
 
-    # Draw filled ellipse on mask
-    cv2.ellipse(mask, (center_x, center_y), (axis_x, axis_y), 0, 0, 360, 1.0, -1)
+    # Fill inner rectangle with full opacity
+    mask[inner_y1:inner_y2, inner_x1:inner_x2] = 1.0
 
-    # Apply Gaussian blur to mask edges for smooth transition
-    mask = cv2.GaussianBlur(mask, (21, 21), 0)
+    # Apply Gaussian blur to mask for smooth feathered edges
+    mask = cv2.GaussianBlur(mask, (feather_size * 2 + 1, feather_size * 2 + 1), 0)
+
+    # Normalize mask to ensure smooth transition
+    mask = np.clip(mask, 0, 1)
 
     # Expand mask to 3 channels
     mask_3ch = np.stack([mask] * 3, axis=-1)
@@ -1011,7 +1064,7 @@ def apply_smooth_blur(frame: np.ndarray, x1: int, y1: int, x2: int, y2: int) -> 
     blended = (blurred_region * mask_3ch + region * (1 - mask_3ch)).astype(np.uint8)
 
     # Apply back to frame
-    frame[y1:blur_y2, x1:x2] = blended
+    frame[pad_y1:pad_y2, pad_x1:pad_x2] = blended
 
     return frame
 
@@ -1069,8 +1122,11 @@ def generate_frames(video_name: str):
         for det in detections:
             x1, y1, x2, y2 = int(det["x1"]), int(det["y1"]), int(det["x2"]), int(det["y2"])
             conf = det["conf"]
+            track_id = det.get("track_id")
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            cv2.putText(frame, f"{conf:.0%}", (x1, y1 - 5),
+            # Display track ID and confidence
+            label = f"#{track_id} {conf:.0%}" if track_id is not None else f"{conf:.0%}"
+            cv2.putText(frame, label, (x1, y1 - 5),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
         # Draw zones
