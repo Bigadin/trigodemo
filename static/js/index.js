@@ -31,8 +31,8 @@
         const presenceOkTsByVideo = {};     // { [videoName]: epochMs } dernier /api/presence OK (anti-stale)
         let loadZonesInFlight = false;
         let loadZonesLoopTimer = null;
-        const PRESENCE_POLL_ACTIVE_MS = 350;
-        const PRESENCE_POLL_IDLE_MS = 1000;
+        const PRESENCE_POLL_ACTIVE_MS = 1000;  // Reduced from 350ms to avoid server saturation
+        const PRESENCE_POLL_IDLE_MS = 2000;   // Reduced frequency when idle
         const ZONES_DEF_TTL_MS = 2500;
         const PRESENCE_STALE_MS = 1400; // si on n'a pas eu de /presence OK depuis trop longtemps, ne pas afficher "Occupé"
 
@@ -171,16 +171,16 @@
         async function refreshZonesCacheForSite(force = false) {
             if (!currentSite?.cameras?.length) return;
             const now = Date.now();
-            if (!force && (now - zonesCacheRefreshTs) < 500) return; // throttle réduit pour meilleure réactivité
+            if (!force && (now - zonesCacheRefreshTs) < 2000) return; // Throttle to 2s to reduce server load
             zonesCacheRefreshTs = now;
-            const videos = currentSite.cameras.map(c => c.video).filter(Boolean);
-            await Promise.all(videos.map(async (v) => {
+            // Only refresh for current video, not all cameras (reduces requests)
+            if (currentVideo) {
                 try {
-                    const res = await fetch(`/api/zones/${encodeURIComponent(v)}`);
+                    const res = await fetch(`/api/zones/${encodeURIComponent(currentVideo)}`);
                     const data = await res.json();
-                    zonesCacheByVideo[v] = data.zones || {};
+                    zonesCacheByVideo[currentVideo] = data.zones || {};
                 } catch {}
-            }));
+            }
         }
 
         function computeSiteStats() {
@@ -3457,7 +3457,11 @@
                 // Already streaming - show the stream
                 videoFrame.classList.add('hidden');
                 videoStream.classList.remove('hidden');
-                videoStream.src = `/api/stream/${encodeURIComponent(currentVideo)}`;
+                // Only set src if not already set to this stream (avoid duplicate connections)
+                const expectedSrc = `/api/stream/${encodeURIComponent(currentVideo)}`;
+                if (!videoStream.src.endsWith(expectedSrc)) {
+                    videoStream.src = expectedSrc;
+                }
                 drawCanvas.classList.add('hidden');
                 updateStatus('streaming');
             } else {
@@ -3465,7 +3469,7 @@
                 videoFrame.src = `/api/videos/${encodeURIComponent(currentVideo)}/frame?t=${Date.now()}`;
                 videoFrame.classList.remove('hidden');
                 videoStream.classList.add('hidden');
-                videoStream.src = '';
+                if (videoStream.src) videoStream.src = '';  // Only clear if set
                 drawCanvas.classList.remove('hidden');
             }
 
@@ -3982,10 +3986,14 @@
                 videoFrame.classList.add('hidden');
                 videoStream.classList.remove('hidden');
                 drawCanvas.classList.add('hidden');
-                videoStream.src = `/api/stream/${encodeURIComponent(currentVideo)}`;
+                // Only set src if not already set to this stream (avoid duplicate connections)
+                const expectedSrc = `/api/stream/${encodeURIComponent(currentVideo)}`;
+                if (!videoStream.src.endsWith(expectedSrc)) {
+                    videoStream.src = expectedSrc;
+                }
                 updateStatus('streaming');
             } else {
-                videoStream.src = '';
+                if (videoStream.src) videoStream.src = '';  // Only clear if set
                 videoStream.classList.add('hidden');
                 videoFrame.src = `/api/videos/${encodeURIComponent(currentVideo)}/frame?t=${Date.now()}`;
                 videoFrame.classList.remove('hidden');
