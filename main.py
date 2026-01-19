@@ -1152,7 +1152,16 @@ def generate_frames(video_name: str):
                 cv2.putText(frame, label, (int(first_point[0]), int(first_point[1])),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
-        _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
+        # Resize frame for streaming to reduce bandwidth (keep aspect ratio)
+        h, w = frame.shape[:2]
+        max_width = 960  # Reduced from original for bandwidth savings
+        if w > max_width:
+            scale = max_width / w
+            new_w, new_h = int(w * scale), int(h * scale)
+            frame = cv2.resize(frame, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+        # Lower JPEG quality for streaming (50 instead of 85) - saves ~50% bandwidth
+        _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 50])
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
 

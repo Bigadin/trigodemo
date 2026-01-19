@@ -31,10 +31,10 @@
         const presenceOkTsByVideo = {};     // { [videoName]: epochMs } dernier /api/presence OK (anti-stale)
         let loadZonesInFlight = false;
         let loadZonesLoopTimer = null;
-        const PRESENCE_POLL_ACTIVE_MS = 1000;  // Reduced from 350ms to avoid server saturation
-        const PRESENCE_POLL_IDLE_MS = 2000;   // Reduced frequency when idle
+        const PRESENCE_POLL_ACTIVE_MS = 2500;  // 2.5s polling when detecting (was 1s)
+        const PRESENCE_POLL_IDLE_MS = 5000;   // 5s polling when idle (was 2s)
         const ZONES_DEF_TTL_MS = 2500;
-        const PRESENCE_STALE_MS = 1400; // si on n'a pas eu de /presence OK depuis trop longtemps, ne pas afficher "Occupé"
+        const PRESENCE_STALE_MS = 3500; // Adjusted for slower polling rate
 
         function markVideoRunStart(video) {
             if (!video) return;
@@ -3230,7 +3230,9 @@
                 return `
                     <div class="tree-row ${isCurrent ? 'active' : ''}" data-select-camera="${escapeHtml(cam.id)}" style="cursor: pointer;">
                         <div class="left">
-                            <img class="tree-icon-img" src="/static/assets_youn/SvIcons/video-camera-svgrepo-com.svg" alt="">
+                            <svg class="tree-icon-img" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                            </svg>
                             <span class="label">${camLabel}</span>
                         </div>
                         <span class="meta">${camMeta}</span>
@@ -3406,6 +3408,12 @@
         videoSelect.addEventListener('change', async () => {
             if (!videoSelect.value) return;
 
+            // IMPORTANT: Stop any existing stream IMMEDIATELY to free bandwidth
+            // This prevents accumulating streams when switching videos
+            if (videoStream.src) {
+                videoStream.src = '';
+            }
+
             // Stabilisation: changer de vidéo annule tout mode dessin en cours
             if (isDrawing) {
                 exitDrawingMode();
@@ -3457,11 +3465,8 @@
                 // Already streaming - show the stream
                 videoFrame.classList.add('hidden');
                 videoStream.classList.remove('hidden');
-                // Only set src if not already set to this stream (avoid duplicate connections)
-                const expectedSrc = `/api/stream/${encodeURIComponent(currentVideo)}`;
-                if (!videoStream.src.endsWith(expectedSrc)) {
-                    videoStream.src = expectedSrc;
-                }
+                // Set the new stream source (old one was already cleared above)
+                videoStream.src = `/api/stream/${encodeURIComponent(currentVideo)}`;
                 drawCanvas.classList.add('hidden');
                 updateStatus('streaming');
             } else {
@@ -3469,7 +3474,7 @@
                 videoFrame.src = `/api/videos/${encodeURIComponent(currentVideo)}/frame?t=${Date.now()}`;
                 videoFrame.classList.remove('hidden');
                 videoStream.classList.add('hidden');
-                if (videoStream.src) videoStream.src = '';  // Only clear if set
+                // Stream src already cleared at start of handler
                 drawCanvas.classList.remove('hidden');
             }
 
@@ -3986,14 +3991,13 @@
                 videoFrame.classList.add('hidden');
                 videoStream.classList.remove('hidden');
                 drawCanvas.classList.add('hidden');
-                // Only set src if not already set to this stream (avoid duplicate connections)
-                const expectedSrc = `/api/stream/${encodeURIComponent(currentVideo)}`;
-                if (!videoStream.src.endsWith(expectedSrc)) {
-                    videoStream.src = expectedSrc;
-                }
+                // Always clear first, then set new source to avoid stale connections
+                videoStream.src = '';
+                videoStream.src = `/api/stream/${encodeURIComponent(currentVideo)}`;
                 updateStatus('streaming');
             } else {
-                if (videoStream.src) videoStream.src = '';  // Only clear if set
+                // Stop stream immediately
+                videoStream.src = '';
                 videoStream.classList.add('hidden');
                 videoFrame.src = `/api/videos/${encodeURIComponent(currentVideo)}/frame?t=${Date.now()}`;
                 videoFrame.classList.remove('hidden');
@@ -4116,13 +4120,17 @@
             if (!inner) return;
             if (isOn) {
                 inner.innerHTML = `
-                    <img class="retro-icon-img" src="/static/assets_youn/SvIcons/pause-svgrepo-com.svg" alt="">
+                    <svg class="retro-icon-img" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
+                    </svg>
                     Pause détection
                 `;
                 startDetectionBtn.classList.add('is-on');
             } else {
                 inner.innerHTML = `
-                    <img class="retro-icon-img" src="/static/assets_youn/SvIcons/play-svgrepo-com.svg" alt="">
+                    <svg class="retro-icon-img" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5,3 19,12 5,21"/>
+                    </svg>
                     Lancer la détection
                 `;
                 startDetectionBtn.classList.remove('is-on');
