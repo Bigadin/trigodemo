@@ -1,20 +1,23 @@
 {
   "Zone A": {
-    "total_time": 1232.1961135864258
+    "total_time": 1330.9968988895416
   },
   "Contr\u00f4le Pi\u00e8ces": {
     "total_time": 0
   },
   "T2": {
-    "total_time": 405.26007413864136
+    "total_time": 2144.9574275016785
   },
   "Zone B": {
-    "total_time": 997.0931406021118
+    "total_time": 1509.0187084674835
   },
   "Z2": {
     "total_time": 51.49583888053894
   },
   "de": {
-    "total_time": 13.49596905708313
+    "total_time": 119.48011636734009
+  },
+  "io": {
+    "total_time": 34.94328761100769
   }
 }

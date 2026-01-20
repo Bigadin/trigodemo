@@ -295,6 +295,12 @@
         const recapActive = document.getElementById('recapActive');
         const recapActiveSub = document.getElementById('recapActiveSub');
 
+        // Dashboard elements
+        const dashCameras = document.getElementById('dashCameras');
+        const dashZones = document.getElementById('dashZones');
+        const dashOccupancy = document.getElementById('dashOccupancy');
+        const dashActiveStreams = document.getElementById('dashActiveStreams');
+
         // Multi-site UI
         const homeView = document.getElementById('homeView');
         const trackerView = document.getElementById('trackerView');
@@ -2398,7 +2404,7 @@
                     } else if (currentCamSourceType === 'webcam') {
                         const deviceId = newCamWebcam?.value;
                         if (deviceId === '' || deviceId === undefined) {
-                            uiAlert('Sélectionnez une webcam.', 'Caméras');
+                            uiAlert('Selectionnez une webcam.', 'Cameras');
                             return;
                         }
                         // Add camera to backend
@@ -2406,6 +2412,13 @@
                         await addBackendCamera(backendCamId, name, 'webcam', deviceId);
                         camData.backendCameraId = backendCamId;
                         camData.sourceType = 'webcam';
+
+                        // Capture reference frame for zone editing
+                        try {
+                            await fetch(`/api/cameras/${encodeURIComponent(backendCamId)}/capture-frame`, { method: 'POST' });
+                        } catch (e) {
+                            console.warn('Could not capture reference frame:', e);
+                        }
                     } else if (currentCamSourceType === 'rtsp') {
                         const rtspUrl = (newCamRtspUrl?.value || '').trim();
                         if (!rtspUrl) {
@@ -2417,6 +2430,13 @@
                         await addBackendCamera(backendCamId, name, 'rtsp', rtspUrl);
                         camData.backendCameraId = backendCamId;
                         camData.sourceType = 'rtsp';
+
+                        // Capture reference frame for zone editing
+                        try {
+                            await fetch(`/api/cameras/${encodeURIComponent(backendCamId)}/capture-frame`, { method: 'POST' });
+                        } catch (e) {
+                            console.warn('Could not capture reference frame:', e);
+                        }
                     }
 
                     cams.push(camData);
@@ -2491,9 +2511,10 @@
                 }
             });
             
-            // Gestionnaire pour les caméras dans le panneau caméras
+            // Gestionnaire pour les cameras dans le panneau cameras
             if (cameraGrid) {
                 cameraGrid.addEventListener('click', (e) => {
+                    // Bouton supprimer
                     const deleteBtn = e.target?.closest?.('[data-delete-camera]');
                     if (deleteBtn) {
                         e.preventDefault();
@@ -2503,6 +2524,22 @@
                         return;
                     }
 
+                    // Bouton editer zones
+                    const editZonesEl = e.target?.closest?.('[data-edit-zones]');
+                    if (editZonesEl) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const cameraId = editZonesEl.getAttribute('data-edit-zones') || '';
+                        if (cameraId) {
+                            // Select camera first, then open editor
+                            selectCamera(cameraId);
+                            // Small delay to let video load, then open editor
+                            setTimeout(() => editorOpen(), 100);
+                        }
+                        return;
+                    }
+
+                    // Selection camera
                     const selectEl = e.target?.closest?.('[data-select-camera]');
                     if (selectEl) {
                         e.preventDefault();
@@ -2590,16 +2627,17 @@
 
             if (selected && available.has(selected)) videoSelect.value = selected;
 
-            // UI: 2 caméras fixes (simple & fiable)
+            // UI: Nouvelle liste de caméras pour le dashboard
             cameraGrid.innerHTML = '';
             if (!cams || cams.length === 0) {
                 cameraGrid.innerHTML = `
-                    <div class="no-zones" style="grid-column: 1 / -1; text-align:left;">
-                        Aucune caméra sur ce site. Cliquez sur <b>+</b> pour en ajouter une.
+                    <div class="no-zones" style="text-align:left; padding: var(--space-4);">
+                        Aucune camera sur ce site. Cliquez sur <b>+</b> pour en ajouter une.
                     </div>
                 `;
                 return;
             }
+
             cams.forEach((cam) => {
                 // Support both video files and backend cameras (webcam/rtsp)
                 const isBackendCamera = cam.sourceType === 'webcam' || cam.sourceType === 'rtsp';
@@ -2609,31 +2647,44 @@
                 const isActive = activeVideoStreams.has(sourceKey);
                 const isCurrent = sourceKey === currentVideo;
 
-                let statusText = 'Prête';
+                let statusText = 'Prete';
+                let statusClass = 'offline';
                 if (!videoExists) {
                     statusText = 'Manquante';
+                    statusClass = 'offline';
                 } else if (isActive) {
-                    statusText = 'En ligne';
+                    statusText = 'Detection active';
+                    statusClass = 'online';
                 }
 
                 const sourceDisplayName = isBackendCamera
-                    ? `${cam.sourceType.toUpperCase()}`
-                    : truncateFilename(cam.video || '', 12);
+                    ? cam.sourceType.toUpperCase()
+                    : truncateFilename(cam.video || '', 18);
+
+                // Frame thumbnail URL
+                const thumbUrl = isBackendCamera
+                    ? `/api/frames/${cam.backendCameraId}`
+                    : `/api/videos/${encodeURIComponent(cam.video)}/frame`;
 
                 cameraGrid.innerHTML += `
-                    <div class="camera-item ${isCurrent ? 'active' : ''}" data-camera="${cam.id}">
-                        <div class="camera-item-header">
-                            <div data-select-camera="${cam.id}" style="flex:1;cursor:pointer;">
-                                <div class="camera-item-name">${cam.name}</div>
-                                <div class="camera-item-status ${videoExists ? (isActive ? 'online' : 'offline') : 'offline'}">
-                                    <span class="camera-status-dot" style="width:6px;height:6px;border-radius:50%;background:currentColor;"></span>
-                                    <span class="camera-status-text">${statusText}</span>
-                                </div>
-                                <div style="margin-top: var(--space-2); font-size: var(--text-xs); color: var(--color-text-muted);">
-                                    ${(cam.hint || '')} • <span style="font-family: 'Courier New', monospace;" title="${escapeHtml(sourceKey || '')}">${escapeHtml(sourceDisplayName)}</span>
-                                </div>
+                    <div class="camera-list-item ${isCurrent ? 'active' : ''} ${isActive ? 'detecting' : ''}" data-camera="${cam.id}">
+                        <div class="camera-list-thumb" data-select-camera="${cam.id}">
+                            <img src="${thumbUrl}" alt="${escapeHtml(cam.name)}" onerror="this.style.display='none'">
+                        </div>
+                        <div class="camera-list-info" data-select-camera="${cam.id}">
+                            <div class="camera-list-name">${escapeHtml(cam.name)}</div>
+                            <div class="camera-list-meta">
+                                <span class="detection-badge ${isActive ? '' : 'stopped'}">${statusText}</span>
+                                <span>${escapeHtml(sourceDisplayName)}</span>
                             </div>
-                            <button class="camera-item-delete" data-delete-camera="${cam.id}" title="Supprimer cette caméra">
+                        </div>
+                        <div class="camera-list-actions">
+                            <button class="camera-list-btn primary" data-edit-zones="${cam.id}" title="Editer les zones">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                            </button>
+                            <button class="camera-list-btn danger" data-delete-camera="${cam.id}" title="Supprimer">
                                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                 </svg>
@@ -2642,6 +2693,19 @@
                     </div>
                 `;
             });
+
+            // Update dashboard stats
+            updateDashboardStats();
+        }
+
+        function updateDashboardStats() {
+            const cams = getActiveCameras();
+            const stats = computeSiteStats();
+
+            if (dashCameras) dashCameras.textContent = cams.length;
+            if (dashZones) dashZones.textContent = stats.zoneCount || 0;
+            if (dashOccupancy) dashOccupancy.textContent = `${Math.round(stats.avgOccPct || 0)}%`;
+            if (dashActiveStreams) dashActiveStreams.textContent = activeVideoStreams.size;
         }
 
         function selectVideo(videoName) {
@@ -3461,30 +3525,13 @@
 
             isCurrentVideoStreaming = activeVideoStreams.has(currentVideo);
 
+            // No longer display MJPEG stream - detection runs in background
+            // Just update status based on whether detection is active
             if (isCurrentVideoStreaming) {
-                // Already streaming - show the stream
-                videoFrame.classList.add('hidden');
-                videoStream.classList.remove('hidden');
-                // Set the new stream source (old one was already cleared above)
-                videoStream.src = `/api/stream/${encodeURIComponent(currentVideo)}`;
-                drawCanvas.classList.add('hidden');
                 updateStatus('streaming');
             } else {
-                // Not streaming - show a static frame (user must click "Lancer détection")
-                videoFrame.src = `/api/videos/${encodeURIComponent(currentVideo)}/frame?t=${Date.now()}`;
-                videoFrame.classList.remove('hidden');
-                videoStream.classList.add('hidden');
-                // Stream src already cleared at start of handler
-                drawCanvas.classList.remove('hidden');
+                updateStatus('ready');
             }
-
-            const img = isCurrentVideoStreaming ? videoStream : videoFrame;
-            img.onload = () => {
-                syncCanvasSize();
-                if (!isCurrentVideoStreaming) {
-                    drawExistingZones();
-                }
-            };
 
             await updateActiveStreams();
             await loadZones();
@@ -3987,28 +4034,17 @@
             setStartDetectionButtonUi(!!isOn);
             if (!currentVideo) return;
 
+            // No longer display MJPEG stream - detection runs in background only
+            // Just update UI state and buttons
             if (isOn) {
-                videoFrame.classList.add('hidden');
-                videoStream.classList.remove('hidden');
-                drawCanvas.classList.add('hidden');
-                // Always clear first, then set new source to avoid stale connections
-                videoStream.src = '';
-                videoStream.src = `/api/stream/${encodeURIComponent(currentVideo)}`;
                 updateStatus('streaming');
             } else {
-                // Stop stream immediately
-                videoStream.src = '';
-                videoStream.classList.add('hidden');
-                videoFrame.src = `/api/videos/${encodeURIComponent(currentVideo)}/frame?t=${Date.now()}`;
-                videoFrame.classList.remove('hidden');
-                drawCanvas.classList.remove('hidden');
                 updateStatus('ready');
-                videoFrame.onload = () => {
-                    syncCanvasSize();
-                    drawExistingZones();
-                };
             }
             updateSteps();
+            // Refresh camera list to show detection status
+            await loadVideos();
+            updateDashboardStats();
         }
 
         async function setDetectionForCurrentVideo(desiredOn) {
@@ -4072,24 +4108,13 @@
             try { Object.keys(presenceOkTsByVideo).forEach(v => presenceOkTsByVideo[v] = 0); } catch {}
             activeVideoStreams.clear();
 
-            if (currentVideo) {
-                videoStream.src = '';
-                videoStream.classList.add('hidden');
-                videoFrame.src = `/api/videos/${encodeURIComponent(currentVideo)}/frame?t=${Date.now()}`;
-                videoFrame.classList.remove('hidden');
-                drawCanvas.classList.remove('hidden');
-
-                videoFrame.onload = () => {
-                    syncCanvasSize();
-                    drawExistingZones();
-                };
-            }
-
             setStartDetectionButtonUi(false);
 
             updateSteps();
             updateStatus('ready');
             await updateActiveStreams();
+            await loadVideos();
+            updateDashboardStats();
         });
 
         async function resetZoneTimer(name) {

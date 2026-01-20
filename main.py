@@ -7,7 +7,7 @@ import cv2
 import numpy as np
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse
 from pydantic import BaseModel
 from shapely.geometry import Polygon, box
 from ultralytics import YOLO
@@ -24,6 +24,8 @@ STATIC_DIR = BASE_DIR / "static"
 VIDEOS_DIR.mkdir(exist_ok=True)
 DATA_DIR.mkdir(exist_ok=True)
 STATIC_DIR.mkdir(exist_ok=True)
+FRAMES_DIR = DATA_DIR / "frames"
+FRAMES_DIR.mkdir(exist_ok=True)
 
 # Load YOLO model
 print("Loading YOLO model...")
@@ -663,6 +665,42 @@ async def get_camera_frame(camera_id: str):
         iter([buffer.tobytes()]),
         media_type="image/jpeg"
     )
+
+
+@app.post("/api/cameras/{camera_id}/capture-frame")
+async def capture_and_save_frame(camera_id: str):
+    """Capture and save a reference frame for zone editing"""
+    if camera_id not in cameras:
+        raise HTTPException(status_code=404, detail="Camera not found")
+
+    source = get_camera_source(camera_id)
+    if source is None:
+        raise HTTPException(status_code=400, detail="Invalid camera configuration")
+
+    cap = cv2.VideoCapture(source)
+    if not cap.isOpened():
+        raise HTTPException(status_code=500, detail="Could not open camera")
+
+    ret, frame = cap.read()
+    cap.release()
+
+    if not ret:
+        raise HTTPException(status_code=500, detail="Could not read frame")
+
+    # Save frame to file
+    frame_path = FRAMES_DIR / f"{camera_id}.jpg"
+    cv2.imwrite(str(frame_path), frame)
+
+    return {"message": "Frame captured", "frame_url": f"/api/frames/{camera_id}"}
+
+
+@app.get("/api/frames/{camera_id}")
+async def get_saved_frame(camera_id: str):
+    """Get saved reference frame for a camera"""
+    frame_path = FRAMES_DIR / f"{camera_id}.jpg"
+    if not frame_path.exists():
+        raise HTTPException(status_code=404, detail="Frame not found")
+    return FileResponse(str(frame_path), media_type="image/jpeg")
 
 
 @app.post("/api/stream/camera/{camera_id}/start")
