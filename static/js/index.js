@@ -23,7 +23,8 @@
         const zoneLiveTimersByVideo = {};  // { [videoName]: { lastTs:number, zones:{[zone]:{occ:number, abs:number}} } }
         const zonesCacheByVideo = {};      // { [videoName]: zonesWithPolygons } (définitions)
         let zonesCacheRefreshTs = 0;
-        const linePassByVideo = {};        // { [videoName]: { [zoneName]: { count:number, lastOcc:boolean, series:number[] } } }
+        // Counting module state (backed by server)
+        const countingStateByVideo = {};   // { [videoName]: { configured, zone_name, direction, enabled, count, reversed } }
         const presencePreviewsCollapsedByVideo = {}; // { [videoName]: { [zoneName]: boolean } }
         const sidebarZonesCollapsedByVideo = {}; // { [videoName]: { [zoneName]: boolean } } pour replier les zones dans la sidebar
         const zonesDefsFetchTsByVideo = {}; // { [videoName]: epochMs } pour throttle /api/zones/{video}
@@ -121,51 +122,23 @@
             const v = zoneLiveTimersByVideo[video];
             if (v?.zones?.[zoneName]) v.zones[zoneName] = { occ: 0, abs: 0 };
             // ne touche pas lastTs: le tick continue si détection tourne
+            // Also reset counting if this zone is the counting ROI
             try {
-                const lp = linePassByVideo?.[video]?.[zoneName];
-                if (lp) { lp.count = 0; lp.series = []; lp.lastOcc = false; }
+                const cs = countingStateByVideo?.[video];
+                if (cs?.zone_name === zoneName && cs?.enabled) {
+                    fetch(`/api/counting/${encodeURIComponent(video)}/reset`, { method: 'POST' });
+                }
             } catch {}
         }
 
-        function ensureLinePass(video) {
-            if (!linePassByVideo[video]) linePassByVideo[video] = {};
-            return linePassByVideo[video];
-        }
-
-        function updateLinePass(video, presenceZones, isLineZoneFn) {
-            if (!video || !presenceZones) return;
-            const store = ensureLinePass(video);
-            for (const [zoneName, info] of Object.entries(presenceZones || {})) {
-                if (!isLineZoneFn(zoneName)) continue;
-                if (!store[zoneName]) store[zoneName] = { count: 0, lastOcc: false, series: [] };
-                const cur = !!info?.is_occupied;
-                if (cur && !store[zoneName].lastOcc) store[zoneName].count += 1;
-                store[zoneName].lastOcc = cur;
-                store[zoneName].series.push(cur ? 1 : 0);
-                if (store[zoneName].series.length > 80) store[zoneName].series.splice(0, store[zoneName].series.length - 80);
-            }
-        }
-
-        function buildSparklineSvg(series) {
-            const s = Array.isArray(series) ? series : [];
-            const n = s.length;
-            const w = 120, h = 26;
-            if (n < 2) {
-                return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><line class="base" x1="0" y1="${h-4}" x2="${w}" y2="${h-4}" /></svg>`;
-            }
-            const padY = 4;
-            const xStep = w / (n - 1);
-            const pts = s.map((v, i) => {
-                const x = i * xStep;
-                const y = (h - padY) - (v ? 14 : 0);
-                return `${x.toFixed(1)},${y.toFixed(1)}`;
-            }).join(' ');
-            return `
-                <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
-                    <line class="base" x1="0" y1="${h-4}" x2="${w}" y2="${h-4}" />
-                    <polyline class="wave" points="${pts}" />
-                </svg>
-            `;
+        async function fetchCountingState(video) {
+            if (!video) return null;
+            try {
+                const res = await fetch(`/api/counting/${encodeURIComponent(video)}`);
+                const data = await res.json();
+                countingStateByVideo[video] = data;
+                return data;
+            } catch { return null; }
         }
 
         async function refreshZonesCacheForSite(force = false) {
@@ -539,15 +512,15 @@
         function editorSetTool(tool) {
             editorState.tool = tool;
             toolSelectBtn.classList.toggle('active', tool === 'select');
-            toolCountLineBtn.classList.toggle('active', tool === 'line');
+            toolCountLineBtn.classList.toggle('active', tool === 'countingROI');
             toolIncludeBtn.classList.toggle('active', tool === 'include');
             toolExcludeBtn.classList.toggle('active', tool === 'exclude');
             editorState.lineDirEnd = null;
             editorGuide.textContent =
                 tool === 'select'
                     ? "Sélection: cliquez un point (hit zone large) puis glissez pour déplacer. Shift + clic près d'une arête = ajouter un point."
-                    : tool === 'line'
-                        ? "Ligne de comptage: 2 clics pour placer départ/arrivée. Ensuite tirez la flèche depuis le centre pour le sens. Puis Sauver."
+                    : tool === 'countingROI'
+                        ? "ROI Comptage: dessinez un polygone (3+ points) délimitant la zone du convoyeur. La ligne de comptage sera à 75%. Puis Sauver."
                         : tool === 'exclude'
                             ? "Zone d'exclusion: cliquez pour placer des points (3+), puis Sauver."
                             : "Zone d'inclusion: cliquez pour placer des points (3+), puis Sauver.";
@@ -851,41 +824,15 @@
                     const type = getDrawType(currentVideo, zoneName, idx);
                     const c = colorsForType(type, isActive);
 
-                    if (type === 'line' && poly.length === 4) {
-                        // Render backend quadrilateral as a center line (editor view)
-                        const a = [(poly[0][0] + poly[1][0]) / 2, (poly[0][1] + poly[1][1]) / 2];
-                        const b = [(poly[2][0] + poly[3][0]) / 2, (poly[2][1] + poly[3][1]) / 2];
-                        editorCtx.beginPath();
-                        editorCtx.moveTo(a[0], a[1]);
-                        editorCtx.lineTo(b[0], b[1]);
-                        editorCtx.strokeStyle = c.stroke;
-                        editorCtx.lineWidth = isActive ? 4 : (isGhost ? 1.6 : 2);
-                        editorCtx.setLineDash([]);
-                        editorCtx.stroke();
-
-                        // Arrow: show on active line with handle; show ghost arrow without handle
-                        const meta = getLineMeta(currentVideo, zoneName, idx);
-                        const arrow = computeLineArrowFromMeta(meta, poly);
-                        if (arrow?.mid && arrow?.end) {
-                            drawArrow(
-                                editorCtx,
-                                arrow.mid,
-                                arrow.end,
-                                c.stroke,
-                                { shaftWidth: isGhost ? 1.4 : 2, dashed: false, head: 22, wing: 13, outline: true, handle: !isGhost }
-                            );
-                        }
-                    } else {
-                        editorCtx.beginPath();
-                        editorCtx.moveTo(poly[0][0], poly[0][1]);
-                        for (let i = 1; i < poly.length; i++) editorCtx.lineTo(poly[i][0], poly[i][1]);
-                        editorCtx.closePath();
-                        editorCtx.fillStyle = c.fill;
-                        editorCtx.fill();
-                        editorCtx.strokeStyle = c.stroke;
-                        editorCtx.lineWidth = isActive ? 4 : (isGhost ? 1.6 : 2);
-                        editorCtx.stroke();
-                    }
+                    editorCtx.beginPath();
+                    editorCtx.moveTo(poly[0][0], poly[0][1]);
+                    for (let i = 1; i < poly.length; i++) editorCtx.lineTo(poly[i][0], poly[i][1]);
+                    editorCtx.closePath();
+                    editorCtx.fillStyle = c.fill;
+                    editorCtx.fill();
+                    editorCtx.strokeStyle = c.stroke;
+                    editorCtx.lineWidth = isActive ? 4 : (isGhost ? 1.6 : 2);
+                    editorCtx.stroke();
                 });
 
                 editorCtx.globalAlpha = prevAlpha;
@@ -893,39 +840,9 @@
 
             // draw current temp tool
             if (editorState.points.length) {
-                if (editorState.tool === 'line') {
-                    const p1 = editorState.points[0];
-                    const p2 = editorState.points[1];
-                    if (p1) {
-                        editorCtx.beginPath();
-                        editorCtx.arc(p1[0], p1[1], 8, 0, Math.PI * 2);
-                        editorCtx.fillStyle = '#10B0F9';
-                        editorCtx.fill();
-                    }
-                    if (p2) {
-                        editorCtx.beginPath();
-                        editorCtx.arc(p2[0], p2[1], 8, 0, Math.PI * 2);
-                        editorCtx.fillStyle = '#10B0F9';
-                        editorCtx.fill();
-                        editorCtx.beginPath();
-                        editorCtx.moveTo(p1[0], p1[1]);
-                        editorCtx.lineTo(p2[0], p2[1]);
-                        editorCtx.strokeStyle = '#10B0F9';
-                        editorCtx.lineWidth = 2; /* plus fin */
-                        editorCtx.setLineDash([]); /* continu */
-                        editorCtx.stroke();
-                        editorCtx.setLineDash([]);
-                    }
-                    // Flèche de direction depuis le centre (seulement quand on a 2 points)
-                    if (p1 && p2) {
-                        const mid = [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
-                        const def = getLineDraftMidAndDefaultDir();
-                        const end = editorState.lineDirEnd || def?.end;
-                        if (end) drawArrow(editorCtx, mid, end, '#10B0F9', { shaftWidth: 2, dashed: false, head: 22, wing: 13, outline: true });
-                    }
-                } else if (editorState.tool === 'include' || editorState.tool === 'exclude') {
+                if (editorState.tool === 'include' || editorState.tool === 'exclude' || editorState.tool === 'countingROI') {
                     const pts = editorState.points;
-                    const t = editorState.tool === 'exclude' ? 'exclude' : 'include';
+                    const t = editorState.tool === 'countingROI' ? 'countingROI' : (editorState.tool === 'exclude' ? 'exclude' : 'include');
                     const c = colorsForType(t, false);
                     editorCtx.beginPath();
                     editorCtx.moveTo(pts[0][0], pts[0][1]);
@@ -1106,45 +1023,13 @@
             const zoneName = editorState.zone;
             if (!zoneName) return null;
             const polys = editorState.zones?.[zoneName]?.polygons || [];
-            const r2 = radiusPx * radiusPx;
 
             let best = null; // { idx, kind, vIdx?, point?, d2? }
 
-            // 1/2/3) Proximité (sommets, endpoints, poignée flèche, segment)
+            // 1/2/3) Proximité (sommets, arêtes)
             for (let idx = polys.length - 1; idx >= 0; idx--) {
                 const poly = polys[idx];
                 if (!poly || poly.length < 3) continue;
-                const type = getDrawType(currentVideo, zoneName, idx);
-
-                if (type === 'line') {
-                    const meta = getLineMeta(currentVideo, zoneName, idx);
-                    const arrow = computeLineArrowFromMeta(meta, poly);
-                    if (arrow?.end && lineHandleHit(p, arrow.end)) {
-                        // poignée = priorité max (permet de la saisir même hors quad)
-                        return { idx, kind: 'lineHandle', point: arrow.end, mid: arrow.mid };
-                    }
-
-                    const ends = editorLineEndpointsFromPoly(poly);
-                    const a = (meta?.p1 && Array.isArray(meta.p1)) ? meta.p1 : ends?.a;
-                    const b = (meta?.p2 && Array.isArray(meta.p2)) ? meta.p2 : ends?.b;
-                    if (a && b) {
-                        const dA = dist2(a, p);
-                        const dB = dist2(b, p);
-                        if (dA <= r2 || dB <= r2) {
-                            const which = dA <= dB ? 0 : 1;
-                            const d2 = Math.min(dA, dB);
-                            if (!best || d2 < best.d2) best = { idx, kind: 'lineEndpoint', vIdx: which, point: which === 0 ? a : b, d2 };
-                        } else {
-                            // hit sur segment (tolérance plus large) pour déplacer la ligne entière
-                            const dSeg2 = editorPointToSegmentDist2(p, a, b);
-                            if (dSeg2 <= (22 * 22)) {
-                                // priorité plus faible qu'un endpoint, mais permet de sélectionner/drag même hors forme
-                                if (!best || dSeg2 < best.d2) best = { idx, kind: 'lineSegment', point: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], d2: dSeg2 };
-                            }
-                        }
-                    }
-                    continue;
-                }
 
                 // Polygone: hitbox autour des sommets
                 const vIdx = editorNearestVertex(poly, p, radiusPx);
@@ -1310,41 +1195,7 @@
 
             const p = editorEventPoint(e);
 
-            if (editorState.tool === 'line') {
-                // Ligne de comptage: 2 points strict.
-                // - si déjà 2 points: clic sur la poignée flèche => drag direction, sinon redémarre une nouvelle ligne
-                if (editorState.points.length === 2) {
-                    const p1 = editorState.points[0];
-                    const p2 = editorState.points[1];
-                    const mid = [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
-                    const def = getLineDraftMidAndDefaultDir();
-                    const end = editorState.lineDirEnd || def?.end;
-                    if (end && lineHandleHit(p, end)) {
-                        editorState.drag = { kind: 'lineDir' };
-                        editorState.didDrag = false;
-                        editorCanvas.setPointerCapture(e.pointerId);
-                        editorRender();
-                        return;
-                    }
-                    // redémarre
-                    editorPushUndo();
-                    editorState.points = [p];
-                    editorState.lineDirEnd = null;
-                    editorRender();
-                    return;
-                }
-                editorPushUndo();
-                editorState.points.push(p);
-                // dès qu'on a 2 points, initialise une direction par défaut
-                if (editorState.points.length === 2) {
-                    const def = getLineDraftMidAndDefaultDir();
-                    if (def?.end) editorState.lineDirEnd = def.end;
-                }
-                editorRender();
-                return;
-            }
-
-            if (editorState.tool === 'include' || editorState.tool === 'exclude') {
+            if (editorState.tool === 'include' || editorState.tool === 'exclude' || editorState.tool === 'countingROI') {
                 editorPushUndo();
                 editorState.points.push(p);
                 editorRender();
@@ -1366,48 +1217,6 @@
             hideHoverBar();
 
             const poly = editorState.zones[zoneName].polygons[idx];
-            // Ligne de comptage sélectionnée: drag la flèche de direction (sans toucher aux points)
-            if (getDrawType(currentVideo, zoneName, idx) === 'line') {
-                // 1) flèche (vecteur) : fait partie du même objet
-                const meta = getLineMeta(currentVideo, zoneName, idx);
-                const arrow = computeLineArrowFromMeta(meta, poly);
-                if (arrow?.end && lineHandleHit(p, arrow.end)) {
-                    editorPushUndo();
-                    editorState.drag = { kind: 'lineDirSaved', zoneName, idx, mid: arrow.mid };
-                    editorState.didDrag = false;
-                    editorCanvas.setPointerCapture(e.pointerId);
-                    editorRender();
-                    return;
-                }
-
-                // 2) endpoints + déplacement global (pas de coins du quad)
-                const ends = editorLineEndpointsFromPoly(poly);
-                const a = meta?.p1 && Array.isArray(meta.p1) ? meta.p1 : (ends?.a || null);
-                const b = meta?.p2 && Array.isArray(meta.p2) ? meta.p2 : (ends?.b || null);
-                if (a && b) {
-                    const r = 34;
-                    const hitA = dist2(a, p) <= r * r;
-                    const hitB = dist2(b, p) <= r * r;
-                    if (hitA || hitB) {
-                        editorPushUndo();
-                        editorState.drag = { kind: 'lineEnd', zoneName, idx, which: hitA ? 'a' : 'b', a: [...a], b: [...b] };
-                        editorState.didDrag = false;
-                        editorCanvas.setPointerCapture(e.pointerId);
-                        editorRender();
-                        return;
-                    }
-                    // hit sur le segment => move whole line
-                    const d2 = editorPointToSegmentDist2(p, a, b);
-                    if (d2 <= (22 * 22)) {
-                        editorPushUndo();
-                        editorState.drag = { kind: 'lineMove', zoneName, idx, start: p, a: [...a], b: [...b] };
-                        editorState.didDrag = false;
-                        editorCanvas.setPointerCapture(e.pointerId);
-                        editorRender();
-                        return;
-                    }
-                }
-            }
             const vIdx = editorNearestVertex(poly, p, 34);
             if (vIdx >= 0) {
                 editorPushUndo();
@@ -1559,13 +1368,23 @@
             }
             // UX: si aucune zone n'est sélectionnée mais qu'il en existe, on en choisit une automatiquement.
             if (!editorState.zone) {
-                const keys = Object.keys(editorState.zones || {}).sort();
-                if (keys.length >= 1) {
-                    editorSelectZone(keys[0]);
+                if (editorState.tool === 'countingROI') {
+                    // Auto-create a "ROI Comptage" zone for counting
+                    const autoName = 'ROI Comptage';
+                    if (!editorState.zones[autoName]) {
+                        editorState.zones[autoName] = { polygons: [] };
+                    }
+                    editorState.zone = autoName;
+                    editorRenderZoneList();
                 } else {
-                    uiAlert('Créez d\'abord une zone à droite (bouton +), puis cliquez sur \"Sauvegarder\".', 'Sauvegarde');
-                    try { editorNewZoneName?.focus(); } catch {}
-                    return;
+                    const keys = Object.keys(editorState.zones || {}).sort();
+                    if (keys.length >= 1) {
+                        editorSelectZone(keys[0]);
+                    } else {
+                        uiAlert('Créez d\'abord une zone à droite (bouton +), puis cliquez sur \"Sauvegarder\".', 'Sauvegarde');
+                        try { editorNewZoneName?.focus(); } catch {}
+                        return;
+                    }
                 }
             }
 
@@ -1582,18 +1401,21 @@
             }
 
             // Commit seulement si un tracé est en cours
-            if (editorState.tool === 'line' && editorState.points.length === 2) {
-                const p1 = editorState.points[0];
-                const p2 = editorState.points[1];
-                const poly = lineToPolygon(p1, p2, 12);
-                const mid = [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
-                const end = editorState.lineDirEnd || getLineDraftMidAndDefaultDir()?.end || add(mid, [0, -60]);
-                const d = norm(sub(end, mid));
-                const meta = { p1, p2, dir: d };
+            if (editorState.tool === 'countingROI' && editorState.points.length >= 3) {
+                const poly = clonePoints(editorState.points);
                 editorState.points = [];
-                editorState.lineDirEnd = null;
                 editorRender();
-                await editorPostNewPolygon('line', poly, meta);
+                // Save as include zone AND auto-configure as counting ROI
+                await editorPostNewPolygon('countingROI', poly);
+                // Auto-configure counting for this zone (direction auto-computed from polygon)
+                const zoneName = editorState.zone;
+                if (zoneName && currentVideo) {
+                    await fetch(`/api/counting/${encodeURIComponent(currentVideo)}/config`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ zone_name: zoneName })
+                    });
+                }
                 return;
             }
 
@@ -1670,14 +1492,18 @@
         });
 
         toolSelectBtn.addEventListener('click', () => editorSetTool('select'));
-        toolCountLineBtn.addEventListener('click', () => { editorSetTool('line'); editorState.points = []; editorRender(); });
+        toolCountLineBtn.addEventListener('click', () => {
+            editorSetTool('countingROI');
+            editorState.points = [];
+            editorRender();
+        });
         toolIncludeBtn.addEventListener('click', () => { editorSetTool('include'); editorState.points = []; editorRender(); });
         toolExcludeBtn.addEventListener('click', () => { editorSetTool('exclude'); editorState.points = []; editorRender(); });
         toolUndoBtn.addEventListener('click', () => {
             // Annulation "intelligente" façon paint:
             // - si on trace, on retire le dernier point
             // - sinon on annule le dernier snapshot
-            if ((editorState.tool === 'include' || editorState.tool === 'exclude' || editorState.tool === 'line') && editorState.points.length) {
+            if ((editorState.tool === 'include' || editorState.tool === 'exclude' || editorState.tool === 'countingROI') && editorState.points.length) {
                 editorState.points.pop();
                 editorRender();
                 return;
@@ -2830,14 +2656,6 @@
                 zonesDefsFetchedByVideo[currentVideo] = true;
             }
 
-            const isLineZone = (zoneName) => {
-                const polys = zonesWithPolygons?.[zoneName]?.polygons || [];
-                for (let i = 0; i < polys.length; i++) {
-                    if (getDrawType(currentVideo, zoneName, i) === 'line') return true;
-                }
-                return false;
-            };
-
             // Présence:
             // - si détection active: on fetch et on met à jour le snapshot
             // - sinon: on gèle sur le dernier snapshot (ou 0 si jamais lancé)
@@ -2851,8 +2669,8 @@
                     presenceOkTsByVideo[currentVideo] = Date.now();
                     // Met à jour les compteurs locaux (occupation/absence) selon is_occupied
                     updateZoneLiveTimers(currentVideo, zones);
-                    // Line zones: compte les passages + série
-                    updateLinePass(currentVideo, zones, isLineZone);
+                    // Fetch counting state from backend
+                    await fetchCountingState(currentVideo);
                 } catch (e) {
                     // Anti "état figé": si /presence échoue, ne pas conserver un ancien "Occupé"
                     zones = {};
@@ -2927,57 +2745,41 @@
                 const absPct = denom > 0 ? Math.max(0, 100 - occPct) : 0;
                 const secFmt = (s) => `${Math.max(0, Math.floor(Number(s) || 0))} s`;
 
-                const isLine = isLineZone(name);
-                const isSingleLineShape = isLine && drawings === 1 && (getDrawType(currentVideo, name, 0) === 'line');
                 // UX: previews repliées par défaut pour les cartes "présence" (zones polygones).
-                // (on laisse le comptage gérer son UI à part)
-                const isPreviewsCollapsed = !isLine ? (presencePreviewsCollapsedByVideo?.[currentVideo]?.[name] ?? true) : false;
-                const linePass = linePassByVideo?.[currentVideo]?.[name] || { count: 0, series: [] };
-                const uptime = denom; // temps total où la détection tournait (par zone)
-                const passageTime = occSec; // temps "actif" sur la ligne (proxy passage)
+                const isPreviewsCollapsed = presencePreviewsCollapsedByVideo?.[currentVideo]?.[name] ?? true;
+
+                // Check if this zone is the counting ROI
+                const cs = countingStateByVideo?.[currentVideo] || {};
+                const isCountingZone = cs.zone_name === name && cs.enabled;
+                const countVal = isCountingZone ? (cs.count || 0) : null;
 
                 zonesGrid.innerHTML += `
-                    <div class="zone-card ${isSelected ? 'selected' : ''} ${(!isLine && isPreviewsCollapsed) ? 'is-previews-collapsed' : ''}" data-zone="${encodeURIComponent(String(name))}">
+                    <div class="zone-card ${isSelected ? 'selected' : ''} ${isPreviewsCollapsed ? 'is-previews-collapsed' : ''}" data-zone="${encodeURIComponent(String(name))}">
                         <div class="zone-card-header">
                             <div>
-                                <div class="zone-name-pill">${name}</div>
-                                ${!isLine ? `
-                                    <button class="zone-forms-toggle" type="button" data-zone="${encodeURIComponent(String(name))}" aria-label="Afficher/Masquer les formes">
-                                        <span>${drawings} forme(s)</span>
-                                        <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                            <path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                        </svg>
-                                    </button>
-                                ` : `
-                                    <div class="zone-forms-count">${drawings} forme(s)</div>
-                                `}
+                                <div class="zone-name-pill">${name}${isCountingZone ? ' <span style="color:var(--color-accent);font-size:0.75em;">&#x25B6; Comptage</span>' : ''}</div>
+                                <button class="zone-forms-toggle" type="button" data-zone="${encodeURIComponent(String(name))}" aria-label="Afficher/Masquer les formes">
+                                    <span>${drawings} forme(s)</span>
+                                    <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </button>
                             </div>
                             <div class="zone-card-status ${statusClass}">${statusLabel}</div>
                         </div>
-                        ${isSingleLineShape ? '' : `
-                            <div class="zone-previews ${(!isLine && isPreviewsCollapsed) ? 'is-collapsed' : ''}">
-                                ${previewBoxes}
+                        <div class="zone-previews ${isPreviewsCollapsed ? 'is-collapsed' : ''}">
+                            ${previewBoxes}
+                        </div>
+                        ${isCountingZone ? `
+                            <div class="line-kpi-row">
+                                <div class="line-kpi-left">
+                                    <div class="line-kpi-num">${countVal}</div>
+                                    <div class="line-kpi-label">Comptage</div>
+                                </div>
+                                <div class="line-kpi-right">
+                                    <div class="line-kpi-mini"><span>Direction</span><span>${cs.angle != null ? Math.round(cs.angle) + '°' : '—'}</span></div>
+                                </div>
                             </div>
-                        `}
-                        ${isLine ? `
-                            ${isSingleLineShape ? `
-                                <div class="line-kpi-row">
-                                    <div class="line-kpi-left">
-                                        <div class="line-kpi-num">${Number(linePass.count || 0)}</div>
-                                        <div class="line-kpi-label">Passages</div>
-                                    </div>
-                                    <div class="line-kpi-right">
-                                        <div class="line-kpi-mini"><span>Uptime</span><span>${formatHMS(uptime)}</span></div>
-                                        <div class="line-kpi-mini"><span>Temps</span><span>${secFmt(passageTime)}</span></div>
-                                    </div>
-                                </div>
-                            ` : `
-                                <div class="line-metrics">
-                                    <div class="line-metric"><span>Passages</span><span>${Number(linePass.count || 0)}</span></div>
-                                    <div class="line-metric"><span>Uptime</span><span>${formatHMS(uptime)}</span></div>
-                                    <div class="line-metric" style="grid-column:1 / -1;"><span>Temps passage</span><span>${secFmt(passageTime)}</span></div>
-                                </div>
-                            `}
                         ` : `
                             <div class="occ-bars">
                                 <div>
@@ -3014,6 +2816,14 @@
             // Render explorer tree
             renderAssetTree(zones, zonesWithPolygons);
             updateHeaderStepsKpis();
+
+            // Update counting UI
+            updateCountingZoneOptions();
+            const cs = countingStateByVideo?.[currentVideo];
+            if (cs?.enabled && countingDisplay) {
+                countingDisplay.style.display = 'block';
+                countingValue.textContent = cs.count || 0;
+            }
             } finally {
                 loadZonesInFlight = false;
             }
@@ -3124,11 +2934,12 @@
         }
 
         function colorsForType(type, isActive = false) {
-            // palette: include=vert, line=bleu, exclude=orange/rouge
+            // palette: include=vert, line=bleu, exclude=orange/rouge, countingROI=cyan
             const base = {
                 include: { stroke: '#22c55e', fill: 'rgba(34,197,94,0.16)' },
                 line: { stroke: '#10B0F9', fill: 'rgba(16,176,249,0.12)' },
-                exclude: { stroke: '#F08321', fill: 'rgba(240,131,33,0.16)' }
+                exclude: { stroke: '#F08321', fill: 'rgba(240,131,33,0.16)' },
+                countingROI: { stroke: '#00CED1', fill: 'rgba(0,206,209,0.18)' }
             }[type] || { stroke: '#22c55e', fill: 'rgba(34,197,94,0.16)' };
             if (!isActive) return base;
             return { stroke: '#10B0F9', fill: 'rgba(16,176,249,0.18)' };
@@ -3488,6 +3299,7 @@
 
             await updateActiveStreams();
             await loadZones();
+            syncCountingUI();
             updateSteps();
         });
 
@@ -4169,6 +3981,123 @@
 
         updateBlurButton();
 
+        // ==================== Counting Module UI ====================
+        const countingZoneSelect = document.getElementById('countingZoneSelect');
+        const countingToggleBtn = document.getElementById('countingToggleBtn');
+        const countingFlipBtn = document.getElementById('countingFlipBtn');
+        const countingResetBtn = document.getElementById('countingResetBtn');
+        const countingDisplay = document.getElementById('countingDisplay');
+        const countingValue = document.getElementById('countingValue');
+        const countingAngleLabel = document.getElementById('countingAngleLabel');
+
+        function updateCountingZoneOptions() {
+            if (!countingZoneSelect) return;
+            const prev = countingZoneSelect.value;
+            countingZoneSelect.innerHTML = '<option value="">— Aucune —</option>';
+            const zones = zonesCacheByVideo[currentVideo] || {};
+            for (const name of Object.keys(zones).sort()) {
+                countingZoneSelect.innerHTML += `<option value="${name}">${name}</option>`;
+            }
+            if (prev && [...countingZoneSelect.options].some(o => o.value === prev)) {
+                countingZoneSelect.value = prev;
+            }
+        }
+
+        async function syncCountingUI() {
+            if (!currentVideo) {
+                if (countingToggleBtn) countingToggleBtn.disabled = true;
+                if (countingDisplay) countingDisplay.style.display = 'none';
+                if (countingAngleLabel) countingAngleLabel.textContent = 'auto';
+                return;
+            }
+            const data = await fetchCountingState(currentVideo);
+            if (!data) return;
+
+            updateCountingZoneOptions();
+
+            if (data.configured && data.zone_name) {
+                countingZoneSelect.value = data.zone_name;
+            }
+
+            // Show auto-computed angle
+            if (countingAngleLabel) {
+                if (data.angle != null) {
+                    countingAngleLabel.textContent = `${Math.round(data.angle)}°`;
+                } else {
+                    countingAngleLabel.textContent = 'auto';
+                }
+            }
+
+            const inner = ensureRetroInner(countingToggleBtn);
+            if (data.enabled) {
+                countingToggleBtn.disabled = false;
+                countingToggleBtn.classList.add('is-on');
+                if (inner) inner.textContent = 'Pause Comptage';
+                countingDisplay.style.display = 'block';
+                countingValue.textContent = data.count || 0;
+            } else {
+                countingToggleBtn.disabled = !data.configured;
+                countingToggleBtn.classList.remove('is-on');
+                if (inner) inner.textContent = 'Activer Comptage';
+                countingDisplay.style.display = data.configured ? 'block' : 'none';
+                countingValue.textContent = data.count || 0;
+            }
+        }
+
+        // Zone select: auto-configure (direction is auto-computed from polygon)
+        if (countingZoneSelect) {
+            countingZoneSelect.addEventListener('change', async () => {
+                const zoneName = countingZoneSelect.value;
+                if (!currentVideo || !zoneName) {
+                    countingToggleBtn.disabled = true;
+                    return;
+                }
+                await fetch(`/api/counting/${encodeURIComponent(currentVideo)}/config`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ zone_name: zoneName })
+                });
+                countingToggleBtn.disabled = false;
+                await syncCountingUI();
+            });
+        }
+
+        // Toggle button
+        if (countingToggleBtn) {
+            countingToggleBtn.addEventListener('click', async () => {
+                if (!currentVideo) return;
+                const zoneName = countingZoneSelect.value;
+                if (zoneName) {
+                    await fetch(`/api/counting/${encodeURIComponent(currentVideo)}/config`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ zone_name: zoneName })
+                    });
+                }
+                await fetch(`/api/counting/${encodeURIComponent(currentVideo)}/toggle`, { method: 'POST' });
+                await syncCountingUI();
+                await loadZones();
+            });
+        }
+
+        // Flip button: rotates direction by 90°
+        if (countingFlipBtn) {
+            countingFlipBtn.addEventListener('click', async () => {
+                if (!currentVideo) return;
+                await fetch(`/api/counting/${encodeURIComponent(currentVideo)}/flip`, { method: 'POST' });
+                await syncCountingUI();
+            });
+        }
+
+        // Reset button
+        if (countingResetBtn) {
+            countingResetBtn.addEventListener('click', async () => {
+                if (!currentVideo) return;
+                await fetch(`/api/counting/${encodeURIComponent(currentVideo)}/reset`, { method: 'POST' });
+                await syncCountingUI();
+            });
+        }
+
         async function deleteZone(name) {
             const ok = await uiConfirm(`Supprimer la zone "${name}" de cette vidéo ?`, 'Suppression');
             if (!ok) return;
@@ -4185,8 +4114,9 @@
                 // purge timers/présence locaux pour la zone supprimée (évite pollution des moyennes)
                 const v = zoneLiveTimersByVideo?.[currentVideo];
                 if (v?.zones && name in v.zones) delete v.zones[name];
-                const lp = linePassByVideo?.[currentVideo];
-                if (lp && name in lp) delete lp[name];
+                // If deleted zone was counting ROI, stop counting
+                const cs = countingStateByVideo?.[currentVideo];
+                if (cs?.zone_name === name) { try { fetch(`/api/counting/${encodeURIComponent(currentVideo)}/toggle`, { method: 'POST' }); } catch {} }
                 const pr = lastPresenceByVideo?.[currentVideo];
                 if (pr && name in pr) delete pr[name];
                 if (selectedAsset?.zone === name) selectedAsset = null;

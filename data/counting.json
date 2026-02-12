@@ -1,0 +1,14 @@
+{
+  "video_01.mp4": {
+    "zone_name": "oioio",
+    "flip_count": 1
+  },
+  "w1.mp4": {
+    "zone_name": "cmp",
+    "flip_count": 0
+  },
+  "w2.mp4": {
+    "zone_name": "cmp",
+    "flip_count": 0
+  }
+}

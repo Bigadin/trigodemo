@@ -257,6 +257,42 @@
                         </div>
                     </div>
 
+                    <!-- Counting Module Panel -->
+                    <div class="card" id="countingPanel">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-subtitle">Module</div>
+                                <div class="card-title">Comptage</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-3);">
+                            <div style="display: flex; gap: var(--space-2); align-items: center;">
+                                <label class="form-label" style="margin:0; white-space:nowrap; font-size: var(--text-xs);">Zone ROI</label>
+                                <select id="countingZoneSelect" style="flex:1; font-size: var(--text-xs); padding: 4px 6px; border-radius: 4px; border: 1px solid var(--color-border); background: var(--color-bg);">
+                                    <option value="">— Aucune —</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; gap: var(--space-2); align-items: center;">
+                                <label class="form-label" style="margin:0; white-space:nowrap; font-size: var(--text-xs);">Direction</label>
+                                <span id="countingAngleLabel" style="font-size: var(--text-xs); color: var(--color-text-secondary);">auto</span>
+                                <button class="btn btn-secondary btn-small" id="countingFlipBtn" title="Tourner la direction de 90°" style="padding:2px 8px; font-size:12px;">&#x21BB; +90°</button>
+                            </div>
+                            <div style="display: flex; gap: var(--space-2); align-items:center;">
+                                <button class="retro-btn retro-default retro-full" id="countingToggleBtn" disabled>
+                                    <span class="retro-btn-inner">Activer Comptage</span>
+                                </button>
+                                <button class="btn btn-secondary btn-small" id="countingResetBtn" title="Reset compteur" style="padding:4px 8px;">
+                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div id="countingDisplay" style="text-align:center; font-size: var(--text-xl); font-weight:700; color: var(--color-accent); display:none;">
+                                <span id="countingValue">0</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="card">
                         <div class="card-header">
                             <div>
@@ -420,9 +456,9 @@
                                     <img class="tool-ico" src="/static/assets_youn/YrysUIPackage/selection.svg" alt="">
                                     <span class="tool-label">Sélect</span>
                                 </button>
-                                <button class="tool-btn icon" id="toolCountLineBtn" title="Ligne de comptage">
+                                <button class="tool-btn icon" id="toolCountLineBtn" title="Dessiner la zone ROI de comptage">
                                     <img class="tool-ico" src="/static/assets_youn/YrysUIPackage/comptage.svg" alt="">
-                                    <span class="tool-label">Compter</span>
+                                    <span class="tool-label">ROI Comptage</span>
                                 </button>
                                 <button class="tool-btn icon green" id="toolIncludeBtn" title="Zone d’inclusion">
                                     <img class="tool-ico" src="/static/assets_youn/YrysUIPackage/drawzone.svg" alt="">
@@ -503,6 +539,6 @@
                     </div>
                         </div>
 
-    <script src="/static/js/index.js?v=1" defer></script>
+    <script src="/static/js/index.js?v=3" defer></script>
 </body>
 </html>
