@@ -1,6 +1,6 @@
 {
   "Zone A": {
-    "total_time": 1232.1961135864258
+    "total_time": 1475.4939110279083
   },
   "Contr\u00f4le Pi\u00e8ces": {
     "total_time": 0
@@ -9,12 +9,15 @@
     "total_time": 405.26007413864136
   },
   "Zone B": {
-    "total_time": 997.0931406021118
+    "total_time": 2324.835329771042
   },
   "Z2": {
     "total_time": 51.49583888053894
   },
   "de": {
     "total_time": 13.49596905708313
+  },
+  "Tapis": {
+    "total_time": 8.915663719177246
   }
 }

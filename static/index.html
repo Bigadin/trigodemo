@@ -1,61 +1,68 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YRYS - Zone Presence Tracker</title>
+    <link rel="icon" type="image/png" href="/static/assets_youn/Arcy icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/index.css?v=1">
+    <link rel="stylesheet" href="/static/css/index.css?v=2">
 </head>
 <body>
     <div class="app-layout">
+        <!-- Top Bar -->
+        <div class="topbar">
+            <div class="topbar-left">
+                <img class="topbar-logo" src="/static/assets_youn/YrysUIPackage/ArcyWhitelogo.svg" alt="Arcy">
+            </div>
+            <div class="topbar-right">
+                <span class="topbar-label" id="topbarContextLabel">Zone Presence Tracker</span>
+                <button class="topbar-menu-btn" id="topbarMenuBtn" title="Options">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+                </button>
+            </div>
+        </div>
+
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <svg class="logo" viewBox="0 0 1609.48 1543.54" xmlns="http://www.w3.org/2000/svg">
-                    <polygon fill="#0b58d8" points="1609.48 1410.4 708.85 1543.42 856.3 1002.13 1148.84 958.84 1148.96 958.87 1609.48 1410.4"/>
-                    <polygon fill="#10b0f9" points="856.3 1002.13 708.81 1543.54 708.69 1543.51 0 971.95 625.87 816.5 625.99 816.53 856.18 1002.1 856.3 1002.13"/>
-                    <polygon fill="#f93b09" points="1440.85 915.14 998.21 481.22 1129.3 0 1440.85 915.14"/>
-                    <polygon fill="#bd44d5" points="1609.48 1410.4 1148.96 958.87 1441.08 915.72 1609.48 1410.4"/>
-                    <polygon fill="#fc5607" points="1129.3 0 998.21 481.22 998.12 481.07 396.67 630.56 1129.3 0"/>
-                    <polygon fill="#e7ab37" points="625.87 816.5 0 971.95 396.03 631.03 625.87 816.5"/>
-                    <polygon fill="#f8d239" points="998.21 481.22 927.27 741.62 625.99 816.53 625.87 816.5 396.03 631.03 396.67 630.56 998.12 481.07 998.21 481.22"/>
-                    <polygon fill="#f08321" points="1441.08 915.72 1148.96 958.87 1148.84 958.84 927.27 741.62 998.21 481.22 1440.85 915.14 1441.08 915.72"/>
-                    <polygon fill="#062db6" points="1148.84 958.84 856.3 1002.13 927.27 741.62 1148.84 958.84"/>
-                    <polygon fill="#7475d8" points="927.27 741.62 856.3 1002.13 856.18 1002.1 625.99 816.53 927.27 741.62"/>
-                </svg>
+                <img class="sidebar-logo-img" src="/static/assets_youn/Arcy icon.png" alt="Arcy">
                 <span class="logo-text">YRYS</span>
             </div>
 
-            <div class="sidebar-section">
-                <div class="sidebar-label">General</div>
+            <div class="sidebar-section sidebar-section--nav">
+                <div class="sidebar-label">Navigation</div>
                 <nav class="sidebar-nav">
                     <a class="nav-item active" id="navSites">
                         <img class="nav-icon-img" src="/static/assets_youn/SvIcons/folder-svgrepo-com.svg" alt="">
-                        Sites
+                        <span>Sites</span>
                     </a>
                     <a class="nav-item" id="navTracker">
                         <img class="nav-icon-img" src="/static/assets_youn/SvIcons/desktop-svgrepo-com.svg" alt="">
-                        Zone Tracker
+                        <span>Zone Tracker</span>
                     </a>
-                    <a class="nav-item" href="/static/observations.html" target="_blank" rel="noopener">
-                        <img class="nav-icon-img" src="/static/assets_youn/SvIcons/bug-svgrepo-com.svg" alt="">
-                        Observations
+                    <a class="nav-item" id="navAnalytics">
+                        <img class="nav-icon-img" src="/static/assets_youn/SvIcons/chart-line-svgrepo-com.svg" alt="">
+                        <span>Analytics</span>
+                    </a>
+                    <a class="nav-item" id="navLogs">
+                        <img class="nav-icon-img" src="/static/assets_youn/SvIcons/terminal-svgrepo-com.svg" alt="">
+                        <span>Log / Historique</span>
                     </a>
                 </nav>
             </div>
 
             <div class="sidebar-section">
-                <div class="sidebar-label">Active Zones</div>
+                <div class="sidebar-label" id="sidebarSectionLabel">Sites</div>
                 <div class="zone-list-sidebar" id="zoneListSidebar">
-                    <div style="color: var(--color-text-subtle); font-size: var(--text-sm);">Aucune zone</div>
+                    <div style="color: var(--sidebar-text-subtle); font-size: var(--text-sm);">Chargement…</div>
                 </div>
             </div>
 
             <div class="sidebar-footer">
-                <div class="version-badge">©2025 YRYS, Inc — v1.0</div>
+                <div class="version-badge">&copy;2025 Arcy &mdash; v0.1.0-alpha</div>
             </div>
         </aside>
 
@@ -91,18 +98,33 @@
 
             <!-- Home (Sites) -->
             <section class="zones-section" id="homeView">
-                <div class="card">
+                <div class="card sites-card">
                     <div class="card-header">
                         <div>
                             <div class="card-subtitle">Multi-site</div>
                             <div class="card-title">Sites</div>
                         </div>
+                        <div class="sites-view-toggle">
+                            <button class="sites-toggle-btn active" id="sitesViewGrid" title="Grille">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                            </button>
+                            <button class="sites-toggle-btn" id="sitesViewList" title="Liste">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1" fill="currentColor"/><circle cx="4" cy="12" r="1" fill="currentColor"/><circle cx="4" cy="18" r="1" fill="currentColor"/></svg>
+                            </button>
+                        </div>
                     </div>
-                    <div style="padding: var(--space-4); border-top: 1px solid var(--color-border); display:flex; gap: var(--space-3); align-items:center; flex-wrap:wrap;">
-                        <input id="newSiteName" type="text" placeholder="Nom du site (ex: Entrepôt Lyon)" style="flex:1; min-width: 260px; padding: 12px 14px; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: var(--color-surface-2); color: var(--color-text); outline: none;">
-                        <button class="btn btn-primary" id="createSiteBtn" type="button">Créer le site</button>
+                    <!-- Create site bar -->
+                    <div class="sites-create-bar">
+                        <div class="sites-create-inputs">
+                            <input id="newSiteName" class="sites-input" type="text" placeholder="Nom du site…">
+                            <select id="newSiteLocation" class="sites-input sites-input--small">
+                                <option value="" disabled selected>Lieu…</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-create-site" id="createSiteBtn" type="button">Créer</button>
                     </div>
-                    <div style="padding: var(--space-4);">
+                    <!-- Sites container -->
+                    <div class="sites-container" id="sitesContainer">
                         <div class="zones-grid" id="sitesGrid" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
                             <div class="no-zones">Aucun site. Créez-en un pour commencer.</div>
                         </div>
@@ -111,10 +133,18 @@
             </section>
 
             <div id="trackerView" class="hidden">
+            <!-- Back navigation + breadcrumb -->
+            <div class="tracker-nav" id="trackerNav">
+                <button class="tracker-back-btn" id="trackerBackBtn" type="button">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+                    Sites
+                </button>
+                <span class="tracker-breadcrumb" id="trackerBreadcrumb"></span>
+            </div>
             <!-- Video Section -->
             <section class="video-section">
-                <div class="video-card">
-                    <div class="video-card-header">
+                <div class="video-card video-card--clean">
+                    <div class="video-card-header hidden">
                         <div class="video-title">
                             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
@@ -125,6 +155,10 @@
                     </div>
 
                     <div class="video-wrapper" id="videoWrapper">
+                        <!-- Floating video label -->
+                        <div class="video-label" id="videoLabel">
+                            <span id="videoLabelText">Sélectionner une vidéo</span>
+                        </div>
                         <div class="draw-hud hidden" id="drawHud">
                             <div class="draw-hud-left">
                                 <div class="draw-hud-title" id="drawHudTitle">Mode dessin</div>
@@ -159,7 +193,7 @@
                         </button>
                     </div>
 
-                    <div class="video-toolbar">
+                    <div class="video-toolbar hidden">
                         <!-- Source vidéo: gérée via la liste des caméras (masqué pour garder le mécanisme interne) -->
                         <div class="hidden">
                             <select id="videoSelect">
@@ -211,48 +245,34 @@
                     <div class="card">
                         <div class="card-header">
                             <div>
-                                <div class="card-subtitle">Contrôles</div>
-                                <div class="card-title">Actions</div>
+                                <div class="card-subtitle">Détection</div>
+                                <div class="card-title">Contrôles</div>
                             </div>
                         </div>
-                        <div style="display: flex; flex-direction: column; gap: var(--space-3);">
-                            <button class="retro-btn retro-default retro-full" id="startDetectionBtn" disabled>
-                                <span class="retro-btn-inner">
-                                    <img class="retro-icon-img" src="/static/assets_youn/SvIcons/play-svgrepo-com.svg" alt="">
-                                Lancer la détection
-                                </span>
+                        <div class="ctrl-actions">
+                            <button class="ctrl-btn ctrl-btn--primary" id="startDetectionBtn" disabled>
+                                <img class="ctrl-btn__icon" src="/static/assets_youn/SvIcons/play-svgrepo-com.svg" alt="">
+                                <span>Lancer la détection</span>
                             </button>
 
-                            <button class="retro-btn retro-light retro-full" id="editZonesBtn" disabled>
-                                <span class="retro-btn-inner">
-                                    <img class="retro-icon-img" src="/static/assets_youn/SvIcons/draw.svg" alt="">
-                                    Éditer les zones
-                                </span>
+                            <button class="ctrl-btn ctrl-btn--secondary" id="editZonesBtn" disabled>
+                                <img class="ctrl-btn__icon" src="/static/assets_youn/SvIcons/draw.svg" alt="">
+                                <span>Éditer les zones</span>
                             </button>
 
                             <!-- (Legacy) conservé hidden pour compat éventuelle -->
-                            <button class="btn btn-danger hidden" id="stopDetectionBtn" style="width: 100%;">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>
-                                </svg>
-                                Pause
+                            <button class="btn btn-danger hidden" id="stopDetectionBtn" style="width: 100%;">Pause</button>
+
+                            <button class="ctrl-btn ctrl-btn--danger" id="stopAllBtn" disabled>
+                                <img class="ctrl-btn__icon" src="/static/assets_youn/SvIcons/stop-svgrepo-com.svg" alt="">
+                                <span>Tout arrêter</span>
                             </button>
 
-                            <button class="retro-btn retro-darkGray retro-full" id="stopAllBtn" disabled>
-                                <span class="retro-btn-inner">
-                                    <img class="retro-icon-img" src="/static/assets_youn/SvIcons/stop-svgrepo-com.svg" alt="">
-                                    Stop all
-                                </span>
-                            </button>
-
-                            <button class="retro-btn retro-light retro-full" id="toggleBlurBtn">
-                                <span class="retro-btn-inner">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <button class="ctrl-btn ctrl-btn--ghost" id="toggleBlurBtn">
+                                <svg class="ctrl-btn__svg" width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
                                 </svg>
-                                Floutage: OFF
-                                </span>
+                                <span>Floutage: OFF</span>
                             </button>
                         </div>
                     </div>
@@ -260,12 +280,12 @@
                     <div class="card">
                         <div class="card-header">
                             <div>
-                                <div class="card-subtitle">Vidéos disponibles</div>
+                                <div class="card-subtitle">Sources</div>
                                 <div class="card-title">Caméras</div>
                             </div>
-                            <button class="btn btn-secondary btn-icon" id="addCameraBtn" title="Ajouter une caméra" type="button">+</button>
+                            <button class="ctrl-btn ctrl-btn--ghost ctrl-btn--sm" id="addCameraBtn" title="Ajouter une caméra" type="button">+</button>
                         </div>
-                        <div class="hidden" id="addCameraForm" style="padding: var(--space-4); border-top: 1px solid var(--color-border); display:flex; flex-direction:column; gap: var(--space-3);">
+                        <div class="hidden cam-form-panel" id="addCameraForm">
                             <!-- Source type tabs -->
                             <div style="display:flex; gap: var(--space-2); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-2);">
                                 <button class="btn btn-secondary cam-source-tab active" data-source="video" type="button">Vidéo</button>
@@ -286,44 +306,44 @@
                                 <!-- Webcam source -->
                                 <div class="form-group cam-source-panel hidden" data-source="webcam" style="flex:1; min-width:200px;">
                                     <label class="form-label">Webcam</label>
-                                    <div style="display:flex; gap: var(--space-2);">
+                                    <div style="display:flex; gap: 6px; align-items:center;">
                                         <select id="newCamWebcam" class="lov-select" style="flex:1;"></select>
-                                        <button class="btn btn-secondary btn-icon" id="detectWebcamsBtn" title="Détecter les webcams" type="button">&#x1F50D;</button>
+                                        <button class="cam-btn-light" id="detectWebcamsBtn" title="Détecter" type="button" style="padding:6px 8px;">
+                                            <img src="/static/assets_youn/SvIcons/camera.svg" alt="" style="width:14px;height:14px;opacity:0.7;">
+                                        </button>
                                     </div>
                                 </div>
                                 <!-- RTSP source -->
                                 <div class="form-group cam-source-panel hidden" data-source="rtsp" style="flex:1; min-width:200px;">
                                     <label class="form-label">URL RTSP</label>
-                                    <div style="display:flex; gap: var(--space-2);">
+                                    <div style="display:flex; gap: 6px; align-items:center;">
                                         <input id="newCamRtspUrl" type="text" placeholder="rtsp://192.168.1.10:554/stream" style="flex:1;">
-                                        <button class="btn btn-secondary btn-icon" id="testRtspBtn" title="Tester la connexion" type="button">&#x2713;</button>
+                                        <button class="cam-btn-light" id="testRtspBtn" title="Tester" type="button" style="padding:6px 10px;">Test</button>
                                     </div>
                                 </div>
                             </div>
                             <!-- Video upload (only for video source) -->
-                            <div class="cam-source-panel" data-source="video" style="display:flex; align-items:center; gap: var(--space-3); padding: var(--space-3); background: var(--color-bg-secondary); border-radius: var(--radius-md);">
-                                <span style="color: var(--color-text-secondary); font-size: 14px;">Ou uploader une nouvelle vidéo :</span>
+                            <div class="cam-source-panel" data-source="video" style="display:flex; align-items:center; gap: 8px;">
                                 <form id="uploadVideoForm" style="display:contents;">
-                                    <label class="btn btn-secondary" style="cursor:pointer; margin:0;">
+                                    <label class="cam-btn-light" style="cursor:pointer;">
                                         <input type="file" id="uploadVideoInput" accept="video/*" style="display:none;">
-                                        <span id="uploadVideoLabelText">Choisir un fichier</span>
+                                        <span id="uploadVideoLabelText">Upload</span>
                                     </label>
                                 </form>
-                                <span id="uploadProgress" style="color: var(--color-text-secondary); font-size: 13px;"></span>
+                                <span id="uploadProgress" style="color: rgba(255,255,255,0.4); font-size: 11px;"></span>
                             </div>
                             <!-- RTSP scan (only for rtsp source) -->
-                            <div class="cam-source-panel hidden" data-source="rtsp" style="display:flex; align-items:center; gap: var(--space-3); padding: var(--space-3); background: var(--color-bg-secondary); border-radius: var(--radius-md);">
-                                <span style="color: var(--color-text-secondary); font-size: 14px;">Scanner le réseau local :</span>
-                                <button class="btn btn-secondary" id="scanOnvifBtn" type="button">Scan ONVIF</button>
-                                <span id="onvifScanStatus" style="color: var(--color-text-secondary); font-size: 13px;"></span>
+                            <div class="cam-source-panel hidden" data-source="rtsp" style="display:flex; align-items:center; gap: 8px;">
+                                <button class="cam-btn-light" id="scanOnvifBtn" type="button">Scan ONVIF</button>
+                                <span id="onvifScanStatus" style="color: rgba(255,255,255,0.4); font-size: 11px;"></span>
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Description (optionnel)</label>
                                 <input id="newCamHint" type="text" placeholder="Ex: Déchargement & présence" style="width:100%;">
                             </div>
-                            <div style="display:flex; gap: var(--space-3);">
-                                <button class="btn btn-primary" id="saveCamBtn" type="button">Ajouter</button>
-                                <button class="btn btn-secondary" id="cancelCamBtn" type="button">Annuler</button>
+                            <div style="display:flex; gap: 8px; margin-top: 4px;">
+                                <button class="ctrl-btn ctrl-btn--primary ctrl-btn--sm" id="saveCamBtn" type="button" style="flex:1;">Ajouter</button>
+                                <button class="ctrl-btn ctrl-btn--danger ctrl-btn--sm" id="cancelCamBtn" type="button" style="width:auto;">Annuler</button>
                             </div>
                         </div>
                         <div class="camera-grid" id="cameraGrid">
@@ -339,10 +359,10 @@
                     <div class="card-header">
                         <div>
                             <div class="card-subtitle">Bénéfices (ROI)</div>
-                            <div class="card-title">Zones de détections</div>
+                            <div class="card-title">Zones de détection</div>
                         </div>
-                        <button class="btn btn-ghost btn-small" id="deleteAllZonesBtn" title="Reset all">
-                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button class="ctrl-btn ctrl-btn--ghost ctrl-btn--sm" id="deleteAllZonesBtn" title="Reset all">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                             </svg>
                             Reset all
@@ -351,31 +371,94 @@
                     <div class="zones-grid" id="zonesGrid">
                         <div class="no-zones">Aucune zone définie pour cette vidéo</div>
                     </div>
-                    <div class="recap-grid" id="recapGrid" style="display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: var(--space-4); padding: var(--space-4); border-top: 1px solid var(--color-border);">
-                        <div class="card" style="background: transparent; border: 0; box-shadow: none; padding: 0;">
-                            <div class="card-subtitle">Caméras</div>
-                            <div class="card-title" id="recapCameras">—</div>
-                            <div style="color: var(--color-text-muted); font-size: var(--text-xs);" id="recapCamerasSub">—</div>
+                    <div class="recap-grid" id="recapGrid">
+                        <div class="recap-card">
+                            <div class="recap-card__label">Caméras</div>
+                            <div class="recap-card__value" id="recapCameras">—</div>
+                            <div class="recap-card__sub" id="recapCamerasSub">—</div>
                         </div>
-                        <div class="card" style="background: transparent; border: 0; box-shadow: none; padding: 0;">
-                            <div class="card-subtitle">Zones</div>
-                            <div class="card-title" id="recapZones">—</div>
-                            <div style="color: var(--color-text-muted); font-size: var(--text-xs);" id="recapZonesSub">—</div>
+                        <div class="recap-card">
+                            <div class="recap-card__label">Zones</div>
+                            <div class="recap-card__value" id="recapZones">—</div>
+                            <div class="recap-card__sub" id="recapZonesSub">—</div>
                         </div>
-                        <div class="card" style="background: transparent; border: 0; box-shadow: none; padding: 0;">
-                            <div class="card-subtitle">Dessins</div>
-                            <div class="card-title" id="recapDrawings">—</div>
-                            <div style="color: var(--color-text-muted); font-size: var(--text-xs);" id="recapDrawingsSub">—</div>
+                        <div class="recap-card">
+                            <div class="recap-card__label">Dessins</div>
+                            <div class="recap-card__value" id="recapDrawings">—</div>
+                            <div class="recap-card__sub" id="recapDrawingsSub">—</div>
                         </div>
-                        <div class="card" style="background: transparent; border: 0; box-shadow: none; padding: 0;">
-                            <div class="card-subtitle">Présences actives</div>
-                            <div class="card-title" id="recapActive">—</div>
-                            <div style="color: var(--color-text-muted); font-size: var(--text-xs);" id="recapActiveSub">—</div>
+                        <div class="recap-card">
+                            <div class="recap-card__label">Présences actives</div>
+                            <div class="recap-card__value" id="recapActive">—</div>
+                            <div class="recap-card__sub" id="recapActiveSub">—</div>
                         </div>
                     </div>
                 </div>
             </section>
             </div>
+
+            <!-- Analytics View -->
+            <div id="analyticsView" class="hidden">
+                <div class="aw-grid" id="analyticsGrid">
+                    <!-- Widgets are rendered by JS -->
+                </div>
+            </div>
+
+            <!-- Log / Historique View -->
+            <div id="logsView" class="hidden">
+                <section class="zones-section">
+                    <div class="card log-card">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-subtitle">Audit</div>
+                                <div class="card-title">Journal d'événements</div>
+                            </div>
+                            <div style="display:flex; gap: var(--space-2); align-items:center;">
+                                <div class="log-filters" id="logFilters">
+                                    <button class="log-filter-btn active" data-cat="">Tout</button>
+                                    <button class="log-filter-btn" data-cat="zone">Zones</button>
+                                    <button class="log-filter-btn" data-cat="stream">Streams</button>
+                                    <button class="log-filter-btn" data-cat="camera">Caméras</button>
+                                    <button class="log-filter-btn" data-cat="video">Vidéos</button>
+                                    <button class="log-filter-btn" data-cat="system">Système</button>
+                                    <button class="log-filter-btn" data-cat="blur">Blur</button>
+                                </div>
+                                <button class="btn btn-ghost btn-small" id="clearLogsBtn" title="Effacer les logs">
+                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </button>
+                                <button class="btn btn-ghost btn-small" id="refreshLogsBtn" title="Rafraîchir">
+                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="log-console" id="logConsole">
+                            <div class="log-console-inner" id="logConsoleInner">
+                                <!-- Log entries populated by JS -->
+                                <div class="log-empty">Chargement du journal…</div>
+                            </div>
+                        </div>
+                        <div class="log-statusbar">
+                            <span id="logCount">0 événements</span>
+                            <span id="logAutoRefresh">Auto-refresh: ON</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Performance Monitor Chart -->
+                <section class="zones-section">
+                    <div class="card perf-card">
+                        <div class="perf-header">
+                            <div class="perf-legends" id="perfLegends">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                        <div class="perf-canvas-wrap">
+                            <canvas id="perfCanvas"></canvas>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
         </main>
     </div>
 
@@ -387,11 +470,7 @@
                     <div class="editor-title" id="editorTitle">Video Editing</div>
                     <div class="editor-subtitle" id="editorSubtitle">Outils de dessin</div>
                 </div>
-                <button class="btn btn-ghost btn-icon" id="editorCloseBtn" title="Fermer">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
+                <button id="editorCloseBtn" title="Fermer">✕</button>
             </div>
 
             <div class="editor-body">
@@ -435,7 +514,7 @@
                                 <button class="tool-btn icon compact" id="toolUndoBtn" title="Annuler (Ctrl+Z)">↶</button>
                                 <button class="tool-btn icon red compact" id="toolClearBtn" title="Tout effacer">✕</button>
                             </div>
-                            <button class="tool-btn save" id="toolSaveBtn" title="Sauvegarder toute la configuration">Sauvegarder</button>
+                            <button class="tool-btn save" id="toolSaveBtn" title="Sauvegarder toute la configuration">SAUVEGARDER</button>
                         </div>
 
                         <div class="editor-guide" id="editorGuide">
@@ -446,7 +525,7 @@
 
                 <div class="editor-right">
                     <div class="editor-card">
-                        <h3>Informations sur la caméra</h3>
+                        <h3>Informations</h3>
                         <div class="editor-kv">
                             <div class="k">ID</div><div id="editorCamId">—</div>
                             <div class="k">Rés.</div><div id="editorCamRes">—</div>
@@ -456,29 +535,33 @@
                     </div>
 
                     <div class="editor-card">
-                        <h3>Associated Zones</h3>
+                        <h3>Zones associées</h3>
                         <div class="editor-zones" id="editorZoneList"></div>
                         <div style="margin-top: 10px; display:flex; gap:8px;">
-                            <input type="text" id="editorNewZoneName" placeholder="Nouvelle zone…" style="flex:1; min-width:0; background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:#F5F7FF;">
+                            <input type="text" id="editorNewZoneName" placeholder="Nouvelle zone…" class="editor-input" style="flex:1; min-width:0;">
                             <button class="tool-btn primary" id="editorAddZoneBtn">+</button>
                         </div>
-                        <div style="margin-top: 10px; display:flex; justify-content:flex-end;">
-                            <button class="tool-btn red" id="editorDeleteZoneBtn" title="Supprimer la zone sélectionnée">Supprimer la zone</button>
+                        <div style="margin-top: 8px; display:flex; justify-content:flex-end;">
+                            <button class="tool-btn red" id="editorDeleteZoneBtn" title="Supprimer la zone sélectionnée">Supprimer</button>
                         </div>
                     </div>
 
                     <div class="editor-card">
-                        <h3>Contrôles</h3>
+                        <h3>Aide</h3>
                         <div class="editor-kv">
-                            <div class="k">Lecture</div><div>Frame fixe (édition)</div>
-                            <div class="k">Astuce</div><div>Glissez un point pour le déplacer. Maintenez <b>Shift</b> et cliquez près d’une arête pour ajouter un point.</div>
+                            <div class="k">Mode</div><div>Frame fixe</div>
+                            <div class="k">Astuce</div><div>Glissez un point. <b>Shift</b>+clic = nouveau point.</div>
                         </div>
+                    </div>
+
+                    <div class="editor-brand">
+                        <img src="/static/assets_youn/YrysUIPackage/ArcyWhitelogo.svg" alt="Arcy">
                     </div>
                 </div>
             </div>
 
             <div class="editor-bottombar">
-                <button class="btn btn-secondary" id="editorCloseBtn2" title="Fermer l’éditeur">Fermer</button>
+                <button class="tool-btn" id="editorCloseBtn2" title="Fermer l’éditeur">FERMER</button>
             </div>
         </div>
     </div>
@@ -491,9 +574,9 @@
                     <div class="editor-title" id="appModalTitle">Message</div>
                     <div class="editor-subtitle" id="appModalSubtitle">Zone Tracker</div>
                             </div>
-                <button class="btn btn-ghost btn-icon" id="appModalCloseBtn" title="Fermer">✕</button>
+                <button class="tool-btn compact" id="appModalCloseBtn" title="Fermer" style="border:none; background:transparent; color:#F5F7FF; font-size:16px;">✕</button>
                         </div>
-            <div style="padding: 16px; background: #1B1E27; color:#F5F7FF; border-top:1px solid rgba(255,255,255,0.08);">
+            <div style="padding: 16px; background: rgba(255,255,255,0.02); color:#F5F7FF; border-top:1px solid rgba(255,255,255,0.06);">
                 <div id="appModalMessage" style="white-space: pre-wrap; color: rgba(245,247,255,0.85); line-height:1.5;"></div>
                         </div>
             <div class="editor-bottombar">
@@ -503,6 +586,7 @@
                     </div>
                         </div>
 
-    <script src="/static/js/index.js?v=1" defer></script>
+    <script src="/static/js/lov-dropdown.js?v=1"></script>
+    <script src="/static/js/index.js?v=2" defer></script>
 </body>
 </html>

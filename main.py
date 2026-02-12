@@ -13,6 +13,10 @@ from shapely.geometry import Polygon, box
 from ultralytics import YOLO
 import torch
 
+from datetime import datetime, timezone
+from collections import deque
+from typing import Optional
+
 app = FastAPI(title="Zone Presence Tracker")
 
 # Paths
@@ -137,6 +141,345 @@ def get_source_identifier(source_name: str):
 load_data()
 
 
+# ==================== Audit / Event Log System ====================
+
+AUDIT_LOG_FILE = DATA_DIR / "audit_log.jsonl"
+_audit_log: deque = deque(maxlen=2000)  # In-memory ring buffer
+_audit_lock = threading.Lock()
+
+
+def _load_audit_log():
+    """Load existing audit log from disk on startup."""
+    if AUDIT_LOG_FILE.exists():
+        try:
+            with open(AUDIT_LOG_FILE, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        _audit_log.append(json.loads(line))
+        except Exception:
+            pass  # corrupted file — start fresh
+
+
+def audit_event(
+    category: str,
+    action: str,
+    detail: str = "",
+    level: str = "info",
+    meta: Optional[dict] = None,
+):
+    """
+    Record an audit event.
+    - category: zone | stream | camera | system | detection | blur | video
+    - action: short verb (created, deleted, started, stopped, edited, reset, upload, error…)
+    - detail: human-readable description
+    - level: info | warn | error | success
+    - meta: optional dict with extra structured data
+    """
+    entry = {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "category": category,
+        "action": action,
+        "detail": detail,
+        "level": level,
+    }
+    if meta:
+        entry["meta"] = meta
+    with _audit_lock:
+        _audit_log.append(entry)
+        # Append to file (one JSON line per event)
+        try:
+            with open(AUDIT_LOG_FILE, "a", encoding="utf-8") as f:
+                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        except Exception:
+            pass
+
+
+_load_audit_log()
+
+
+def _seed_demo_events():
+    """Seed historical demo events if the log is empty or very small (< 5 entries)."""
+    if len(_audit_log) > 5:
+        return  # Already has data, skip
+
+    from datetime import timedelta
+    now = datetime.now(timezone.utc)
+
+    demo = [
+        # Day -7: system setup
+        (-7, 0, 0, "system", "startup", "Application démarrée — déploiement initial", "success"),
+        (-7, 0, 2, "system", "config", "Modèle YOLO human.pt chargé (CPU)", "info"),
+        # Day -6: cameras configured
+        (-6, 9, 0, "camera", "added", "Caméra « popo » ajoutée (RTSP — rtsp://…/movie)", "success",
+         {"camera_id": "rtsp_popo", "type": "rtsp"}),
+        (-6, 9, 5, "camera", "added", "Caméra « sqd » ajoutée (Webcam — device 0)", "success",
+         {"camera_id": "webcam_sqd", "type": "webcam"}),
+        # Day -6: videos uploaded
+        (-6, 10, 0, "video", "upload", "Vidéo « entr1.mp4 » uploadée", "success", {"filename": "entr1.mp4"}),
+        (-6, 10, 12, "video", "upload", "Vidéo « videoplayback.mp4 » uploadée", "success", {"filename": "videoplayback.mp4"}),
+        (-6, 10, 30, "video", "upload", "Vidéo « video_01.mp4 » uploadée", "success", {"filename": "video_01.mp4"}),
+        (-6, 10, 45, "video", "upload", "Vidéo « video_04.mp4 » uploadée", "success", {"filename": "video_04.mp4"}),
+        # Day -5: zones created on entr1.mp4
+        (-5, 8, 30, "zone", "created", "Zone « Zone A » créée sur entr1.mp4 (2 forme(s))", "success",
+         {"zone": "Zone A", "video": "entr1.mp4", "polygons": 2}),
+        (-5, 8, 35, "zone", "created", "Zone « Zone B » créée sur entr1.mp4 (1 forme(s))", "success",
+         {"zone": "Zone B", "video": "entr1.mp4", "polygons": 1}),
+        # Day -5: zones on videoplayback
+        (-5, 9, 0, "zone", "created", "Zone « Zone A » créée sur videoplayback.mp4 (1 forme(s))", "success",
+         {"zone": "Zone A", "video": "videoplayback.mp4", "polygons": 1}),
+        (-5, 9, 10, "zone", "created", "Zone « Contrôle Pièces » créée sur videoplayback.mp4 (1 forme(s))", "success",
+         {"zone": "Contrôle Pièces", "video": "videoplayback.mp4", "polygons": 1}),
+        # Day -5: first detection session
+        (-5, 9, 30, "stream", "started", "Stream démarré : entr1.mp4", "success", {"source": "entr1.mp4"}),
+        (-5, 9, 31, "detection", "occupancy", "Zone A (entr1.mp4) — première détection de présence", "info",
+         {"zone": "Zone A", "video": "entr1.mp4"}),
+        (-5, 10, 15, "stream", "stopped", "Stream arrêté : entr1.mp4", "info", {"source": "entr1.mp4"}),
+        # Day -4: zone edits
+        (-4, 14, 0, "zone", "edited", "Zone « Zone A » éditée sur entr1.mp4 (2 forme(s))", "info",
+         {"zone": "Zone A", "video": "entr1.mp4", "polygons": 2}),
+        (-4, 14, 5, "zone", "created", "Zone « T2 » créée sur video_01.mp4 (1 forme(s))", "success",
+         {"zone": "T2", "video": "video_01.mp4", "polygons": 1}),
+        # Day -4: detection session
+        (-4, 14, 20, "stream", "started", "Stream démarré : videoplayback.mp4", "success", {"source": "videoplayback.mp4"}),
+        (-4, 14, 22, "detection", "occupancy", "Zone A (videoplayback.mp4) — présence détectée", "info",
+         {"zone": "Zone A", "video": "videoplayback.mp4"}),
+        (-4, 15, 0, "blur", "toggled", "Floutage activé", "info", {"enabled": True}),
+        (-4, 15, 45, "stream", "stopped", "Stream arrêté : videoplayback.mp4", "info", {"source": "videoplayback.mp4"}),
+        # Day -3: camera zone
+        (-3, 11, 0, "zone", "created", "Zone « Z2 » créée sur camera:webcam_sqd (1 forme(s))", "success",
+         {"zone": "Z2", "video": "camera:webcam_sqd", "polygons": 1}),
+        (-3, 11, 15, "zone", "created", "Zone « T2 » créée sur camera:rtsp_popo (1 forme(s))", "success",
+         {"zone": "T2", "video": "camera:rtsp_popo", "polygons": 1}),
+        (-3, 11, 30, "stream", "started", "Stream démarré : camera:webcam_sqd", "success", {"source": "camera:webcam_sqd"}),
+        (-3, 11, 32, "detection", "occupancy", "Z2 (webcam sqd) — présence détectée", "info",
+         {"zone": "Z2", "video": "camera:webcam_sqd"}),
+        (-3, 12, 0, "stream", "stopped", "Stream arrêté : camera:webcam_sqd", "info", {"source": "camera:webcam_sqd"}),
+        # Day -2: more work
+        (-2, 9, 0, "zone", "created", "Zone « de » créée sur video_04.mp4 (1 forme(s))", "success",
+         {"zone": "de", "video": "video_04.mp4", "polygons": 1}),
+        (-2, 10, 0, "stream", "started", "Stream démarré : video_04.mp4", "success", {"source": "video_04.mp4"}),
+        (-2, 10, 5, "detection", "occupancy", "de (video_04.mp4) — présence détectée", "info",
+         {"zone": "de", "video": "video_04.mp4"}),
+        (-2, 11, 30, "stream", "stopped", "Stream arrêté : video_04.mp4", "info", {"source": "video_04.mp4"}),
+        (-2, 14, 0, "stream", "started", "Stream démarré : entr1.mp4", "success", {"source": "entr1.mp4"}),
+        (-2, 14, 2, "detection", "occupancy", "Zone A (entr1.mp4) — présence continue détectée (cumul 1200s+)", "info",
+         {"zone": "Zone A", "video": "entr1.mp4"}),
+        (-2, 14, 3, "detection", "occupancy", "Zone B (entr1.mp4) — présence détectée (cumul 997s)", "info",
+         {"zone": "Zone B", "video": "entr1.mp4"}),
+        (-2, 15, 0, "blur", "toggled", "Floutage désactivé", "info", {"enabled": False}),
+        (-2, 16, 0, "stream", "stopped_all", "Tous les streams arrêtés (1)", "warn", {"count": 1}),
+        # Day -1: edits & resets
+        (-1, 8, 0, "zone", "edited", "Zone « Zone B » éditée sur entr1.mp4 (1 forme(s))", "info",
+         {"zone": "Zone B", "video": "entr1.mp4", "polygons": 1}),
+        (-1, 8, 30, "zone", "reset", "Timer de « Contrôle Pièces » réinitialisé", "info", {"zone": "Contrôle Pièces"}),
+        (-1, 9, 0, "stream", "started", "Stream démarré : camera:rtsp_popo", "success", {"source": "camera:rtsp_popo"}),
+        (-1, 9, 5, "detection", "occupancy", "T2 (RTSP popo) — présence détectée", "info",
+         {"zone": "T2", "video": "camera:rtsp_popo"}),
+        (-1, 10, 30, "stream", "stopped", "Stream arrêté : camera:rtsp_popo", "info", {"source": "camera:rtsp_popo"}),
+        # Today: startup
+        (0, 0, 0, "system", "startup", "Application démarrée", "success"),
+    ]
+
+    for entry in demo:
+        days_offset = entry[0]
+        hour = entry[1]
+        minute = entry[2]
+        category = entry[3]
+        action = entry[4]
+        detail = entry[5]
+        level = entry[6]
+        meta = entry[7] if len(entry) > 7 else None
+
+        ts = (now + timedelta(days=days_offset)).replace(hour=hour, minute=minute, second=0, microsecond=0)
+
+        ev = {
+            "ts": ts.isoformat(),
+            "category": category,
+            "action": action,
+            "detail": detail,
+            "level": level,
+        }
+        if meta:
+            ev["meta"] = meta
+
+        with _audit_lock:
+            _audit_log.append(ev)
+            try:
+                with open(AUDIT_LOG_FILE, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(ev, ensure_ascii=False) + "\n")
+            except Exception:
+                pass
+
+
+_seed_demo_events()
+
+
+# ==================== Performance Metrics (demo) ====================
+
+import math
+import random as _rnd
+
+_metrics_seed = 42  # fixed seed for consistent demo
+
+
+def _generate_demo_metrics(points: int = 200) -> dict:
+    """
+    Generate stepped / staircase style demo metrics (like Chrome DevTools perf monitor).
+    Phases: idle → cam start → heavy load → cam stop → idle → cam restart → medium load
+    Values jump in steps (not smooth curves) and hold for a few ticks before changing.
+    """
+    now = datetime.now(timezone.utc)
+    rng = _rnd.Random(_metrics_seed)
+    interval_s = 15  # one point every 15s
+
+    series = {
+        "GPU Usage":         {"unit": "%",  "color": "#22c55e", "min": 0, "max": 100, "data": []},
+        "Latency Cam":       {"unit": "ms", "color": "#f59e0b", "min": 0, "max": 250, "data": []},
+        "YOLO Inference":    {"unit": "ms", "color": "#3b82f6", "min": 0, "max": 180, "data": []},
+        "FPS":               {"unit": "fps","color": "#a855f7", "min": 0, "max": 60,  "data": []},
+        "Memory":            {"unit": "Mo", "color": "#ef4444", "min": 0, "max": 2048,"data": []},
+        "Active Detections": {"unit": "",   "color": "#06b6d4", "min": 0, "max": 15,  "data": []},
+    }
+
+    # ---- Phase definitions (ratio of total points) ----
+    # Each phase: (start_pct, end_pct, label)
+    #  idle_boot | cam1_start | heavy_2cams | cam_stop | idle_mid | cam_restart | medium_tail
+    phases = [
+        (0.00, 0.10, "idle"),       # boot / no stream
+        (0.10, 0.12, "ramp_up"),    # starting first camera
+        (0.12, 0.30, "one_cam"),    # 1 camera active
+        (0.30, 0.32, "ramp_up2"),   # starting second camera
+        (0.32, 0.52, "two_cams"),   # 2 cameras = heavy
+        (0.52, 0.55, "ramp_down"),  # stopping cams
+        (0.55, 0.68, "idle2"),      # all cameras off
+        (0.68, 0.70, "ramp_up3"),   # restarting 1 cam
+        (0.70, 0.88, "one_cam2"),   # 1 cam medium load
+        (0.88, 0.90, "ramp_down2"), # stopping
+        (0.90, 1.01, "idle3"),      # idle tail
+    ]
+
+    def get_phase(pct):
+        for (s, e, label) in phases:
+            if s <= pct < e:
+                return label
+        return "idle3"
+
+    # Target values per phase: (gpu, latency, yolo_ms, fps, mem_Mo, detections)
+    targets = {
+        "idle":        (0,   0,   0,   0,  310, 0),
+        "ramp_up":     (25,  35,  45,  12, 480, 0),
+        "one_cam":     (42,  55,  38,  24, 620, 3),
+        "ramp_up2":    (58,  70,  52,  20, 780, 4),
+        "two_cams":    (72,  95,  68,  18, 950, 7),
+        "ramp_down":   (30,  25,  20,  10, 700, 1),
+        "idle2":       (0,   0,   0,   0,  340, 0),
+        "ramp_up3":    (20,  30,  40,  10, 500, 0),
+        "one_cam2":    (38,  48,  35,  25, 580, 4),
+        "ramp_down2":  (15,  12,  10,  5,  420, 0),
+        "idle3":       (0,   0,   0,   0,  320, 0),
+    }
+
+    # State: current values (start idle)
+    gpu = 0.0; lat = 0.0; yolo = 0.0; fps = 0.0; mem = 310.0; det = 0.0
+    # Step hold: values hold for N ticks then jump (staircase effect)
+    hold_counter = 0
+    hold_ticks = rng.randint(2, 5)
+    step_gpu = gpu; step_lat = lat; step_yolo = yolo
+    step_fps = fps; step_mem = mem; step_det = det
+
+    for i in range(points):
+        t = now - __import__('datetime').timedelta(seconds=(points - i) * interval_s)
+        ts = t.isoformat()
+
+        pct = i / points
+        phase = get_phase(pct)
+        tgt = targets[phase]
+
+        # Pull toward target with noise (but compute new target each tick)
+        pull = 0.25  # how fast we snap to target
+        noise_scale = 0.15
+
+        gpu += (tgt[0] - gpu) * pull + rng.gauss(0, max(1, tgt[0] * noise_scale))
+        lat += (tgt[1] - lat) * pull + rng.gauss(0, max(1, tgt[1] * noise_scale))
+        yolo += (tgt[2] - yolo) * pull + rng.gauss(0, max(1, tgt[2] * noise_scale))
+        fps += (tgt[3] - fps) * pull + rng.gauss(0, max(0.5, tgt[3] * noise_scale))
+        mem += (tgt[4] - mem) * pull * 0.6 + rng.gauss(0, 12)
+        det += (tgt[5] - det) * pull + rng.gauss(0, max(0.3, tgt[5] * 0.2))
+
+        # Clamp
+        gpu = max(0, min(98, gpu))
+        lat = max(0, min(240, lat))
+        yolo = max(0, min(170, yolo))
+        fps = max(0, min(55, fps))
+        mem = max(180, min(1800, mem))
+        det = max(0, min(14, det))
+
+        # Force idle phases to truly 0 for GPU/lat/yolo/fps/det
+        if phase in ("idle", "idle2", "idle3"):
+            gpu = max(0, gpu * 0.6)
+            lat = max(0, lat * 0.5)
+            yolo = max(0, yolo * 0.5)
+            fps = max(0, fps * 0.5)
+            det = max(0, det * 0.5)
+
+        # Staircase: hold values for N ticks then snap to new computed value
+        hold_counter += 1
+        if hold_counter >= hold_ticks:
+            hold_counter = 0
+            hold_ticks = rng.randint(2, 5)
+            step_gpu = round(gpu, 1)
+            step_lat = round(lat, 1)
+            step_yolo = round(yolo, 1)
+            step_fps = round(fps, 1)
+            step_mem = round(mem, 0)
+            step_det = round(max(0, det), 0)
+
+        series["GPU Usage"]["data"].append({"t": ts, "v": step_gpu})
+        series["Latency Cam"]["data"].append({"t": ts, "v": step_lat})
+        series["YOLO Inference"]["data"].append({"t": ts, "v": step_yolo})
+        series["FPS"]["data"].append({"t": ts, "v": step_fps})
+        series["Memory"]["data"].append({"t": ts, "v": step_mem})
+        series["Active Detections"]["data"].append({"t": ts, "v": step_det})
+
+    return series
+
+
+@app.get("/api/metrics")
+async def get_metrics(points: int = 120):
+    """Return demo performance metrics for the monitoring chart."""
+    return _generate_demo_metrics(min(points, 500))
+
+
+@app.get("/api/logs")
+async def get_audit_logs(limit: int = 200, offset: int = 0, category: str = ""):
+    """Return recent audit log entries (newest first)."""
+    with _audit_lock:
+        entries = list(_audit_log)
+    # Filter by category if provided
+    if category:
+        cats = set(c.strip() for c in category.split(","))
+        entries = [e for e in entries if e.get("category") in cats]
+    # Newest first
+    entries.reverse()
+    total = len(entries)
+    page = entries[offset: offset + limit]
+    return {"logs": page, "total": total}
+
+
+@app.delete("/api/logs")
+async def clear_audit_logs():
+    """Clear the audit log."""
+    with _audit_lock:
+        _audit_log.clear()
+        try:
+            AUDIT_LOG_FILE.write_text("")
+        except Exception:
+            pass
+    audit_event("system", "logs_cleared", "Journal d'audit effacé", "warn")
+    return {"message": "Logs cleared"}
+
+
 def _list_video_files() -> list[str]:
     videos: list[str] = []
     for ext in ["*.mp4", "*.avi", "*.mov", "*.mkv", "*.MP4", "*.AVI", "*.MOV", "*.MKV"]:
@@ -171,6 +514,8 @@ async def upload_video(file: UploadFile = File(...)):
     with open(video_path, "wb") as f:
         content = await file.read()
         f.write(content)
+    audit_event("video", "upload", f"Vidéo « {file.filename} » uploadée", "success",
+                {"filename": file.filename})
     return {"message": "Video uploaded", "filename": file.filename}
 
 
@@ -294,6 +639,9 @@ async def create_zone(zone: ZoneCreate):
             zone_timers[zone_name] = {"total_time": 0, "occupy_start": None, "last_seen": None}
 
     save_zones()
+    poly_count = len(zone.polygons)
+    audit_event("zone", "created", f"Zone « {zone_name} » créée sur {video_name} ({poly_count} forme(s))", "success",
+                {"zone": zone_name, "video": video_name, "polygons": poly_count})
     return {"message": "Zone created", "name": zone_name}
 
 
@@ -312,6 +660,9 @@ async def update_zone(video_name: str, zone_name: str, update: ZoneUpdate):
         zones_by_video[video_name][zone_name]["polygons"] = update.polygons
 
     save_zones()
+    poly_count = len(update.polygons)
+    audit_event("zone", "edited", f"Zone « {zone_name} » éditée sur {video_name} ({poly_count} forme(s))", "info",
+                {"zone": zone_name, "video": video_name, "polygons": poly_count})
     return {"message": "Zone updated", "name": zone_name, "video": video_name}
 
 
@@ -336,6 +687,8 @@ async def delete_zone(video_name: str, zone_name: str):
 
     save_zones()
     save_presence()
+    audit_event("zone", "deleted", f"Zone « {zone_name} » supprimée de {video_name}", "warn",
+                {"zone": zone_name, "video": video_name})
     return {"message": "Zone deleted"}
 
 
@@ -356,6 +709,8 @@ async def delete_all_zones_for_video(video_name: str):
 
     save_zones()
     save_presence()
+    audit_event("zone", "deleted_all", f"Toutes les zones supprimées pour {video_name}", "warn",
+                {"video": video_name})
     return {"message": "All zones deleted for video"}
 
 
@@ -367,6 +722,7 @@ async def reset_all_timers():
             zone_timers[zone_name]["occupy_start"] = None
             zone_timers[zone_name]["last_seen"] = None
     save_presence()
+    audit_event("zone", "reset_all", "Tous les timers de zones réinitialisés", "warn")
     return {"message": "All timers reset"}
 
 
@@ -378,6 +734,7 @@ async def reset_zone_timer(zone_name: str):
             zone_timers[zone_name]["occupy_start"] = None
             zone_timers[zone_name]["last_seen"] = None
     save_presence()
+    audit_event("zone", "reset", f"Timer de « {zone_name} » réinitialisé", "info", {"zone": zone_name})
     return {"message": f"Timer reset for {zone_name}"}
 
 
@@ -428,6 +785,7 @@ async def stop_video_stream(video_name: str):
     with streams_lock:
         if video_name in active_streams:
             active_streams[video_name]["active"] = False
+    audit_event("stream", "stopped", f"Stream arrêté : {video_name}", "info", {"source": video_name})
     return {"message": f"Stream stopped for {video_name}"}
 
 
@@ -435,8 +793,11 @@ async def stop_video_stream(video_name: str):
 async def stop_all_streams():
     """Stop all active streams"""
     with streams_lock:
+        stopped = list(active_streams.keys())
         for video_name in active_streams:
             active_streams[video_name]["active"] = False
+    audit_event("stream", "stopped_all", f"Tous les streams arrêtés ({len(stopped)})", "warn",
+                {"count": len(stopped)})
     return {"message": "All streams stopped"}
 
 
@@ -453,7 +814,10 @@ async def toggle_blur():
     global blur_enabled
     with blur_lock:
         blur_enabled = not blur_enabled
-        return {"enabled": blur_enabled}
+        state = blur_enabled
+    audit_event("blur", "toggled", f"Floutage {'activé' if state else 'désactivé'}", "info",
+                {"enabled": state})
+    return {"enabled": state}
 
 
 @app.post("/api/blur/{state}")
@@ -507,6 +871,8 @@ async def add_camera(camera: CameraCreate):
         raise HTTPException(status_code=400, detail="Invalid camera type")
 
     save_cameras()
+    audit_event("camera", "added", f"Caméra « {camera.name} » ajoutée ({camera.type})", "success",
+                {"camera_id": camera.camera_id, "name": camera.name, "type": camera.type})
     return {"message": "Camera added", "camera_id": camera.camera_id}
 
 
@@ -522,8 +888,11 @@ async def delete_camera(camera_id: str):
         if source_name in active_streams:
             active_streams[source_name]["active"] = False
 
+    cam_name = cameras.get(camera_id, {}).get("name", camera_id)
     del cameras[camera_id]
     save_cameras()
+    audit_event("camera", "deleted", f"Caméra « {cam_name} » supprimée", "warn",
+                {"camera_id": camera_id})
     return {"message": "Camera deleted"}
 
 
@@ -1197,6 +1566,7 @@ async def start_video_processing(video_name: str):
     )
     processor_thread.start()
 
+    audit_event("stream", "started", f"Stream démarré : {video_name}", "success", {"source": video_name})
     return {"message": "Stream started", "video": video_name}
 
 

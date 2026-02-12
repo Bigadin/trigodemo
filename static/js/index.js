@@ -1,14 +1,30 @@
-﻿// State
+// State
         let currentVideo = null;
         let currentCameraId = null;
         let currentView = 'home'; // 'home' | 'tracker'
         // DEMO mode: sites live only in memory (refresh => reset)
         const DEMO_SITES = [
             {
-                name: 'Site Démo',
+                name: 'Entrepôt Central',
+                location: 'Lyon',
                 cameras: [
                     { id: 'cam1', name: 'Entrepôt', hint: 'Déchargement & présence', video: 'entr1.mp4' },
                     { id: 'cam2', name: 'Convoyeur', hint: 'Tapis roulant & contrôle', video: 'video_01.mp4' }
+                ]
+            },
+            {
+                name: 'Entrée',
+                location: 'Lyon',
+                cameras: [
+                    { id: 'cam5', name: 'Accueil', hint: 'Contrôle d\'accès', video: 'video_04.mp4' }
+                ]
+            },
+            {
+                name: 'Gallerie Voltaire',
+                location: 'Paris',
+                cameras: [
+                    { id: 'cam3', name: 'Hall Principal', hint: 'Surveillance flux visiteurs', video: 'Mall1.mp4' },
+                    { id: 'cam4', name: 'Galerie Est', hint: 'Comptage & présence', video: 'Mall2.mp4' }
                 ]
             }
         ];
@@ -31,8 +47,8 @@
         const presenceOkTsByVideo = {};     // { [videoName]: epochMs } dernier /api/presence OK (anti-stale)
         let loadZonesInFlight = false;
         let loadZonesLoopTimer = null;
-        const PRESENCE_POLL_ACTIVE_MS = 2500;  // 2.5s polling when detecting (was 1s)
-        const PRESENCE_POLL_IDLE_MS = 5000;   // 5s polling when idle (was 2s)
+        const PRESENCE_POLL_ACTIVE_MS = 1200;  // 1.2s polling when detecting
+        const PRESENCE_POLL_IDLE_MS = 5000;   // 5s polling when idle
         const ZONES_DEF_TTL_MS = 2500;
         const PRESENCE_STALE_MS = 3500; // Adjusted for slower polling rate
 
@@ -284,6 +300,7 @@
         const activeStreamsDiv = document.getElementById('activeStreams');
         const cameraGrid = document.getElementById('cameraGrid');
         const currentVideoTitle = document.getElementById('currentVideoTitle');
+        const videoLabelText = document.getElementById('videoLabelText');
         const zoneListSidebar = document.getElementById('zoneListSidebar');
         const sidebarTreeLabel = document.getElementById('sidebarTreeLabel');
         const recapCameras = document.getElementById('recapCameras');
@@ -306,6 +323,8 @@
         const pageTitleEl = document.getElementById('pageTitle');
         const pageSubtitleEl = document.getElementById('pageSubtitle');
         const stepsEl = document.querySelector('.steps');
+        const trackerBackBtn = document.getElementById('trackerBackBtn');
+        const trackerBreadcrumb = document.getElementById('trackerBreadcrumb');
 
         // Cameras (per site)
         const addCameraBtn = document.getElementById('addCameraBtn');
@@ -352,21 +371,14 @@
             const CAMERAS_SITE_NAME = 'Caméras';
             let camerasSite = sitesCache.find(s => s.name === CAMERAS_SITE_NAME);
 
-            if (!camerasSite) {
-                camerasSite = { name: CAMERAS_SITE_NAME, cameras: [] };
-                sitesCache.push(camerasSite);
-            }
-
             // Build cameras array from backend cameras
             const syncedCameras = [];
             for (const [backendId, camData] of Object.entries(backendCameras)) {
-                // Check if this camera already exists in the site
-                const existing = camerasSite.cameras.find(c => c.backendCameraId === backendId);
+                const existing = camerasSite?.cameras?.find(c => c.backendCameraId === backendId);
                 if (existing) {
                     syncedCameras.push(existing);
                 } else {
-                    // Create new camera entry
-                    const camType = camData.type; // 'webcam' or 'rtsp'
+                    const camType = camData.type;
                     syncedCameras.push({
                         id: backendId,
                         name: camData.name || backendId,
@@ -375,6 +387,19 @@
                         backendCameraId: backendId
                     });
                 }
+            }
+
+            // Only create/keep the "Caméras" site if there are actual backend cameras
+            if (syncedCameras.length === 0) {
+                // Remove stale empty site if it exists
+                const idx = sitesCache.findIndex(s => s.name === CAMERAS_SITE_NAME);
+                if (idx !== -1) sitesCache.splice(idx, 1);
+                return;
+            }
+
+            if (!camerasSite) {
+                camerasSite = { name: CAMERAS_SITE_NAME, location: 'Local', cameras: [] };
+                sitesCache.push(camerasSite);
             }
 
             camerasSite.cameras = syncedCameras;
@@ -721,7 +746,7 @@
                         </div>
                     `;
                 }).join('')
-                : `<div style="color: rgba(245,247,255,0.65); font-size: var(--text-sm);">Aucune zone</div>`;
+                : `<div style="color: rgba(255,255,255,0.30); font-size: 12px;">Aucune zone</div>`;
             editorUpdateToolbarEnabled();
         }
 
@@ -795,8 +820,14 @@
 
             editorSetTool('select');
             editorClearTemp();
-            editorRenderZoneList();
-            editorUpdateToolbarEnabled();
+
+            /* Auto-select first zone if one exists, so polygons show immediately */
+            if (editorState.zone) {
+                editorSelectZone(editorState.zone);
+            } else {
+                editorRenderZoneList();
+                editorUpdateToolbarEnabled();
+            }
 
             editorOverlay.classList.remove('hidden');
             editorState.open = true;
@@ -805,7 +836,9 @@
                 const r = editorFrame.getBoundingClientRect();
                 editorCanvas.style.width = r.width + 'px';
                 editorCanvas.style.height = r.height + 'px';
-                editorRender();
+                /* Re-render with the selected zone's polygons now that canvas is sized */
+                if (editorState.zone) editorSelectZone(editorState.zone);
+                else editorRender();
             };
         }
 
@@ -899,18 +932,18 @@
                     if (p1) {
                         editorCtx.beginPath();
                         editorCtx.arc(p1[0], p1[1], 8, 0, Math.PI * 2);
-                        editorCtx.fillStyle = '#10B0F9';
+                        editorCtx.fillStyle = '#1d5bff';
                         editorCtx.fill();
                     }
                     if (p2) {
                         editorCtx.beginPath();
                         editorCtx.arc(p2[0], p2[1], 8, 0, Math.PI * 2);
-                        editorCtx.fillStyle = '#10B0F9';
+                        editorCtx.fillStyle = '#1d5bff';
                         editorCtx.fill();
                         editorCtx.beginPath();
                         editorCtx.moveTo(p1[0], p1[1]);
                         editorCtx.lineTo(p2[0], p2[1]);
-                        editorCtx.strokeStyle = '#10B0F9';
+                        editorCtx.strokeStyle = '#1d5bff';
                         editorCtx.lineWidth = 2; /* plus fin */
                         editorCtx.setLineDash([]); /* continu */
                         editorCtx.stroke();
@@ -921,7 +954,7 @@
                         const mid = [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
                         const def = getLineDraftMidAndDefaultDir();
                         const end = editorState.lineDirEnd || def?.end;
-                        if (end) drawArrow(editorCtx, mid, end, '#10B0F9', { shaftWidth: 2, dashed: false, head: 22, wing: 13, outline: true });
+                        if (end) drawArrow(editorCtx, mid, end, '#1d5bff', { shaftWidth: 2, dashed: false, head: 22, wing: 13, outline: true });
                     }
                 } else if (editorState.tool === 'include' || editorState.tool === 'exclude') {
                     const pts = editorState.points;
@@ -944,7 +977,7 @@
                     pts.forEach((p, i) => {
                         editorCtx.beginPath();
                         editorCtx.arc(p[0], p[1], 8, 0, Math.PI * 2);
-                        editorCtx.fillStyle = i === 0 ? '#10B0F9' : '#22c55e';
+                        editorCtx.fillStyle = i === 0 ? '#1d5bff' : '#22c55e';
                         editorCtx.fill();
                         editorCtx.strokeStyle = '#000';
                         editorCtx.lineWidth = 2;
@@ -960,7 +993,7 @@
                     poly.forEach((p, i) => {
                         editorCtx.beginPath();
                         editorCtx.arc(p[0], p[1], 9, 0, Math.PI * 2);
-                        editorCtx.fillStyle = '#10B0F9';
+                        editorCtx.fillStyle = '#1d5bff';
                         editorCtx.fill();
                         editorCtx.strokeStyle = '#fff';
                         editorCtx.lineWidth = 2;
@@ -1787,7 +1820,7 @@
         function sub(a, b) { return [a[0] - b[0], a[1] - b[1]]; }
         function mul(a, k) { return [a[0] * k, a[1] * k]; }
 
-        function drawArrow(ctx, from, to, color = '#10B0F9', opts = {}) {
+        function drawArrow(ctx, from, to, color = '#1d5bff', opts = {}) {
             const v = sub(to, from);
             const u = norm(v);
             const head = Number(opts.head ?? 22);
@@ -1951,24 +1984,61 @@
 
         function setView(view) {
             currentView = view;
-            const isHome = view === 'home';
+            /* Invalidate sidebar HTML caches so next render always updates DOM */
+            _lastSitesSidebarHTML = '';
+            _lastAssetTreeHTML = '';
 
-            homeView.classList.toggle('hidden', !isHome);
-            trackerView.classList.toggle('hidden', isHome);
+            // Hide all views
+            homeView.classList.add('hidden');
+            trackerView.classList.add('hidden');
+            const analyticsView = document.getElementById('analyticsView');
+            const logsView = document.getElementById('logsView');
+            if (analyticsView) analyticsView.classList.add('hidden');
+            if (logsView) logsView.classList.add('hidden');
 
-            navSites.classList.toggle('active', isHome);
-            navTracker.classList.toggle('active', !isHome);
+            // Deactivate all nav
+            navSites.classList.remove('active');
+            navTracker.classList.remove('active');
+            const navAnalytics = document.getElementById('navAnalytics');
+            const navLogs = document.getElementById('navLogs');
+            if (navAnalytics) navAnalytics.classList.remove('active');
+            if (navLogs) navLogs.classList.remove('active');
 
-            if (stepsEl) stepsEl.style.display = isHome ? 'none' : '';
+            if (stepsEl) stepsEl.style.display = (view === 'tracker') ? '' : 'none';
 
-            if (isHome) {
-                pageTitleEl.textContent = 'Sites';
-                pageSubtitleEl.textContent = 'Choisissez un site ou créez-en un pour démarrer la configuration';
-                renderSitesSidebar();
-            } else {
-                const siteLabel = currentSite?.name ? ` — ${currentSite.name}` : '';
-                pageTitleEl.textContent = `Zone Presence Tracker${siteLabel}`;
-                pageSubtitleEl.textContent = 'Surveillance et analyse du temps de présence';
+            switch (view) {
+                case 'home':
+                    homeView.classList.remove('hidden');
+                    navSites.classList.add('active');
+                    pageTitleEl.textContent = 'Sites';
+                    pageSubtitleEl.textContent = 'Choisissez un site ou créez-en un pour démarrer la configuration';
+                    renderSitesSidebar();
+                    break;
+                case 'tracker':
+                    trackerView.classList.remove('hidden');
+                    navTracker.classList.add('active');
+                    const siteLabel = currentSite?.name ? ` — ${currentSite.name}` : '';
+                    pageTitleEl.textContent = `Zone Presence Tracker${siteLabel}`;
+                    pageSubtitleEl.textContent = 'Surveillance et analyse du temps de présence';
+                    updateTrackerBreadcrumb();
+                    renderSidebarForTracker();
+                    break;
+                case 'analytics':
+                    if (analyticsView) analyticsView.classList.remove('hidden');
+                    if (navAnalytics) navAnalytics.classList.add('active');
+                    pageTitleEl.textContent = 'Analytics';
+                    pageSubtitleEl.textContent = 'Données et indicateurs de performance';
+                    initAnalyticsDashboard();
+                    break;
+                case 'logs':
+                    if (logsView) logsView.classList.remove('hidden');
+                    if (navLogs) navLogs.classList.add('active');
+                    pageTitleEl.textContent = 'Log / Historique';
+                    pageSubtitleEl.textContent = 'Journal d\'audit et historique des événements';
+                    loadPerfMetrics();
+                    loadLogs();
+                    startLogAutoRefresh();
+                    break;
             }
             updateSidebarTreeLabel();
         }
@@ -1982,9 +2052,25 @@
             }
         }
 
-        function loadSites() {
+        async function loadSites() {
+            await refreshZonesCacheForSites();
             renderSitesHome();
-            if (currentView === 'home') renderSitesSidebar();
+            renderSitesSidebar();
+            /* Keep location LOV in sync */
+            _syncLocationLov();
+        }
+
+        function _syncLocationLov() {
+            const sel = document.getElementById('newSiteLocation');
+            if (!sel) return;
+            const locs = [...new Set((sitesCache || []).map(s => s.location).filter(Boolean))].sort();
+            const prev = sel.value;
+            let html = '<option value="" disabled>Lieu…</option>';
+            for (const l of locs) html += `<option value="${l}">${l}</option>`;
+            html += '<option value="__new__">+ Nouveau lieu…</option>';
+            sel.innerHTML = html;
+            if (prev && locs.includes(prev)) sel.value = prev; else sel.selectedIndex = 0;
+            if (typeof LovDropdown !== 'undefined') LovDropdown.refresh();
         }
 
         function escapeHtml(text) {
@@ -2006,64 +2092,412 @@
             return base.slice(0, availableLen) + '...' + ext;
         }
 
+        let _sitesViewMode = 'grid'; // 'grid' | 'list'
+
+        function countSiteForms(site) {
+            let count = 0;
+            for (const cam of (site.cameras || [])) {
+                const video = cam.video;
+                if (!video) continue;
+                const videoZones = zones_by_video_cache?.[video];
+                if (videoZones) {
+                    for (const zName of Object.keys(videoZones)) {
+                        const z = videoZones[zName];
+                        count += (z.polygons || []).length;
+                    }
+                }
+            }
+            return count;
+        }
+
+        // Lightweight zone cache for counting forms
+        let zones_by_video_cache = {};
+        async function refreshZonesCacheForSites() {
+            try {
+                // Fetch zones for all videos used by sites
+                const videos = new Set();
+                for (const s of (sitesCache || [])) {
+                    for (const c of (s.cameras || [])) {
+                        if (c.video) videos.add(c.video);
+                    }
+                }
+                for (const v of videos) {
+                    try {
+                        const res = await fetch(`/api/zones/${encodeURIComponent(v)}`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            zones_by_video_cache[v] = data.zones || {};
+                        }
+                    } catch {}
+                }
+            } catch {}
+        }
+
         function renderSitesHome() {
-            if (!sitesGrid) return;
+            const container = document.getElementById('sitesContainer');
+            if (!container) return;
+
             if (!sitesCache || sitesCache.length === 0) {
-                sitesGrid.innerHTML = '<div class="no-zones">Aucun site. Créez-en un pour commencer.</div>';
+                container.innerHTML = '<div class="no-zones">Aucun site. Créez-en un pour commencer.</div>';
                 return;
             }
 
-            sitesGrid.innerHTML = sitesCache.map((s) => {
-                const cams = s.cameras || [];
-                const camLines = cams.map(c => `${c.id}: ${c.name} • ${c.video}`).slice(0, 3);
-                const siteName = escapeHtml(s.name);
-                const siteKey = encodeURIComponent(String(s.name ?? ''));
-                const demoName = DEMO_SITES?.[0]?.name;
-                const canDelete = !(demoName && s.name === demoName);
-                return `
-                    <div class="zone-card site-card" style="cursor:pointer;" data-site="${siteKey}">
-                        <div class="zone-card-header">
-                            <div class="zone-card-name">${siteName}</div>
-                            <div style="display:flex; align-items:center; gap: var(--space-2);">
-                                <div class="zone-card-status empty">${cams.length} caméra(s)</div>
-                                ${canDelete ? `<button class="btn btn-ghost btn-icon" data-delete-site="${siteKey}" title="Supprimer" type="button">✕</button>` : ''}
-                            </div>
-                        </div>
-                        <div style="margin-top: var(--space-2); color: var(--color-text-muted); font-size: var(--text-xs);">
-                            ${camLines.map(l => `<div>${l}</div>`).join('')}
-                        </div>
-                        <div class="zone-card-time" style="font-size: var(--text-sm);">Configurer</div>
-                    </div>
-                `;
-            }).join('');
+            if (_sitesViewMode === 'grid') {
+                renderSitesGrid(container);
+            } else {
+                renderSitesList(container);
+            }
         }
+
+        /* hierarchy icon helpers */
+        const _hierIcon = (src, cls) => `<img src="/static/assets_youn/SvIcons/${src}" class="hier-icon${cls ? ' ' + cls : ''}" alt="">`;
+        const ICON_LIEU  = _hierIcon('Lieux.svg');
+        const ICON_SITE  = _hierIcon('Site.svg');
+        const ICON_CAM   = _hierIcon('camera.svg');
+        const ICON_ZONE  = _hierIcon('zone.svg');
+
+        function renderSitesGrid(container) {
+            /* Group by location first */
+            const groups = {};
+            for (const s of sitesCache) {
+                const loc = s.location || 'Sans lieu';
+                if (!groups[loc]) groups[loc] = [];
+                groups[loc].push(s);
+            }
+
+            let html = '';
+            for (const [loc, sites] of Object.entries(groups)) {
+                const totalCams = sites.reduce((n, s) => n + (s.cameras || []).length, 0);
+                const totalForms = sites.reduce((n, s) => n + countSiteForms(s), 0);
+
+                const _lgCol = getLocColor(loc);
+                html += `<div class="loc-group">
+                    <div class="loc-group__header" style="--card-loc-color:${_lgCol};">
+                        <span class="sb-loc__sq" style="background:${_lgCol};width:10px;height:10px;border-radius:1px;flex:0 0 10px;"></span>
+                        <span class="loc-group__name">${escapeHtml(loc)}</span>
+                        <span class="loc-group__badges">
+                            <span class="loc-group__badge">${ICON_SITE}<strong>${sites.length}</strong> site${sites.length > 1 ? 's' : ''}</span>
+                            <span class="loc-group__badge">${ICON_CAM}<strong>${totalCams}</strong> cam${totalCams > 1 ? 's' : ''}</span>
+                            <span class="loc-group__badge">${ICON_ZONE}<strong>${totalForms}</strong> zone${totalForms > 1 ? 's' : ''}</span>
+                        </span>
+                    </div>
+                    <div class="loc-group__cards">`;
+
+                for (const s of sites) {
+                    const cams = s.cameras || [];
+                    const siteName = escapeHtml(s.name);
+                    const siteKey = encodeURIComponent(String(s.name ?? ''));
+                    const forms = countSiteForms(s);
+                    const _locCol = getLocColor(loc);
+                    html += `
+                        <div class="site-card-v2" data-site="${siteKey}" style="--card-loc-color:${_locCol};">
+                            <div class="site-card-v2__top">
+                                <div>
+                                    <div class="site-card-v2__name">${ICON_SITE} ${siteName}</div>
+                                    <div class="site-card-v2__location">${ICON_LIEU} ${escapeHtml(loc)}</div>
+                                </div>
+                                <div class="site-menu-wrap">
+                                    <button class="site-menu-btn" type="button" title="Options">
+                                        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="2.5" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="8" cy="13.5" r="1.5"/></svg>
+                                    </button>
+                                    <div class="site-menu-panel">
+                                        <button class="site-menu-item" data-site-action="open" data-site-key="${siteKey}" type="button">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M10 14L21 3"/><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/></svg>
+                                            Ouvrir
+                                        </button>
+                                        <button class="site-menu-item" data-site-action="rename" data-site-key="${siteKey}" type="button">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                                            Renommer
+                                        </button>
+                                        <button class="site-menu-item" data-site-action="move" data-site-key="${siteKey}" type="button">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                                            Changer de lieu
+                                        </button>
+                                        <button class="site-menu-item site-menu-item--danger" data-site-action="delete" data-site-key="${siteKey}" type="button">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                                            Supprimer
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="site-card-v2__stats">
+                                <span class="site-card-v2__stat">${ICON_CAM}<strong>${cams.length}</strong> Cam${cams.length > 1 ? 's' : ''}</span>
+                                <span class="site-card-v2__stat">${ICON_ZONE}<strong>${forms}</strong> Zone${forms > 1 ? 's' : ''}</span>
+                            </div>
+                        </div>`;
+                }
+                html += '</div></div>';
+            }
+            container.innerHTML = html;
+        }
+
+        /** Site status: 'active' (detection running), 'idle' (no stream) */
+        function getSiteStatus(site) {
+            const cams = site.cameras || [];
+            if (cams.length === 0) return 'idle';
+            const hasActive = cams.some(c => {
+                const vid = c.video || c.backendCameraId || '';
+                return vid && activeVideoStreams.has(vid);
+            });
+            return hasActive ? 'active' : 'idle';
+        }
+
+        const STATUS_COLORS = { active: '#22c55e', pause: '#F08321', idle: '#6E7180' };
+
+        function renderSitesList(container) {
+            /* Group sites by location */
+            const groups = {};
+            for (const s of sitesCache) {
+                const loc = s.location || 'Sans lieu';
+                if (!groups[loc]) groups[loc] = [];
+                groups[loc].push(s);
+            }
+
+            let html = '';
+            for (const [loc, sites] of Object.entries(groups)) {
+                const totalCams = sites.reduce((n, s) => n + (s.cameras || []).length, 0);
+                const totalForms = sites.reduce((n, s) => n + countSiteForms(s), 0);
+
+                const _listLocCol = getLocColor(loc);
+                html += `<div class="sites-list-group">
+                    <div class="sites-list-loc">
+                        <span class="sb-loc__sq" style="background:${_listLocCol};width:8px;height:8px;border-radius:1px;flex:0 0 8px;"></span>
+                        <span>${escapeHtml(loc)}</span>
+                        <span class="sites-list-loc__count">${sites.length} site${sites.length > 1 ? 's' : ''}</span>
+                        <span class="sites-list-loc__totals">
+                            <span class="site-list-row__stat">${ICON_CAM} <strong>${totalCams}</strong> cams</span>
+                            <span class="site-list-row__stat">${ICON_ZONE} <strong>${totalForms}</strong> zones</span>
+                        </span>
+                    </div>`;
+                for (const s of sites) {
+                    const cams = s.cameras || [];
+                    const siteKey = encodeURIComponent(String(s.name ?? ''));
+                    const forms = countSiteForms(s);
+                    const status = getSiteStatus(s);
+                    const statusColor = STATUS_COLORS[status] || STATUS_COLORS.idle;
+                    const _lCol = getLocColor(loc);
+                    html += `
+                        <div class="site-list-row" data-site="${siteKey}" style="--card-loc-color:${_lCol};">
+                            <span class="site-status-sq" style="background:${statusColor};" title="${status === 'active' ? 'Détection active' : status === 'pause' ? 'En pause' : 'Inactif'}"></span>
+                            <div class="site-list-row__name">${escapeHtml(s.name)}</div>
+                            <div class="site-list-row__stats">
+                                <span class="site-list-row__stat"><strong>${cams.length}</strong> cam${cams.length > 1 ? 's' : ''}</span>
+                                <span class="site-list-row__stat"><strong>${forms}</strong> zone${forms > 1 ? 's' : ''}</span>
+                            </div>
+                            <div class="site-menu-wrap">
+                                <button class="site-menu-btn" type="button" title="Options">
+                                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="2.5" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="8" cy="13.5" r="1.5"/></svg>
+                                </button>
+                                <div class="site-menu-panel">
+                                    <button class="site-menu-item" data-site-action="open" data-site-key="${siteKey}" type="button">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M10 14L21 3"/><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/></svg>
+                                        Ouvrir
+                                    </button>
+                                    <button class="site-menu-item" data-site-action="rename" data-site-key="${siteKey}" type="button">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                                        Renommer
+                                    </button>
+                                    <button class="site-menu-item" data-site-action="move" data-site-key="${siteKey}" type="button">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                                        Changer de lieu
+                                    </button>
+                                    <button class="site-menu-item site-menu-item--danger" data-site-action="delete" data-site-key="${siteKey}" type="button">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                                        Supprimer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>`;
+                }
+                html += '</div>';
+            }
+            container.innerHTML = html;
+        }
+
+        /* ---- Sidebar: unified Russian-doll tree ---- */
+        const _sidebarLabel = () => document.getElementById('sidebarSectionLabel');
+
+        /* Palette of location colors */
+        const LOC_PALETTE = ['#C8602A','#8B6F4E','#5B7065','#9A4B3F','#A68A64','#6B5B4E','#C49A6C'];
+        const _locColorMap = {};
+        let _locColorIdx = 0;
+        function getLocColor(loc) {
+            if (!_locColorMap[loc]) {
+                _locColorMap[loc] = LOC_PALETTE[_locColorIdx % LOC_PALETTE.length];
+                _locColorIdx++;
+            }
+            return _locColorMap[loc];
+        }
+
+        /* Zone colors (rotate a softer palette) */
+        const ZONE_PALETTE = ['#60a5fa','#f97316','#4ade80','#c084fc','#fb7185','#2dd4bf','#facc15','#818cf8'];
+
+        /* ---- Tracker breadcrumb helper ---- */
+        function updateTrackerBreadcrumb() {
+            if (!trackerBreadcrumb) return;
+            const sep = '<span class="bc-sep">/</span>';
+            const parts = [];
+            if (currentSite) {
+                const loc = currentSite.location || '';
+                if (loc) {
+                    parts.push(`<span class="bc-part bc-clickable" data-bc-action="home" title="Retour aux sites">${ICON_LIEU} ${escapeHtml(loc)}</span>`);
+                }
+                parts.push(`<span class="bc-part bc-clickable" data-bc-action="site" data-bc-site="${escapeHtml(currentSite.name)}" title="${escapeHtml(currentSite.name)}">${ICON_SITE} ${escapeHtml(currentSite.name)}</span>`);
+            }
+            if (currentCameraId) {
+                const cam = getCameraById(currentCameraId);
+                if (cam) {
+                    parts.push(`<span class="bc-part bc-current">${ICON_CAM} ${escapeHtml(cam.name || cam.id)}</span>`);
+                }
+            }
+            trackerBreadcrumb.innerHTML = parts.join(sep);
+
+            /* Click delegation on breadcrumb parts */
+            trackerBreadcrumb.onclick = (e) => {
+                const el = e.target?.closest?.('[data-bc-action]');
+                if (!el) return;
+                const action = el.dataset.bcAction;
+                if (action === 'home') {
+                    setView('home');
+                } else if (action === 'site') {
+                    /* Already on the site — could reload or stay */
+                    const name = el.dataset.bcSite;
+                    if (name) selectSiteByName(name);
+                }
+            };
+        }
+
+        /* Anti-flicker for sites sidebar */
+        let _lastSitesSidebarHTML = '';
 
         function renderSitesSidebar() {
             if (!zoneListSidebar) return;
+            const lbl = _sidebarLabel();
+            if (lbl) lbl.textContent = 'Explorer';
+
             if (!sitesCache || sitesCache.length === 0) {
-                zoneListSidebar.innerHTML = '<div style="color: var(--sidebar-text-subtle); font-size: var(--text-sm);">Aucun site</div>';
+                const empty = '<div class="sb-empty">Aucun site</div>';
+                if (_lastSitesSidebarHTML !== empty) {
+                    _lastSitesSidebarHTML = empty;
+                    zoneListSidebar.innerHTML = empty;
+                }
                 return;
             }
-            zoneListSidebar.innerHTML = `
-                <div class="draw-tree">
-                    ${sitesCache.map((s) => `
-                        <div class="tree-row site-row" data-site="${encodeURIComponent(String(s.name ?? ''))}">
-                            <div class="left">
-                                <span class="label">🏢 ${escapeHtml(s.name)}</span>
-                            </div>
-                            <span class="meta">${(s.cameras || []).length} cam</span>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
+
+            /* Group by location */
+            const groups = {};
+            for (const s of sitesCache) {
+                const loc = s.location || 'Sans lieu';
+                if (!groups[loc]) groups[loc] = [];
+                groups[loc].push(s);
+            }
+
+            const isTracker = currentView === 'tracker';
+            let html = '';
+
+            for (const [loc, sites] of Object.entries(groups)) {
+                const locColor = getLocColor(loc);
+
+                html += `<div class="sb-group">
+                    <div class="sb-loc">
+                        <span class="sb-loc__sq" style="background:${locColor};"></span>
+                        <span>${escapeHtml(loc)}</span>
+                    </div>`;
+
+                for (const s of sites) {
+                    const siteKey = encodeURIComponent(String(s.name ?? ''));
+                    const status = getSiteStatus(s);
+                    const sColor = STATUS_COLORS[status] || STATUS_COLORS.idle;
+                    const cams = s.cameras || [];
+                    const isSiteOpen = isTracker && currentSite?.name === s.name;
+
+                    html += `
+                        <div class="sb-item sb-item--site${isSiteOpen ? ' sb-item--active' : ''}" data-site="${siteKey}" style="--sb-loc-color:${locColor};">
+                            <span class="site-status-sq" style="background:${sColor};"></span>
+                            ${ICON_SITE}
+                            <span class="sb-item__name">${escapeHtml(s.name)}</span>
+                            <span class="sb-item__meta">${cams.length}</span>
+                        </div>`;
+
+                    /* If this site is open in tracker, show cameras + zones */
+                    if (isSiteOpen) {
+                        for (const cam of cams) {
+                            const vid = cam.video || cam.backendCameraId || '';
+                            const isStreaming = vid && activeVideoStreams.has(vid);
+                            const camColor = isStreaming ? STATUS_COLORS.active : STATUS_COLORS.idle;
+                            const isCamActive = cam.id === currentCameraId;
+
+                            const camZones = zones_by_video_cache?.[vid] || zonesCacheByVideo?.[vid] || {};
+                            const zoneNames = Object.keys(camZones);
+
+                            html += `
+                                <div class="sb-item sb-item--cam${isCamActive ? ' sb-item--active' : ''}" data-cam-id="${cam.id}" style="--sb-loc-color:${locColor};">
+                                    <span class="site-status-sq" style="background:${camColor};"></span>
+                                    ${ICON_CAM}
+                                    <span class="sb-item__name">${escapeHtml(cam.name || cam.id)}</span>
+                                    <span class="sb-item__meta">${zoneNames.length}</span>
+                                </div>`;
+
+                            /* Zones under this camera (always shown when site is open) */
+                            let zi = 0;
+                            for (const zn of zoneNames) {
+                                const zColor = ZONE_PALETTE[zi % ZONE_PALETTE.length];
+                                zi++;
+                                html += `
+                                    <div class="sb-item sb-item--zone${isCamActive ? '' : ' sb-item--dim'}" data-zone-name="${escapeHtml(zn)}" style="--sb-loc-color:${locColor};">
+                                        <span class="sb-zone-sq" style="background:${zColor};"></span>
+                                        ${ICON_ZONE}
+                                        <span class="sb-item__name">${escapeHtml(zn)}</span>
+                                    </div>`;
+                            }
+                        }
+                    }
+                }
+                html += '</div>';
+            }
+
+            /* Anti-flicker: skip DOM update if nothing changed */
+            if (html !== _lastSitesSidebarHTML) {
+                _lastSitesSidebarHTML = html;
+                zoneListSidebar.innerHTML = html;
+            }
+
+            /* Unified click delegation */
+            zoneListSidebar.onclick = (e) => {
+                /* Zone click */
+                const zoneEl = e.target?.closest?.('[data-zone-name]');
+                if (zoneEl) {
+                    /* Could scroll to zone in editor in the future */
+                    return;
+                }
+                /* Camera click */
+                const camEl = e.target?.closest?.('[data-cam-id]');
+                if (camEl) {
+                    const camId = camEl.getAttribute('data-cam-id');
+                    if (camId) selectCamera(camId);
+                    return;
+                }
+                /* Site click */
+                const siteEl = e.target?.closest?.('[data-site]');
+                if (siteEl) {
+                    const name = decodeURIComponent(siteEl.getAttribute('data-site') || '');
+                    selectSiteByName(name);
+                    return;
+                }
+            };
         }
 
-        function createSite(name) {
+        function renderSidebarForHome() { renderSitesSidebar(); }
+        function renderSidebarForTracker() { renderSitesSidebar(); }
+
+        function createSite(name, location) {
             const n = String(name || '').trim();
             if (!n) throw new Error('Nom de site requis');
             if ((sitesCache || []).some(s => s.name === n)) throw new Error('Site déjà existant');
-            // nouveau site vide (0 caméra)
-            sitesCache.push({ name: n, cameras: [] });
+            const site = { name: n, cameras: [] };
+            const loc = String(location || '').trim();
+            if (loc) site.location = loc;
+            sitesCache.push(site);
         }
 
         function cameraIdFromName(name) {
@@ -2130,6 +2564,240 @@
             updateSteps();
         }
 
+        // ==================== Performance Monitor Chart ====================
+        let _perfData = null;       // cached metrics response
+        let _perfHidden = new Set(["YOLO Inference", "FPS", "Active Detections"]); // hidden by default
+
+        async function loadPerfMetrics() {
+            try {
+                const res = await fetch('/api/metrics?points=120');
+                _perfData = await res.json();
+                renderPerfLegends();
+                drawPerfChart();
+            } catch (e) {
+                console.warn('Failed to load metrics:', e);
+            }
+        }
+
+        function renderPerfLegends() {
+            const container = document.getElementById('perfLegends');
+            if (!container || !_perfData) return;
+
+            container.innerHTML = '';
+            for (const [name, series] of Object.entries(_perfData)) {
+                const vals = series.data.map(d => d.v);
+                const min = Math.round(Math.min(...vals));
+                const max = Math.round(Math.max(...vals));
+                const unit = series.unit || '';
+                const isOff = _perfHidden.has(name);
+
+                const el = document.createElement('div');
+                el.className = 'perf-legend' + (isOff ? ' is-off' : '');
+                el.style.color = series.color;
+                el.innerHTML = `
+                    <span class="perf-legend-check"></span>
+                    <span class="perf-legend-label">${name} [${min}${unit ? ' ' + unit : ''} – ${max}${unit ? ' ' + unit : ''}]</span>
+                `;
+                el.addEventListener('click', () => {
+                    if (_perfHidden.has(name)) _perfHidden.delete(name);
+                    else _perfHidden.add(name);
+                    renderPerfLegends();
+                    drawPerfChart();
+                });
+                container.appendChild(el);
+            }
+        }
+
+        function hexToRgba(hex, a) {
+            const r = parseInt(hex.slice(1,3),16);
+            const g = parseInt(hex.slice(3,5),16);
+            const b = parseInt(hex.slice(5,7),16);
+            return `rgba(${r},${g},${b},${a})`;
+        }
+
+        function drawPerfChart() {
+            const canvas = document.getElementById('perfCanvas');
+            if (!canvas || !_perfData) return;
+
+            const wrap = canvas.parentElement;
+            const dpr = window.devicePixelRatio || 1;
+            const w = wrap.clientWidth;
+            const h = wrap.clientHeight;
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+
+            // Background
+            ctx.fillStyle = '#0A0E13';
+            ctx.fillRect(0, 0, w, h);
+
+            // Horizontal grid
+            const gridLines = 4;
+            ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+            ctx.lineWidth = 1;
+            for (let i = 1; i < gridLines; i++) {
+                const y = Math.round((h / gridLines) * i) + 0.5;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+                ctx.stroke();
+            }
+
+            // Vertical time grid
+            const sampleLen = Object.values(_perfData)[0]?.data?.length || 200;
+            const gridStep = Math.max(1, Math.floor(sampleLen / 8));
+            ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+            for (let i = gridStep; i < sampleLen; i += gridStep) {
+                const x = Math.round((i / (sampleLen - 1)) * w) + 0.5;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, h);
+                ctx.stroke();
+            }
+
+            // Draw each series as STEP chart (staircase / cranté)
+            const pad = 4;
+            const drawH = h - pad * 2;
+
+            for (const [name, series] of Object.entries(_perfData)) {
+                if (_perfHidden.has(name)) continue;
+                const data = series.data;
+                if (!data || data.length < 2) continue;
+
+                const sMin = series.min ?? 0;
+                const sMax = series.max ?? 100;
+                const range = sMax - sMin || 1;
+
+                const toY = (v) => h - pad - ((v - sMin) / range) * drawH;
+
+                // Build step path
+                ctx.beginPath();
+                let prevY = toY(data[0].v);
+                ctx.moveTo(0, prevY);
+
+                for (let i = 1; i < data.length; i++) {
+                    const x = (i / (data.length - 1)) * w;
+                    const y = toY(data[i].v);
+                    // Horizontal line to new x at old y (step), then vertical jump
+                    ctx.lineTo(x, prevY);
+                    ctx.lineTo(x, y);
+                    prevY = y;
+                }
+                // Extend to right edge
+                ctx.lineTo(w, prevY);
+
+                // Stroke the step line
+                ctx.strokeStyle = series.color;
+                ctx.lineWidth = 1.5;
+                ctx.lineJoin = 'miter';
+                ctx.stroke();
+
+                // Fill under the step curve
+                ctx.lineTo(w, h);
+                ctx.lineTo(0, h);
+                ctx.closePath();
+                ctx.fillStyle = hexToRgba(series.color, 0.05);
+                ctx.fill();
+            }
+        }
+
+        // Resize handler for chart
+        window.addEventListener('resize', () => {
+            if (currentView === 'logs' && _perfData) drawPerfChart();
+        });
+
+        // ==================== Log / Historique ====================
+        let _logAutoRefreshTimer = null;
+        let _logCurrentFilter = '';
+        let _logLastHash = '';  // avoid DOM thrashing on unchanged data
+
+        function formatLogTimestamp(isoStr) {
+            try {
+                const d = new Date(isoStr);
+                const pad = (n) => String(n).padStart(2, '0');
+                return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+            } catch { return isoStr; }
+        }
+
+        async function loadLogs() {
+            const consoleInner = document.getElementById('logConsoleInner');
+            const logCount = document.getElementById('logCount');
+            if (!consoleInner) return;
+            try {
+                const url = _logCurrentFilter
+                    ? `/api/logs?limit=500&category=${encodeURIComponent(_logCurrentFilter)}`
+                    : '/api/logs?limit=500';
+                const res = await fetch(url);
+                const data = await res.json();
+                const logs = data.logs || [];
+
+                // Quick hash to skip DOM updates when nothing changed
+                const hash = `${data.total}:${logs.length}:${logs[0]?.ts || ''}`;
+                if (hash === _logLastHash) return;
+                _logLastHash = hash;
+
+                if (logCount) logCount.textContent = `${data.total || logs.length} événement(s)`;
+
+                if (logs.length === 0) {
+                    consoleInner.innerHTML = '<div class="log-empty">Aucun événement enregistré</div>';
+                    return;
+                }
+
+                let html = '';
+                logs.forEach(entry => {
+                    const ts = formatLogTimestamp(entry.ts);
+                    const level = entry.level || 'info';
+                    const cat = entry.category || 'system';
+                    const action = entry.action || '';
+                    const detail = entry.detail || '';
+                    html += `<div class="log-entry">
+                        <span class="log-ts">${ts}</span>
+                        <span class="log-level log-level--${level}"></span>
+                        <span class="log-cat log-cat--${cat}">${cat}</span>
+                        <span class="log-action">${action}</span>
+                        <span class="log-detail">${detail}</span>
+                    </div>`;
+                });
+                consoleInner.innerHTML = html;
+            } catch (e) {
+                consoleInner.innerHTML = '<div class="log-empty">Erreur de chargement des logs</div>';
+            }
+        }
+
+        function startLogAutoRefresh() {
+            stopLogAutoRefresh();
+            _logAutoRefreshTimer = setInterval(() => {
+                if (currentView === 'logs') loadLogs();
+            }, 3000);
+        }
+
+        function stopLogAutoRefresh() {
+            if (_logAutoRefreshTimer) {
+                clearInterval(_logAutoRefreshTimer);
+                _logAutoRefreshTimer = null;
+            }
+        }
+
+        // Log filter buttons
+        document.getElementById('logFilters')?.addEventListener('click', (e) => {
+            const btn = e.target.closest('.log-filter-btn');
+            if (!btn) return;
+            document.querySelectorAll('.log-filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            _logCurrentFilter = btn.dataset.cat || '';
+            _logLastHash = '';  // force refresh on filter change
+            loadLogs();
+        });
+
+        document.getElementById('refreshLogsBtn')?.addEventListener('click', () => loadLogs());
+
+        document.getElementById('clearLogsBtn')?.addEventListener('click', async () => {
+            if (!confirm('Effacer tout le journal d\'audit ?')) return;
+            await fetch('/api/logs', { method: 'DELETE' });
+            loadLogs();
+        });
+
         // Initialize
         init();
 
@@ -2139,8 +2807,14 @@
             await loadBackendCameras();
             loadSites();
 
+            // Wrap all selects with custom LovDropdown
+            if (window.LovDropdown) {
+                LovDropdown.wrapAll('select');
+            }
+
             // Nav
             navSites?.addEventListener('click', () => setView('home'));
+            trackerBackBtn?.addEventListener('click', () => setView('home'));
             navTracker?.addEventListener('click', async () => {
                 if (!currentSite) {
                     setView('home');
@@ -2151,16 +2825,60 @@
                 await loadZones();
                 updateSteps();
             });
+            document.getElementById('navAnalytics')?.addEventListener('click', () => setView('analytics'));
+            document.getElementById('navLogs')?.addEventListener('click', () => {
+                setView('logs');
+            });
 
-            // Create site
+            // View toggle (grid / list)
+            document.getElementById('sitesViewGrid')?.addEventListener('click', () => {
+                _sitesViewMode = 'grid';
+                document.getElementById('sitesViewGrid')?.classList.add('active');
+                document.getElementById('sitesViewList')?.classList.remove('active');
+                renderSitesHome();
+            });
+            document.getElementById('sitesViewList')?.addEventListener('click', () => {
+                _sitesViewMode = 'list';
+                document.getElementById('sitesViewList')?.classList.add('active');
+                document.getElementById('sitesViewGrid')?.classList.remove('active');
+                renderSitesHome();
+            });
+
+            // Create site — location LOV
+            const newSiteLocationSelect = document.getElementById('newSiteLocation');
+
+            /* Handle "Nouveau lieu" choice */
+            newSiteLocationSelect?.addEventListener('change', () => {
+                if (newSiteLocationSelect.value === '__new__') {
+                    const newLoc = prompt('Nom du nouveau lieu :');
+                    if (newLoc && newLoc.trim()) {
+                        const val = newLoc.trim();
+                        /* Add temp option */
+                        const opt = document.createElement('option');
+                        opt.value = val; opt.textContent = val;
+                        newSiteLocationSelect.insertBefore(opt, newSiteLocationSelect.lastElementChild);
+                        newSiteLocationSelect.value = val;
+                    } else {
+                        newSiteLocationSelect.selectedIndex = 0;
+                    }
+                    if (typeof LovDropdown !== 'undefined') LovDropdown.refresh();
+                }
+            });
+
             async function handleCreateSite() {
                 const name = (newSiteNameInput?.value || '').trim();
                 if (!name) return;
+                const location = (newSiteLocationSelect?.value || '').trim();
+                if (!location || location === '__new__') {
+                    uiAlert('Sélectionnez un lieu.', 'Sites');
+                    return;
+                }
                 try {
-                    createSite(name);
+                    createSite(name, location);
                     newSiteNameInput.value = '';
-                    loadSites();
-                    await selectSiteByName(name);
+                    newSiteLocationSelect.selectedIndex = 0;
+                    if (typeof LovDropdown !== 'undefined') LovDropdown.refresh();
+                    await loadSites();
                 } catch (e) {
                     uiAlert(`Erreur création site: ${e?.message || e}`, 'Sites');
                 }
@@ -2169,6 +2887,9 @@
             newSiteNameInput?.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') handleCreateSite();
             });
+
+            /* Init location LOV */
+            _syncLocationLov();
 
             // Add camera (site)
             function switchCamSourceTab(sourceType) {
@@ -2350,7 +3071,12 @@
 
             addCameraBtn?.addEventListener('click', () => {
                 if (currentView !== 'tracker') return;
-                openAddCameraForm();
+                // Toggle: if already open, close it
+                if (addCameraForm && !addCameraForm.classList.contains('hidden')) {
+                    closeAddCameraForm();
+                } else {
+                    openAddCameraForm();
+                }
             });
             cancelCamBtn?.addEventListener('click', closeAddCameraForm);
 
@@ -2431,18 +3157,64 @@
                 }
             });
 
+            /* ---- Site context menu (three-dot) ---- */
+            function closeSiteMenus() {
+                document.querySelectorAll('.site-menu-wrap.is-open').forEach(w => w.classList.remove('is-open'));
+            }
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.site-menu-wrap')) closeSiteMenus();
+            });
+
             // Click delegation for site cards/rows
-            sitesGrid?.addEventListener('click', async (e) => {
-                const del = e.target?.closest?.('[data-delete-site]');
-                if (del) {
-                    const key = del.getAttribute('data-delete-site') || '';
+            const sitesContainer = document.getElementById('sitesContainer');
+            sitesContainer?.addEventListener('click', async (e) => {
+                /* Three-dot toggle */
+                const menuBtn = e.target?.closest?.('.site-menu-btn');
+                if (menuBtn) {
+                    e.stopPropagation();
+                    const wrap = menuBtn.closest('.site-menu-wrap');
+                    const wasOpen = wrap.classList.contains('is-open');
+                    closeSiteMenus();
+                    if (!wasOpen) wrap.classList.add('is-open');
+                    return;
+                }
+
+                /* Menu action */
+                const actionBtn = e.target?.closest?.('[data-site-action]');
+                if (actionBtn) {
+                    e.stopPropagation();
+                    const action = actionBtn.getAttribute('data-site-action');
+                    const key = actionBtn.getAttribute('data-site-key') || '';
                     const name = decodeURIComponent(key);
-                    const ok = await uiConfirm(`Supprimer le site "${name}" ?`, 'Suppression');
-                    if (ok) {
-                        try { deleteSiteByName(name); loadSites(); } catch (err) { uiAlert(err?.message || String(err), 'Suppression'); }
+                    closeSiteMenus();
+
+                    if (action === 'delete') {
+                        const ok = await uiConfirm(`Supprimer le site "${name}" ?`, 'Suppression');
+                        if (ok) {
+                            try { deleteSiteByName(name); loadSites(); } catch (err) { uiAlert(err?.message || String(err), 'Suppression'); }
+                        }
+                    } else if (action === 'open') {
+                        selectSiteByName(name);
+                    } else if (action === 'rename') {
+                        const newName = prompt(`Renommer "${name}" en :`, name);
+                        if (newName && newName.trim() && newName.trim() !== name) {
+                            const site = sitesCache.find(s => s.name === name);
+                            if (site) { site.name = newName.trim(); loadSites(); }
+                        }
+                    } else if (action === 'move') {
+                        const site = sitesCache.find(s => s.name === name);
+                        if (!site) return;
+                        const locs = [...new Set((sitesCache || []).map(s => s.location).filter(Boolean))].sort();
+                        const choices = locs.join(', ');
+                        const newLoc = prompt(`Déplacer "${name}" vers quel lieu ?\nLieux existants : ${choices}\n(ou entrez un nouveau lieu)`, site.location || '');
+                        if (newLoc && newLoc.trim()) {
+                            site.location = newLoc.trim();
+                            loadSites();
+                        }
                     }
                     return;
                 }
+
                 const el = e.target?.closest?.('[data-site]');
                 if (!el) return;
                 const key = el.getAttribute('data-site') || '';
@@ -2529,6 +3301,61 @@
             }
             startLoadZonesLoop();
             setInterval(updateActiveStreams, 2000);
+
+            /* ── Smooth 1s ticker: interpolates local timers + patches DOM in-place ── */
+            setInterval(() => {
+                if (currentView !== 'tracker' || !currentVideo) return;
+                if (!activeVideoStreams.has(currentVideo)) return;
+                const vid = currentVideo;
+                const v = zoneLiveTimersByVideo?.[vid];
+                if (!v || !v.zones) return;
+
+                /* Advance local timers by 1s based on last known occupancy */
+                const now = Date.now();
+                const last = Number(v.lastTs || 0);
+                if (!last) return;
+                const dt = Math.max(0, (now - last) / 1000);
+                if (dt > 5) return; // stale, wait for real poll
+                v.lastTs = now;
+                for (const name of Object.keys(v.zones)) {
+                    const z = v.zones[name];
+                    /* Use the last known occupancy state from presenceOkTsByVideo */
+                    const lastPres = lastPresenceByVideo?.[vid]?.[name];
+                    const isOcc = !!(lastPres?.is_occupied);
+                    if (isOcc) z.occ += dt;
+                    else z.abs += dt;
+                }
+
+                /* Patch DOM in-place: find zone-cards and update numbers + bar widths */
+                const cards = document.querySelectorAll('.zone-card[data-zone]');
+                for (const card of cards) {
+                    const zName = decodeURIComponent(card.dataset.zone || '');
+                    const z = v.zones[zName];
+                    if (!z) continue;
+                    const occ = z.occ || 0;
+                    const abs = z.abs || 0;
+                    const total = occ + abs;
+                    if (total <= 0) continue;
+                    const occPct = Math.min(100, (occ / total) * 100);
+                    const absPct = Math.max(0, 100 - occPct);
+                    const secFmt = (s) => `${Math.max(0, Math.floor(Number(s) || 0))} s`;
+
+                    /* Update percentage texts */
+                    const pcts = card.querySelectorAll('.occ-head .pct');
+                    if (pcts[0]) pcts[0].textContent = `${occPct.toFixed(0)}%`;
+                    if (pcts[1]) pcts[1].textContent = `${absPct.toFixed(0)}%`;
+
+                    /* Update second labels */
+                    const secs = card.querySelectorAll('.occ-head .secs');
+                    if (secs[0]) secs[0].textContent = secFmt(occ);
+                    if (secs[1]) secs[1].textContent = secFmt(abs);
+
+                    /* Update bar widths (CSS transition handles smoothing) */
+                    const fills = card.querySelectorAll('.occ-fill');
+                    if (fills[0]) fills[0].style.width = `${occPct.toFixed(2)}%`;
+                    if (fills[1]) fills[1].style.width = `${absPct.toFixed(2)}%`;
+                }
+            }, 1000);
         }
 
         const DEFAULT_CAMERA_DEFS = [
@@ -2653,6 +3480,12 @@
             const cam = getCameraById(cameraId);
             if (!cam) return;
             currentCameraId = cameraId;
+
+            /* Refresh sidebar to highlight active cam */
+            if (currentView === 'tracker') {
+                updateTrackerBreadcrumb();
+                renderSidebarForTracker();
+            }
 
             // Handle different source types
             if (cam.sourceType === 'webcam' || cam.sourceType === 'rtsp') {
@@ -2992,13 +3825,13 @@
                     <span><strong>Absence</strong> • <span class="pct">${absPct.toFixed(0)}%</span></span>
                                         <span class="secs">${secFmt(absSec)}</span>
                                     </div>
-                                    <div class="occ-track"><div class="occ-fill red" style="width:${absPct.toFixed(2)}%"></div></div>
+                                    <div class="occ-track"><div class="occ-fill blue" style="width:${absPct.toFixed(2)}%"></div></div>
                                 </div>
                             </div>
                         `}
                         <div class="zone-card-actions">
-                            <button class="btn btn-ghost btn-icon" data-reset-zone="${escapeHtml(name)}" title="Reset">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <button class="ctrl-btn ctrl-btn--ghost ctrl-btn--sm" data-reset-zone="${escapeHtml(name)}" title="Reset" style="width:auto; padding:5px 8px;">
+                                <svg class="ctrl-btn__svg" width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                                 </svg>
                             </button>
@@ -3127,126 +3960,119 @@
             // palette: include=vert, line=bleu, exclude=orange/rouge
             const base = {
                 include: { stroke: '#22c55e', fill: 'rgba(34,197,94,0.16)' },
-                line: { stroke: '#10B0F9', fill: 'rgba(16,176,249,0.12)' },
+                line: { stroke: '#1d5bff', fill: 'rgba(29,91,255,0.12)' },
                 exclude: { stroke: '#F08321', fill: 'rgba(240,131,33,0.16)' }
             }[type] || { stroke: '#22c55e', fill: 'rgba(34,197,94,0.16)' };
             if (!isActive) return base;
-            return { stroke: '#10B0F9', fill: 'rgba(16,176,249,0.18)' };
+            return { stroke: '#1d5bff', fill: 'rgba(29,91,255,0.18)' };
         }
+
+        /* Anti-flicker: only update sidebar DOM if content actually changed */
+        let _lastAssetTreeHTML = '';
 
         function renderAssetTree(presenceZones, zonesWithPolygons) {
             const cams = getActiveCameras();
             if (!cams || cams.length === 0) {
-                zoneListSidebar.innerHTML = '<div style="color: var(--sidebar-text-subtle); font-size: var(--text-sm);">Aucune caméra</div>';
+                const empty = '<div class="sb-empty">Aucune caméra</div>';
+                if (_lastAssetTreeHTML !== empty) {
+                    _lastAssetTreeHTML = empty;
+                    zoneListSidebar.innerHTML = empty;
+                }
                 return;
             }
 
             const prevScrollTop = zoneListSidebar.scrollTop || 0;
 
-            const cameraRows = cams.map((cam) => {
+            /* Determine location color for current site */
+            const loc = currentSite?.location || 'Sans lieu';
+            const locColor = getLocColor(loc);
+
+            /* Site header row */
+            let html = `<div class="sb-group">
+                <div class="sb-loc" style="margin-bottom:2px;">
+                    <span class="sb-loc__sq" style="background:${locColor};"></span>
+                    ${ICON_LIEU}
+                    <span>${escapeHtml(loc)}</span>
+                </div>
+                <div class="sb-item sb-item--site sb-item--active" style="--sb-loc-color:${locColor};">
+                    <span class="site-status-sq" style="background:${STATUS_COLORS.active};"></span>
+                    ${ICON_SITE}
+                    <span class="sb-item__name">${escapeHtml(currentSite?.name || '')}</span>
+                    <span class="sb-item__meta">${cams.length}</span>
+                </div>`;
+
+            cams.forEach((cam, camIdx) => {
                 const isCurrent = cam.video === currentVideo;
                 const camLabel = escapeHtml(cam.name || cam.video);
-                const camMeta = escapeHtml(cam.id || 'Source');
                 const videoKey = cam.video;
+                const isBackend = cam.sourceType === 'webcam' || cam.sourceType === 'rtsp';
+                const sourceKey = isBackend ? `camera:${cam.backendCameraId}` : cam.video;
+                const isStreaming = sourceKey && activeVideoStreams.has(sourceKey);
+                const camColor = isStreaming ? STATUS_COLORS.active : STATUS_COLORS.idle;
 
                 const defs = isCurrent ? (zonesWithPolygons || {}) : (zonesCacheByVideo?.[videoKey] || {});
                 const presence = isCurrent ? (presenceZones || {}) : (lastPresenceByVideo?.[videoKey] || {});
+                const zoneNames = Object.keys(defs || {}).sort();
+                const dimClass = !isCurrent ? ' sb-item--dim' : '';
 
-                const zonesHtml = `
-                    <div class="tree-children">
-                        ${Object.keys(defs || {}).length === 0 ? `
-                            <div class="tree-row tree-leaf" style="cursor: default; opacity: 0.65;">
-                                <div class="left">
-                                    <span class="label">Aucune zone</span>
-                                </div>
-                            </div>
-                        ` : Object.keys(defs || {}).sort().map((zoneName) => {
-                            const info = presence?.[zoneName] || { formatted_time: '00:00:00', is_occupied: false };
-                            const drawings = defs?.[zoneName]?.polygons || [];
-                            const dotClass = info.is_occupied ? 'occupied' : '';
-                            const isCollapsed = sidebarZonesCollapsedByVideo?.[videoKey]?.[zoneName] ?? true; // Par défaut replié
-                            const hasDrawings = drawings.length > 0;
+                html += `
+                    <div class="sb-item sb-item--cam${isCurrent ? ' sb-item--active' : ''}" data-select-camera="${escapeHtml(cam.id)}" style="--sb-loc-color:${locColor}; cursor:pointer;">
+                        <span class="site-status-sq" style="background:${camColor};"></span>
+                        ${ICON_CAM}
+                        <span class="sb-item__name">${camLabel}</span>
+                        <span class="sb-item__meta">${zoneNames.length}</span>
+                    </div>`;
 
-                            const zoneRow = isCurrent
-                                ? `
-                                    <div class="tree-row" data-select-zone="${escapeHtml(zoneName)}" style="cursor: pointer;">
-                                        <div class="left">
-                                            ${hasDrawings ? `
-                                                <button class="tree-toggle-btn" onclick="event.stopPropagation(); toggleSidebarZone('${videoKey}', '${zoneName}')" type="button" aria-label="${isCollapsed ? 'Déplier' : 'Replier'}">
-                                                    <svg class="tree-chevron ${isCollapsed ? 'collapsed' : 'expanded'}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                                        <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-                                                    </svg>
-                                                </button>
-                                            ` : '<span style="width: 18px;"></span>'}
-                                            <span class="zone-dot ${dotClass}"></span>
-                                            <span class="label">${escapeHtml(zoneName)}</span>
-                                        </div>
-                                    </div>
-                                `
-                                : `
-                                    <div class="tree-row" style="cursor: default; opacity: 0.75;">
-                                        <div class="left">
-                                            ${hasDrawings ? `
-                                                <button class="tree-toggle-btn" onclick="event.stopPropagation(); toggleSidebarZone('${videoKey}', '${zoneName}')" type="button" aria-label="${isCollapsed ? 'Déplier' : 'Replier'}">
-                                                    <svg class="tree-chevron ${isCollapsed ? 'collapsed' : 'expanded'}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                                        <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-                                                    </svg>
-                                                </button>
-                                            ` : '<span style="width: 18px;"></span>'}
-                                            <span class="zone-dot ${dotClass}"></span>
-                                            <span class="label">${escapeHtml(zoneName)}</span>
-                                        </div>
-                                    </div>
-                                `;
+                /* Zones under ALL cameras (dim non-selected ones) */
+                let zi = 0;
+                for (const zoneName of zoneNames) {
+                    const info = presence?.[zoneName] || { formatted_time: '00:00:00', is_occupied: false };
+                    const drawings = defs?.[zoneName]?.polygons || [];
+                    const zColor = ZONE_PALETTE[zi % ZONE_PALETTE.length];
+                    const dotCls = info.is_occupied ? ' occupied' : '';
+                    const isCollapsed = sidebarZonesCollapsedByVideo?.[videoKey]?.[zoneName] ?? true;
+                    const hasDrawings = drawings.length > 0;
+                    zi++;
 
-                            const drawingsRows = drawings.map((_, idx) => {
-                                return isCurrent
-                                    ? `
-                                        <div class="tree-row tree-leaf" data-select-drawing="${escapeHtml(zoneName)}" data-drawing-idx="${idx}" style="cursor: pointer;">
-                                            <div class="left">
-                                                <span class="label">Dessin ${idx + 1}</span>
-                                            </div>
-                                        </div>
-                                    `
-                                    : `
-                                        <div class="tree-row tree-leaf" style="cursor: default; opacity: 0.6;">
-                                            <div class="left">
-                                                <span class="label">Dessin ${idx + 1}</span>
-                                            </div>
-                                        </div>
-                                    `;
-                            }).join('');
+                    html += `
+                        <div class="sb-item sb-item--zone${dimClass}" data-select-zone="${escapeHtml(zoneName)}"${!isCurrent ? ` data-select-camera="${escapeHtml(cam.id)}"` : ''} style="--sb-loc-color:${locColor}; cursor:pointer;">
+                            ${hasDrawings && isCurrent ? `
+                                <button class="tree-toggle-btn" onclick="event.stopPropagation(); toggleSidebarZone('${videoKey}', '${zoneName}')" type="button">
+                                    <svg class="tree-chevron ${isCollapsed ? 'collapsed' : 'expanded'}" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                        <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </button>
+                            ` : ''}
+                            <span class="sb-zone-sq${dotCls}" style="background:${zColor};"></span>
+                            ${ICON_ZONE}
+                            <span class="sb-item__name">${escapeHtml(zoneName)}</span>
+                            <span class="sb-item__time">${info.formatted_time}</span>
+                        </div>`;
 
-                            return `
-                                ${zoneRow}
-                                <div class="tree-children ${isCollapsed ? 'is-collapsed' : ''}">
-                                    ${drawingsRows}
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                `;
+                    /* Drawings sub-items (only for current camera) */
+                    if (isCurrent && hasDrawings && !isCollapsed) {
+                        drawings.forEach((_, idx) => {
+                            html += `
+                                <div class="sb-item sb-item--drawing" data-select-drawing="${escapeHtml(zoneName)}" data-drawing-idx="${idx}" style="--sb-loc-color:${locColor}; cursor:pointer;">
+                                    <span class="sb-item__name">Dessin ${idx + 1}</span>
+                                </div>`;
+                        });
+                    }
+                }
+                if (zoneNames.length === 0) {
+                    html += `<div class="sb-item sb-item--zone${dimClass}" style="opacity:0.35; cursor:default;">
+                        <span class="sb-item__name">Aucune zone</span>
+                    </div>`;
+                }
+            });
 
-                return `
-                    <div class="tree-row ${isCurrent ? 'active' : ''}" data-select-camera="${escapeHtml(cam.id)}" style="cursor: pointer;">
-                        <div class="left">
-                            <svg class="tree-icon-img" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-                            </svg>
-                            <span class="label">${camLabel}</span>
-                        </div>
-                        <span class="meta">${camMeta}</span>
-                    </div>
-                    ${zonesHtml}
-                `;
-            }).join('');
+            html += '</div>';
 
-            const root = `
-                <div class="draw-tree">
-                    ${cameraRows}
-                </div>
-            `;
-            zoneListSidebar.innerHTML = root;
+            /* Anti-flicker: skip DOM update if nothing changed */
+            if (html !== _lastAssetTreeHTML) {
+                _lastAssetTreeHTML = html;
+                zoneListSidebar.innerHTML = html;
+            }
             zoneListSidebar.scrollTop = prevScrollTop;
         }
 
@@ -3397,11 +4223,17 @@
             const img = videoFrame.classList.contains('hidden') ? videoStream : videoFrame;
             if (!img.naturalWidth) return;
 
-            const displayWidth = img.clientWidth;
-            const displayHeight = img.clientHeight;
+            /* With object-fit: contain, compute the actual rendered image size */
+            const containerW = img.clientWidth;
+            const containerH = img.clientHeight;
+            const natW = img.naturalWidth;
+            const natH = img.naturalHeight;
+            const scale = Math.min(containerW / natW, containerH / natH);
+            const renderedW = natW * scale;
+            const renderedH = natH * scale;
 
-            drawCanvas.style.width = displayWidth + 'px';
-            drawCanvas.style.height = displayHeight + 'px';
+            drawCanvas.style.width = renderedW + 'px';
+            drawCanvas.style.height = renderedH + 'px';
         }
 
         // Video selection
@@ -3425,6 +4257,7 @@
             const cam = getCameraByVideo(currentVideo);
             currentCameraId = cam ? cam.id : null;
             currentVideoTitle.textContent = cam ? cam.name : currentVideo;
+            if (videoLabelText) videoLabelText.textContent = cam ? cam.name : currentVideo;
 
             // Update UI immediately to show selection
             placeholder.classList.add('hidden');
@@ -3469,6 +4302,9 @@
                 videoStream.src = `/api/stream/${encodeURIComponent(currentVideo)}`;
                 drawCanvas.classList.add('hidden');
                 updateStatus('streaming');
+                // MJPEG doesn't fire onload reliably — sync after short delay
+                setTimeout(syncCanvasSize, 300);
+                setTimeout(syncCanvasSize, 800);
             } else {
                 // Not streaming - show a static frame (user must click "Lancer détection")
                 videoFrame.src = `/api/videos/${encodeURIComponent(currentVideo)}/frame?t=${Date.now()}`;
@@ -3819,7 +4655,7 @@
                 ctx.closePath();
                 ctx.fillStyle = 'rgba(16, 176, 249, 0.12)';
                 ctx.fill();
-                ctx.strokeStyle = '#10B0F9';
+                ctx.strokeStyle = '#1d5bff';
                 ctx.lineWidth = 3;
                 ctx.stroke();
 
@@ -3827,7 +4663,7 @@
                     const isActive = editDragging && editDragging.idx === i;
                     ctx.beginPath();
                     ctx.arc(p[0], p[1], HANDLE_RADIUS, 0, Math.PI * 2);
-                    ctx.fillStyle = isActive ? '#F08321' : '#10B0F9';
+                    ctx.fillStyle = isActive ? '#F08321' : '#1d5bff';
                     ctx.fill();
                     ctx.strokeStyle = '#ffffff';
                     ctx.lineWidth = 2;
@@ -3849,7 +4685,7 @@
                         ctx.closePath();
                         ctx.fillStyle = 'rgba(16, 176, 249, 0.18)';
                         ctx.fill();
-                        ctx.strokeStyle = '#10B0F9';
+                        ctx.strokeStyle = '#1d5bff';
                         ctx.lineWidth = 2;
                         ctx.stroke();
 
@@ -3857,7 +4693,7 @@
                         ctx.beginPath();
                         ctx.moveTo(p1[0], p1[1]);
                         ctx.lineTo(p2[0], p2[1]);
-                        ctx.strokeStyle = '#10B0F9';
+                        ctx.strokeStyle = '#1d5bff';
                         ctx.lineWidth = 3;
                         ctx.stroke();
                     }
@@ -3865,7 +4701,7 @@
                     drawPoints.forEach((p) => {
                         ctx.beginPath();
                         ctx.arc(p[0], p[1], 6, 0, Math.PI * 2);
-                        ctx.fillStyle = '#10B0F9';
+                        ctx.fillStyle = '#1d5bff';
                         ctx.fill();
                         ctx.strokeStyle = '#fff';
                         ctx.lineWidth = 2;
@@ -3886,14 +4722,14 @@
                         ctx.fill();
                     }
 
-                    ctx.strokeStyle = '#10B0F9';
+                    ctx.strokeStyle = '#1d5bff';
                     ctx.lineWidth = 3;
                     ctx.stroke();
 
                     drawPoints.forEach((p, i) => {
                         ctx.beginPath();
                         ctx.arc(p[0], p[1], 6, 0, Math.PI * 2);
-                        ctx.fillStyle = i === 0 ? '#22c55e' : '#10B0F9';
+                        ctx.fillStyle = i === 0 ? '#22c55e' : '#1d5bff';
                         ctx.fill();
                         ctx.strokeStyle = '#fff';
                         ctx.lineWidth = 2;
@@ -4103,62 +4939,46 @@
         // Blur toggle
         const toggleBlurBtn = document.getElementById('toggleBlurBtn');
 
-        function ensureRetroInner(btn) {
-            if (!btn) return null;
-            let inner = btn.querySelector('.retro-btn-inner');
-            if (!inner) {
-                inner = document.createElement('span');
-                inner.className = 'retro-btn-inner';
-                btn.innerHTML = '';
-                btn.appendChild(inner);
-            }
-            return inner;
-        }
-
         function setStartDetectionButtonUi(isOn) {
-            const inner = ensureRetroInner(startDetectionBtn);
-            if (!inner) return;
+            if (!startDetectionBtn) return;
             if (isOn) {
-                inner.innerHTML = `
-                    <svg class="retro-icon-img" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                startDetectionBtn.innerHTML = `
+                    <svg class="ctrl-btn__svg" width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
                         <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
                     </svg>
-                    Pause détection
+                    <span>Pause détection</span>
                 `;
                 startDetectionBtn.classList.add('is-on');
             } else {
-                inner.innerHTML = `
-                    <svg class="retro-icon-img" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <polygon points="5,3 19,12 5,21"/>
-                    </svg>
-                    Lancer la détection
+                startDetectionBtn.innerHTML = `
+                    <img class="ctrl-btn__icon" src="/static/assets_youn/SvIcons/play-svgrepo-com.svg" alt="">
+                    <span>Lancer la détection</span>
                 `;
                 startDetectionBtn.classList.remove('is-on');
             }
         }
 
         async function updateBlurButton() {
+            if (!toggleBlurBtn) return;
             const res = await fetch('/api/blur');
             const data = await res.json();
-            const inner = ensureRetroInner(toggleBlurBtn);
-            if (!inner) return;
             if (data.enabled) {
-                inner.innerHTML = `
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                toggleBlurBtn.innerHTML = `
+                    <svg class="ctrl-btn__svg" width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                     </svg>
-                    Floutage: ON
+                    <span>Floutage: ON</span>
                 `;
-                toggleBlurBtn.classList.add('is-on');
+                toggleBlurBtn.classList.add('is-on', 'btn-blur-on');
             } else {
-                inner.innerHTML = `
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                toggleBlurBtn.innerHTML = `
+                    <svg class="ctrl-btn__svg" width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
                     </svg>
-                    Floutage: OFF
+                    <span>Floutage: OFF</span>
                 `;
-                toggleBlurBtn.classList.remove('is-on');
+                toggleBlurBtn.classList.remove('is-on', 'btn-blur-on');
             }
         }
 
@@ -4205,4 +5025,920 @@
             drawExistingZones();
         });
 
-        window.addEventListener('resize', syncCanvasSize);
+        /* ====== ANALYTICS DASHBOARD ====== */
+        let _analyticsInited = false;
+
+        /* -- Heatmap fixed data (Arcy: presence par créneau) -- */
+        const _hmData = {
+            days: ['Lun','Mar','Mer','Jeu','Ven'],
+            hours: ['00:00','03:00','06:00','09:00','12:00','15:00','18:00','21:00'],
+            grid: [
+                [10,15,20,25,30,22,18,12],
+                [5,10,18,30,35,28,20,15],
+                [8,12,22,28,32,25,19,10],
+                [12,18,25,32,38,30,22,16],
+                [15,20,28,35,40,33,25,18]
+            ]
+        };
+        const _hmColors = ['#FFD440','#F8A340','#E84045','#BB015A','#8A0042'];
+
+        const _hmMetrics = [
+            { icon: 'diamond', label: 'Temps moyen de présence', value: '6h', dir: 'up' },
+            { icon: 'circle',  label: 'Temps de réaction alerte', value: '4h', dir: 'up' },
+            { icon: 'triangle',label: "Taux d'escalade zones", value: '10%', dir: 'down' },
+        ];
+
+        /* -- SVG icons -- */
+        const _iDiamond = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M9.93 1.25c-.6.01-1.2.24-1.65.7L1.92 8.41a2.34 2.34 0 00.03 3.3l6.47 6.36a2.34 2.34 0 003.3-.03l6.36-6.47a2.34 2.34 0 00-.03-3.3L11.59 1.92a2.34 2.34 0 00-1.66-.67zM10 5.41a.63.63 0 01.63.63v5a.63.63 0 01-1.25 0v-5A.63.63 0 0110 5.41zm0 7.5a.83.83 0 110 1.67.83.83 0 010-1.67z" fill="#E84045"/></svg>`;
+        const _iCircle  = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 1.67a8.33 8.33 0 100 16.67A8.33 8.33 0 0010 1.67zm0 1.25a7.08 7.08 0 110 14.17A7.08 7.08 0 0110 2.92zM10 5.83a.63.63 0 00-.63.63v4.17a.63.63 0 001.25 0V6.46A.63.63 0 0010 5.83zm0 6.67a.83.83 0 100 1.67.83.83 0 000-1.67z" fill="#E84045"/></svg>`;
+        const _iTriangle= `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2.11c-.65 0-1.3.32-1.65.95L1.9 14.71c-.68 1.23.24 2.79 1.65 2.79h12.9c1.4 0 2.33-1.56 1.65-2.79L11.65 3.05c-.35-.63-1-.95-1.65-.95zM10 6.66a.63.63 0 01.63.63v4.17a.63.63 0 01-1.25 0V7.29A.63.63 0 0110 6.66zm0 6.67a.83.83 0 110 1.67.83.83 0 010-1.67z" fill="#E84045"/></svg>`;
+        const _tUp  = `<svg width="16" height="16" viewBox="0 0 20 21" fill="none"><path d="M5.5 9.1L10 4.67M10 4.67L14.5 9.1M10 4.67V16.33" stroke="#F08083" stroke-width="2" stroke-linecap="square"/></svg>`;
+        const _tDown= `<svg width="16" height="16" viewBox="0 0 20 21" fill="none"><path d="M14.5 11.9L10 16.33M10 16.33L5.5 11.9M10 16.33V4.67" stroke="#40E5D1" stroke-width="2" stroke-linecap="square"/></svg>`;
+        const _iconMap = { diamond: _iDiamond, circle: _iCircle, triangle: _iTriangle };
+
+        /* -- Canvas helpers -- */
+        function _hiDPI(canvas, w, h) {
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            canvas.style.width = w + 'px';
+            canvas.style.height = h + 'px';
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+            return ctx;
+        }
+
+        /* -- Shared tooltip -- */
+        let _tooltip = null;
+        function _getTooltip() {
+            if (!_tooltip) {
+                _tooltip = document.createElement('div');
+                _tooltip.className = 'aw-tooltip';
+                document.body.appendChild(_tooltip);
+            }
+            return _tooltip;
+        }
+        function _showTooltip(e, html) {
+            const t = _getTooltip();
+            t.innerHTML = html;
+            t.classList.add('is-visible');
+            const pad = 12;
+            const rect = t.getBoundingClientRect();
+            let x = e.clientX + pad;
+            let y = e.clientY - rect.height - pad;
+            if (x + rect.width > window.innerWidth) x = e.clientX - rect.width - pad;
+            if (y < 0) y = e.clientY + pad;
+            t.style.left = x + 'px';
+            t.style.top = y + 'px';
+        }
+        function _hideTooltip() {
+            if (_tooltip) _tooltip.classList.remove('is-visible');
+        }
+
+        /* -- Canvas mouse coords helper (accounts for hi-DPI) -- */
+        function _canvasCoords(canvas, e) {
+            const r = canvas.getBoundingClientRect();
+            return { x: e.clientX - r.left, y: e.clientY - r.top };
+        }
+
+        /* -- Attach hover to heatmap canvas -- */
+        function _attachHeatmapHover(canvas) {
+            const d = _hmData;
+            canvas.style.cursor = 'crosshair';
+            canvas.addEventListener('mousemove', e => {
+                const W = 330, H = 220;
+                const pad = { l: 40, t: 6, r: 6, b: 30 };
+                const gw = W - pad.l - pad.r;
+                const gh = H - pad.t - pad.b;
+                const cw = gw / d.hours.length;
+                const ch = gh / d.days.length;
+                const { x, y } = _canvasCoords(canvas, e);
+                const col = Math.floor((x - pad.l) / cw);
+                const row = Math.floor((y - pad.t) / ch);
+                if (col >= 0 && col < d.hours.length && row >= 0 && row < d.days.length) {
+                    const val = d.grid[row][col];
+                    const maxV = Math.max(...d.grid.flat());
+                    const ratio = Math.min(val / maxV, 1);
+                    const ci = Math.min(Math.floor(ratio * _hmColors.length), _hmColors.length - 1);
+                    const color = _hmColors[ci];
+                    _showTooltip(e, `
+                        <div class="aw-tooltip__label">${d.days[row]} - ${d.hours[col]}</div>
+                        <div class="aw-tooltip__value"><span class="aw-tooltip__color" style="background:${color}"></span>${val} présences</div>
+                    `);
+                } else {
+                    _hideTooltip();
+                }
+            });
+            canvas.addEventListener('mouseleave', _hideTooltip);
+        }
+
+        /* -- Attach hover to diverging bar canvas -- */
+        function _attachDivergingHover(canvas) {
+            const d = _dvData;
+            canvas.style.cursor = 'crosshair';
+            canvas.addEventListener('mousemove', e => {
+                const W = 330, H = 200;
+                const pad = { l: 40, t: 10, r: 16, b: 26 };
+                const gw = W - pad.l - pad.r;
+                const gh = H - pad.t - pad.b;
+                const maxPos = Math.max(...d.resolved);
+                const maxNeg = Math.max(...d.outstanding);
+                const maxVal = maxPos + maxNeg;
+                const zeroY = pad.t + (maxPos / maxVal) * gh;
+                const barW = Math.min(32, (gw / d.months.length) * 0.55);
+                const groupW = gw / d.months.length;
+                const { x, y } = _canvasCoords(canvas, e);
+                let found = false;
+                for (let i = 0; i < d.months.length; i++) {
+                    const cx = pad.l + i * groupW + groupW / 2;
+                    const bx = cx - barW / 2;
+                    const posH = (d.resolved[i] / maxVal) * gh;
+                    const negH = (d.outstanding[i] / maxVal) * gh;
+                    // Check positive bar
+                    if (x >= bx && x <= bx + barW && y >= zeroY - posH && y <= zeroY) {
+                        _showTooltip(e, `
+                            <div class="aw-tooltip__label">${d.months[i]} - Traitées</div>
+                            <div class="aw-tooltip__value"><span class="aw-tooltip__color" style="background:${_dvColors[0]}"></span>${d.resolved[i]}</div>
+                        `);
+                        found = true; break;
+                    }
+                    // Check negative bar
+                    if (x >= bx && x <= bx + barW && y >= zeroY && y <= zeroY + negH) {
+                        _showTooltip(e, `
+                            <div class="aw-tooltip__label">${d.months[i]} - En cours</div>
+                            <div class="aw-tooltip__value"><span class="aw-tooltip__color" style="background:${_dvColors[1]}"></span>${d.outstanding[i]}</div>
+                        `);
+                        found = true; break;
+                    }
+                }
+                if (!found) _hideTooltip();
+            });
+            canvas.addEventListener('mouseleave', _hideTooltip);
+        }
+
+        /* -- Attach hover to horizontal bar canvas -- */
+        function _attachHorizontalBarHover(canvas) {
+            const d = _hbData;
+            canvas.style.cursor = 'crosshair';
+            canvas.addEventListener('mousemove', e => {
+                const parentW = canvas.parentElement?.clientWidth || 740;
+                const W = Math.max(340, parentW - 24), H = 200;
+                const pad = { l: 110, t: 6, r: 16, b: 6 };
+                const gw = W - pad.l - pad.r;
+                const rowH = (H - pad.t - pad.b) / d.cats.length;
+                const barH = Math.min(16, rowH * 0.6);
+                const maxVal = Math.max(...d.values);
+                const { x, y } = _canvasCoords(canvas, e);
+                let found = false;
+                for (let i = 0; i < d.cats.length; i++) {
+                    const by = pad.t + i * rowH + (rowH - barH) / 2;
+                    const bw = (d.values[i] / maxVal) * gw;
+                    if (x >= pad.l && x <= pad.l + bw && y >= by && y <= by + barH) {
+                        const color = _hbColors[i % _hbColors.length];
+                        const pct = Math.round((d.values[i] / d.values.reduce((a,b) => a + b, 0)) * 100);
+                        _showTooltip(e, `
+                            <div class="aw-tooltip__label">${d.cats[i]}</div>
+                            <div class="aw-tooltip__value"><span class="aw-tooltip__color" style="background:${color}"></span>${d.values[i]} détections (${pct}%)</div>
+                        `);
+                        found = true; break;
+                    }
+                }
+                if (!found) _hideTooltip();
+            });
+            canvas.addEventListener('mouseleave', _hideTooltip);
+        }
+
+        /* -- Attach hover to stats bar mini chart -- */
+        function _attachStatsBarHover(card) {
+            card.querySelectorAll('.aw-stats-bar-col').forEach((col, i) => {
+                const b = _sbData.bars[i];
+                if (!b) return;
+                col.style.cursor = 'pointer';
+                col.addEventListener('mouseenter', e => {
+                    const isLast = i === _sbData.bars.length - 1;
+                    const color = isLast ? _sbData.highlightColor : 'rgba(29,91,255,0.7)';
+                    _showTooltip(e, `
+                        <div class="aw-tooltip__label">${b.name}</div>
+                        <div class="aw-tooltip__value"><span class="aw-tooltip__color" style="background:${color}"></span>${b.value}%</div>
+                    `);
+                });
+                col.addEventListener('mousemove', e => {
+                    const isLast = i === _sbData.bars.length - 1;
+                    const color = isLast ? _sbData.highlightColor : 'rgba(29,91,255,0.7)';
+                    _showTooltip(e, `
+                        <div class="aw-tooltip__label">${b.name}</div>
+                        <div class="aw-tooltip__value"><span class="aw-tooltip__color" style="background:${color}"></span>${b.value}%</div>
+                    `);
+                });
+                col.addEventListener('mouseleave', _hideTooltip);
+            });
+        }
+
+        function _drawHeatmap(canvas) {
+            const d = _hmData;
+            const W = 330, H = 220;
+            const ctx = _hiDPI(canvas, W, H);
+            const pad = { l: 40, t: 6, r: 6, b: 30 };
+            const gw = W - pad.l - pad.r;
+            const gh = H - pad.t - pad.b;
+            const cw = gw / d.hours.length;
+            const ch = gh / d.days.length;
+            const maxV = Math.max(...d.grid.flat());
+
+            ctx.clearRect(0, 0, W, H);
+
+            // Y-axis labels
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            d.days.forEach((day, i) => {
+                ctx.fillStyle = '#9A9AAF';
+                ctx.fillText(day, pad.l - 8, pad.t + i * ch + ch / 2);
+            });
+
+            // X-axis labels
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            d.hours.forEach((hr, j) => {
+                ctx.save();
+                ctx.translate(pad.l + j * cw + cw / 2, H - pad.b + 6);
+                ctx.rotate(-55 * Math.PI / 180);
+                ctx.fillStyle = '#9A9AAF';
+                ctx.textAlign = 'right';
+                ctx.fillText(hr, 0, 0);
+                ctx.restore();
+            });
+
+            // Cells
+            const gap = 2;
+            d.grid.forEach((row, i) => {
+                row.forEach((val, j) => {
+                    const ratio = Math.min(val / maxV, 1);
+                    const ci = Math.min(Math.floor(ratio * _hmColors.length), _hmColors.length - 1);
+                    ctx.fillStyle = _hmColors[ci];
+                    // Subtle glow on hottest cells only
+                    if (ci >= 3) {
+                        ctx.shadowColor = _hmColors[ci];
+                        ctx.shadowBlur = 2;
+                    }
+                    ctx.beginPath();
+                    ctx.roundRect(
+                        pad.l + j * cw + gap,
+                        pad.t + i * ch + gap,
+                        cw - gap * 2,
+                        ch - gap * 2,
+                        3
+                    );
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                });
+            });
+        }
+
+        /* -- Card "..." menu helper -- */
+        function _addCardMenu(card) {
+            card.style.position = 'relative';
+            const wrap = document.createElement('div');
+            wrap.className = 'aw-card__menu-wrap';
+            wrap.innerHTML = `
+                <button class="aw-card__menu-btn" type="button" title="Options">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="2.5" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="8" cy="13.5" r="1.5"/></svg>
+                </button>
+                <div class="aw-card__menu-panel">
+                    <button class="aw-card__menu-item" data-action="configure" type="button">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                        Configurer
+                    </button>
+                    <button class="aw-card__menu-item aw-card__menu-item--danger" data-action="delete" type="button">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                        Supprimer
+                    </button>
+                </div>`;
+            card.appendChild(wrap);
+        }
+
+        /* -- Build widget card HTML -- */
+        function _buildHeatmapCard() {
+            const card = document.createElement('div');
+            card.className = 'aw-card';
+            _addCardMenu(card);
+
+            // Title
+            const title = document.createElement('div');
+            title.className = 'aw-card__title';
+            title.textContent = 'Rapport de présence';
+            card.appendChild(title);
+
+            // Chart area (canvas + legend bar)
+            const chartWrap = document.createElement('div');
+            chartWrap.className = 'aw-card__chart';
+
+            const canvas = document.createElement('canvas');
+            canvas.className = 'aw-card__canvas';
+            chartWrap.appendChild(canvas);
+
+            // Gradient legend bar
+            const legendCol = document.createElement('div');
+            legendCol.className = 'aw-card__legend';
+            const gradBar = document.createElement('div');
+            gradBar.className = 'aw-card__legend-bar';
+            gradBar.style.background = `linear-gradient(to bottom, ${_hmColors[_hmColors.length-1]}, ${_hmColors[2]}, ${_hmColors[0]})`;
+            gradBar.style.height = '140px';
+            legendCol.appendChild(gradBar);
+            const labelsCol = document.createElement('div');
+            labelsCol.className = 'aw-card__legend-labels';
+            labelsCol.innerHTML = '<span>40</span><span>20</span><span>0</span>';
+            legendCol.appendChild(labelsCol);
+            chartWrap.appendChild(legendCol);
+
+            card.appendChild(chartWrap);
+
+            // Metrics
+            const metricsDiv = document.createElement('div');
+            metricsDiv.className = 'aw-card__metrics';
+            _hmMetrics.forEach(m => {
+                const icon = _iconMap[m.icon] || _iCircle;
+                const trendSVG = m.dir === 'up' ? _tUp : _tDown;
+                const trendClass = m.dir === 'up' ? 'aw-metric__trend--up' : 'aw-metric__trend--down';
+                const row = document.createElement('div');
+                row.className = 'aw-metric';
+                row.innerHTML = `
+                    <div class="aw-metric__left">${icon}<span>${m.label}</span></div>
+                    <div class="aw-metric__right">
+                        <span class="aw-metric__value">${m.value}</span>
+                        <span class="aw-metric__trend ${trendClass}">${trendSVG}</span>
+                    </div>`;
+                metricsDiv.appendChild(row);
+            });
+            card.appendChild(metricsDiv);
+
+            return { card, canvas };
+        }
+
+        /* -- Diverging bar chart data (Arcy: alertes traitées vs en cours) -- */
+        const _dvData = {
+            months: ['Jan','Fév','Mar','Avr','Mai'],
+            resolved: [50, 75, 60, 80, 40],
+            outstanding: [20, 30, 15, 25, 10],
+        };
+        const _dvColors = ['#F7BFC1', '#E84045'];
+        const _dvMetrics = [
+            { icon: 'diamond', label: 'Délai moyen de traitement', value: '6h', dir: 'up' },
+            { icon: 'circle',  label: 'Temps de réponse alerte', value: '4h', dir: 'up' },
+            { icon: 'triangle',label: 'Taux de résolution', value: '10%', dir: 'down' },
+        ];
+
+        function _drawDivergingBar(canvas) {
+            const d = _dvData;
+            const W = 330, H = 200;
+            const ctx = _hiDPI(canvas, W, H);
+            const pad = { l: 40, t: 10, r: 16, b: 26 };
+            const gw = W - pad.l - pad.r;
+            const gh = H - pad.t - pad.b;
+            const maxPos = Math.max(...d.resolved);
+            const maxNeg = Math.max(...d.outstanding);
+            const maxVal = maxPos + maxNeg;
+            const zeroY = pad.t + (maxPos / maxVal) * gh;
+            const barW = Math.min(32, (gw / d.months.length) * 0.55);
+            const groupW = gw / d.months.length;
+
+            ctx.clearRect(0, 0, W, H);
+
+            // Gridlines
+            for (let i = 0; i <= 4; i++) {
+                const y = pad.t + (gh * i / 4);
+                ctx.strokeStyle = 'rgba(126,126,143,0.25)';
+                ctx.lineWidth = 0.5;
+                ctx.beginPath();
+                ctx.moveTo(pad.l, y);
+                ctx.lineTo(W - pad.r, y);
+                ctx.stroke();
+            }
+
+            // Zero line
+            ctx.strokeStyle = 'rgba(126,126,143,0.45)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(pad.l, zeroY);
+            ctx.lineTo(W - pad.r, zeroY);
+            ctx.stroke();
+
+            // Y-axis labels
+            ctx.font = '10px sans-serif';
+            ctx.fillStyle = '#9A9AAF';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(String(maxPos), pad.l - 8, pad.t);
+            ctx.fillText('0', pad.l - 8, zeroY);
+            ctx.fillText('-' + maxNeg, pad.l - 8, pad.t + gh);
+
+            // Bars
+            d.months.forEach((month, i) => {
+                const cx = pad.l + i * groupW + groupW / 2;
+                const bx = cx - barW / 2;
+
+                // Positive bar (resolved)
+                const posH = (d.resolved[i] / maxVal) * gh;
+                ctx.fillStyle = _dvColors[0];
+                ctx.beginPath();
+                ctx.roundRect(bx, zeroY - posH, barW, posH, [4, 4, 0, 0]);
+                ctx.fill();
+
+                // Negative bar (outstanding)
+                const negH = (d.outstanding[i] / maxVal) * gh;
+                ctx.fillStyle = _dvColors[1];
+                ctx.beginPath();
+                ctx.roundRect(bx, zeroY, barW, negH, [0, 0, 4, 4]);
+                ctx.fill();
+
+                // X-axis label
+                ctx.fillStyle = '#9A9AAF';
+                ctx.font = '10px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.shadowBlur = 0;
+                ctx.fillText(month, cx, H - pad.b + 6);
+            });
+        }
+
+        function _buildDivergingCard() {
+            const card = document.createElement('div');
+            card.className = 'aw-card';
+            _addCardMenu(card);
+
+            const title = document.createElement('div');
+            title.className = 'aw-card__title';
+            title.textContent = 'Suivi des alertes';
+            card.appendChild(title);
+
+            // Legend
+            const legendWrap = document.createElement('div');
+            legendWrap.style.cssText = 'display:flex;gap:16px;padding:0 28px 12px;';
+            legendWrap.innerHTML = `
+                <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#9A9AAF;">
+                    <span style="width:12px;height:12px;border-radius:2px;background:${_dvColors[0]};"></span>Traitées
+                </span>
+                <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#9A9AAF;">
+                    <span style="width:12px;height:12px;border-radius:2px;background:${_dvColors[1]};"></span>En cours
+                </span>`;
+            card.appendChild(legendWrap);
+
+            const chartWrap = document.createElement('div');
+            chartWrap.className = 'aw-card__chart';
+            chartWrap.style.padding = '0 12px';
+            const canvas = document.createElement('canvas');
+            canvas.className = 'aw-card__canvas';
+            chartWrap.appendChild(canvas);
+            card.appendChild(chartWrap);
+
+            // Metrics
+            const metricsDiv = document.createElement('div');
+            metricsDiv.className = 'aw-card__metrics';
+            _dvMetrics.forEach(m => {
+                const icon = _iconMap[m.icon] || _iCircle;
+                const trendSVG = m.dir === 'up' ? _tUp : _tDown;
+                const trendClass = m.dir === 'up' ? 'aw-metric__trend--up' : 'aw-metric__trend--down';
+                const row = document.createElement('div');
+                row.className = 'aw-metric';
+                row.innerHTML = `
+                    <div class="aw-metric__left">${icon}<span>${m.label}</span></div>
+                    <div class="aw-metric__right">
+                        <span class="aw-metric__value">${m.value}</span>
+                        <span class="aw-metric__trend ${trendClass}">${trendSVG}</span>
+                    </div>`;
+                metricsDiv.appendChild(row);
+            });
+            card.appendChild(metricsDiv);
+
+            return { card, canvas };
+        }
+
+        /* -- Drag & drop removed -- */
+
+        /* -- Horizontal bar chart data (Arcy: répartition détections par type) -- */
+        const _hbData = {
+            cats: ['Présence humaine','Intrusion','Zone vide','Mouvement suspect','Comptage','Accès non autorisé'],
+            values: [120, 90, 80, 70, 100, 50],
+        };
+        const _hbColors = ['#9152EE','#40D3F4','#40E5D1','#4C86FF','#DAC5F9','#F08083'];
+        const _hbStats = [
+            { label: 'Détections critiques', value: 321, pct: 12, dir: 'up', compare: 'vs 293 semaine dernière' },
+            { label: 'Total détections', value: 1120, pct: 4, dir: 'down', compare: 'vs 1 060 semaine dernière' },
+        ];
+        const _hbMetrics = [
+            { icon: 'diamond', label: 'Délai moyen de détection', value: '6h', dir: 'up' },
+            { icon: 'circle',  label: 'Temps de réponse incident', value: '4h', dir: 'up' },
+            { icon: 'triangle',label: 'Taux d\'escalade détections', value: '10%', dir: 'down' },
+        ];
+
+        function _drawHorizontalBar(canvas) {
+            const d = _hbData;
+            const parentW = canvas.parentElement?.clientWidth || 740;
+            const W = Math.max(340, parentW - 24), H = 200;
+            const ctx = _hiDPI(canvas, W, H);
+            const pad = { l: 110, t: 6, r: 16, b: 6 };
+            const gw = W - pad.l - pad.r;
+            const rowH = (H - pad.t - pad.b) / d.cats.length;
+            const barH = Math.min(16, rowH * 0.6);
+            const maxVal = Math.max(...d.values);
+
+            ctx.clearRect(0, 0, W, H);
+
+            // Gridlines
+            for (let i = 0; i <= 4; i++) {
+                const x = pad.l + (gw * i / 4);
+                ctx.strokeStyle = 'rgba(126,126,143,0.18)';
+                ctx.lineWidth = 0.5;
+                ctx.beginPath();
+                ctx.moveTo(x, pad.t);
+                ctx.lineTo(x, H - pad.b);
+                ctx.stroke();
+            }
+
+            d.cats.forEach((cat, i) => {
+                const y = pad.t + i * rowH + (rowH - barH) / 2;
+                const bw = (d.values[i] / maxVal) * gw;
+                const color = _hbColors[i % _hbColors.length];
+
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.roundRect(pad.l, y, bw, barH, [0, 4, 4, 0]);
+                ctx.fill();
+
+                // Label
+                ctx.fillStyle = '#9A9AAF';
+                ctx.font = '11px sans-serif';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                const label = cat.length > 18 ? cat.slice(0, 17) + '…' : cat;
+                ctx.fillText(label, pad.l - 8, y + barH / 2);
+            });
+        }
+
+        function _buildHorizontalBarCard() {
+            const card = document.createElement('div');
+            card.className = 'aw-card';
+            card.setAttribute('data-aw-type', 'hbar');
+            card.style.width = '780px';
+            _addCardMenu(card);
+
+            // Header with title + period label
+            const header = document.createElement('div');
+            header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:28px 52px 20px 28px;';
+            const title = document.createElement('div');
+            title.className = 'aw-card__title';
+            title.textContent = 'Rapport de détections';
+            title.style.padding = '0';
+            header.appendChild(title);
+            const periodLabel = document.createElement('span');
+            periodLabel.style.cssText = 'font-size:12px;color:#9A9AAF;padding:5px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:6px;';
+            periodLabel.textContent = '7 derniers jours';
+            header.appendChild(periodLabel);
+            card.appendChild(header);
+
+            // Chart
+            const chartWrap = document.createElement('div');
+            chartWrap.className = 'aw-card__chart';
+            chartWrap.style.padding = '0 12px';
+            const canvas = document.createElement('canvas');
+            canvas.className = 'aw-card__canvas';
+            chartWrap.appendChild(canvas);
+            card.appendChild(chartWrap);
+
+            // Bottom row: stats left + metrics right
+            const bottomRow = document.createElement('div');
+            bottomRow.style.cssText = 'display:flex;gap:24px;padding:16px 28px 24px;';
+
+            // Stats counters (left side)
+            const statsWrap = document.createElement('div');
+            statsWrap.style.cssText = 'display:flex;gap:20px;flex:1;';
+            _hbStats.forEach(s => {
+                const badgeColor = s.dir === 'up' ? 'rgba(232,64,69,0.40)' : 'rgba(64,229,209,0.40)';
+                const textColor = s.dir === 'up' ? '#F08083' : '#40E5D1';
+                const arrow = s.dir === 'up' ? _tUp : _tDown;
+                const col = document.createElement('div');
+                col.style.cssText = 'flex:1;';
+                col.innerHTML = `
+                    <div style="font-size:13px;color:rgba(255,255,255,0.50);margin-bottom:6px;">${s.label}</div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span style="font-family:'Courier New',monospace;font-size:30px;font-weight:700;color:#fff;">${s.value.toLocaleString('fr-FR')}</span>
+                        <span style="display:inline-flex;align-items:center;gap:2px;padding:2px 8px;border-radius:20px;background:${badgeColor};color:${textColor};font-size:11px;font-weight:600;">${arrow} ${s.pct}%</span>
+                    </div>
+                    <div style="font-size:11px;color:rgba(255,255,255,0.25);margin-top:3px;">${s.compare}</div>`;
+                statsWrap.appendChild(col);
+            });
+            bottomRow.appendChild(statsWrap);
+
+            // Metrics (right side)
+            const metricsDiv = document.createElement('div');
+            metricsDiv.className = 'aw-card__metrics';
+            metricsDiv.style.cssText = 'flex:1;padding:0;';
+            _hbMetrics.forEach(m => {
+                const icon = _iconMap[m.icon] || _iCircle;
+                const trendSVG = m.dir === 'up' ? _tUp : _tDown;
+                const trendClass = m.dir === 'up' ? 'aw-metric__trend--up' : 'aw-metric__trend--down';
+                const row = document.createElement('div');
+                row.className = 'aw-metric';
+                row.innerHTML = `
+                    <div class="aw-metric__left">${icon}<span>${m.label}</span></div>
+                    <div class="aw-metric__right">
+                        <span class="aw-metric__value">${m.value}</span>
+                        <span class="aw-metric__trend ${trendClass}">${trendSVG}</span>
+                    </div>`;
+                metricsDiv.appendChild(row);
+            });
+            bottomRow.appendChild(metricsDiv);
+            card.appendChild(bottomRow);
+
+            return { card, canvas };
+        }
+
+        /* -- Widget 4: Stats mini-bar card (Arcy: détections par site) -- */
+        const _sbData = {
+            title: 'Détections mensuelles',
+            value: 2847,
+            description: '+12.5% vs mois dernier',
+            bars: [
+                { name: 'Jan', value: 40 },
+                { name: 'Fév', value: 55 },
+                { name: 'Mar', value: 45 },
+                { name: 'Avr', value: 70 },
+                { name: 'Mai', value: 60 },
+                { name: 'Juin', value: 85 },
+            ],
+            defaultColor: 'rgba(29,91,255,0.25)',
+            highlightColor: '#E84045',
+        };
+
+        function _buildStatsBarCard() {
+            const card = document.createElement('div');
+            card.className = 'aw-card';
+            card.style.width = '320px';
+            _addCardMenu(card);
+
+            // Header
+            const header = document.createElement('div');
+            header.style.cssText = 'padding:28px 28px 8px;';
+            header.innerHTML = `<div style="font-size:13px;color:#9A9AAF;margin-bottom:10px;">${_sbData.title}</div>
+                <div style="font-size:32px;font-weight:800;color:#fff;font-family:'Courier New',monospace;">${_sbData.value.toLocaleString('fr-FR')}</div>
+                <div style="font-size:12px;color:#9A9AAF;margin-top:4px;">${_sbData.description}</div>`;
+            card.appendChild(header);
+
+            // Mini bar chart
+            const barsWrap = document.createElement('div');
+            barsWrap.className = 'aw-stats-bars';
+            barsWrap.style.marginTop = '16px';
+            _sbData.bars.forEach((b, i) => {
+                const col = document.createElement('div');
+                col.className = 'aw-stats-bar-col';
+                const bar = document.createElement('div');
+                bar.className = 'aw-stats-bar';
+                const isLast = i === _sbData.bars.length - 1;
+                bar.style.background = isLast ? _sbData.highlightColor : _sbData.defaultColor;
+                bar.style.height = '0%';
+                bar.setAttribute('data-target-h', b.value + '%');
+                col.appendChild(bar);
+                const lbl = document.createElement('div');
+                lbl.className = 'aw-stats-bar-label';
+                lbl.textContent = b.name;
+                col.appendChild(lbl);
+                barsWrap.appendChild(col);
+            });
+            card.appendChild(barsWrap);
+
+            // Bottom padding
+            const spacer = document.createElement('div');
+            spacer.style.height = '24px';
+            card.appendChild(spacer);
+
+            return { card };
+        }
+
+        function _animateStatsBars(card) {
+            card.querySelectorAll('.aw-stats-bar').forEach(bar => {
+                const h = bar.getAttribute('data-target-h');
+                if (h) requestAnimationFrame(() => { bar.style.height = h; });
+            });
+        }
+
+        /* -- Widget 5: Circular progress card (Arcy: objectif couverture) -- */
+        const _cpData = {
+            title: 'Couverture zones',
+            description: 'Zones surveillées vs objectif',
+            current: 18,
+            goal: 24,
+            color: '#1d5bff',
+        };
+
+        function _buildCircularProgressCard() {
+            const card = document.createElement('div');
+            card.className = 'aw-card';
+            card.style.width = '320px';
+            _addCardMenu(card);
+
+            const pct = Math.round((_cpData.current / _cpData.goal) * 100);
+            const r = 72, circ = 2 * Math.PI * r;
+            const offset = circ * (1 - pct / 100);
+
+            // Header
+            const header = document.createElement('div');
+            header.style.cssText = 'padding:28px 28px 0;text-align:center;';
+            header.innerHTML = `<div style="font-size:18px;font-weight:700;color:#fff;">${_cpData.title}</div>
+                <div style="font-size:12px;color:#9A9AAF;margin-top:4px;">${_cpData.description}</div>`;
+            card.appendChild(header);
+
+            // Circle
+            const circleWrap = document.createElement('div');
+            circleWrap.className = 'aw-circle-wrap';
+            circleWrap.style.margin = '20px auto 24px';
+            circleWrap.innerHTML = `
+                <svg viewBox="0 0 200 200">
+                    <g transform="rotate(-90,100,100)">
+                        <circle cx="100" cy="100" r="${r}" fill="transparent" stroke="rgba(255,255,255,0.06)" stroke-width="14"/>
+                        <circle class="aw-progress-arc" cx="100" cy="100" r="${r}" fill="transparent"
+                            stroke="${_cpData.color}" stroke-width="14" stroke-linecap="round"
+                            stroke-dasharray="${circ}" stroke-dashoffset="${circ}"
+                            data-target-offset="${offset}"
+                            style="transition: stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1);"/>
+                    </g>
+                </svg>
+                <div class="aw-circle-center">
+                    <span class="aw-circle-pct">${pct}%</span>
+                    <span class="aw-circle-sub">${_cpData.current} / ${_cpData.goal} zones</span>
+                </div>`;
+            card.appendChild(circleWrap);
+
+            return { card };
+        }
+
+        function _animateCircle(card) {
+            const arc = card.querySelector('.aw-progress-arc');
+            if (arc) {
+                const target = arc.getAttribute('data-target-offset');
+                requestAnimationFrame(() => { arc.style.strokeDashoffset = target; });
+            }
+        }
+
+        /* -- Card menu interactions -- */
+        function _initCardMenus(grid) {
+            // Toggle "..." menu
+            grid.addEventListener('click', (e) => {
+                const btn = e.target.closest('.aw-card__menu-btn');
+                if (btn) {
+                    e.stopPropagation();
+                    const wrap = btn.closest('.aw-card__menu-wrap');
+                    const wasOpen = wrap.classList.contains('is-open');
+                    grid.querySelectorAll('.aw-card__menu-wrap.is-open').forEach(w => w.classList.remove('is-open'));
+                    if (!wasOpen) wrap.classList.add('is-open');
+                    return;
+                }
+                const item = e.target.closest('.aw-card__menu-item');
+                if (item) {
+                    e.stopPropagation();
+                    const action = item.getAttribute('data-action');
+                    const card = item.closest('.aw-card');
+                    grid.querySelectorAll('.aw-card__menu-wrap.is-open').forEach(w => w.classList.remove('is-open'));
+                    if (action === 'delete' && card) {
+                        card.style.transition = 'opacity 0.25s, transform 0.25s';
+                        card.style.opacity = '0';
+                        card.style.transform = 'scale(0.95)';
+                        setTimeout(() => card.remove(), 260);
+                    }
+                    // 'configure' → nothing for now
+                    return;
+                }
+                // Click outside menus → close
+                grid.querySelectorAll('.aw-card__menu-wrap.is-open').forEach(w => w.classList.remove('is-open'));
+            });
+            document.addEventListener('click', () => {
+                grid.querySelectorAll('.aw-card__menu-wrap.is-open').forEach(w => w.classList.remove('is-open'));
+            });
+        }
+
+        function _redrawAllAwCards(grid) {
+            grid.querySelectorAll('.aw-card').forEach(card => {
+                const canvas = card.querySelector('.aw-card__canvas');
+                if (!canvas) return;
+                const title = card.querySelector('.aw-card__title')?.textContent || '';
+                if (title.includes('présence')) _drawHeatmap(canvas);
+                else if (title.includes('alertes')) _drawDivergingBar(canvas);
+                else if (title.includes('détections')) _drawHorizontalBar(canvas);
+            });
+        }
+
+        /* -- Init -- */
+        function initAnalyticsDashboard() {
+            const grid = document.getElementById('analyticsGrid');
+            if (!grid) return;
+
+            if (_analyticsInited) {
+                // Redraw canvases on revisit
+                requestAnimationFrame(() => _redrawAllAwCards(grid));
+                return;
+            }
+            _analyticsInited = true;
+
+            // Build cards
+            grid.innerHTML = '';
+            const hm = _buildHeatmapCard();
+            grid.appendChild(hm.card);
+            const dv = _buildDivergingCard();
+            grid.appendChild(dv.card);
+            const hb = _buildHorizontalBarCard();
+            grid.appendChild(hb.card);
+            const sb = _buildStatsBarCard();
+            grid.appendChild(sb.card);
+            const cp = _buildCircularProgressCard();
+            grid.appendChild(cp.card);
+
+            // drag-and-drop removed
+            _initCardMenus(grid);
+            _initFab(grid);
+
+            // Draw after layout + attach hover tooltips
+            requestAnimationFrame(() => {
+                _redrawAllAwCards(grid);
+                _animateStatsBars(sb.card);
+                _animateCircle(cp.card);
+                // Hover tooltips
+                _attachHeatmapHover(hm.canvas);
+                _attachDivergingHover(dv.canvas);
+                _attachHorizontalBarHover(hb.canvas);
+                _attachStatsBarHover(sb.card);
+            });
+        }
+
+        /* -- Floating Action Button "+" -- */
+        const _fabWidgets = [
+            { label: 'Heatmap présence', build: () => _buildHeatmapCard() },
+            { label: 'Suivi alertes', build: () => _buildDivergingCard() },
+            { label: 'Rapport détections', build: () => _buildHorizontalBarCard() },
+            { label: 'Stats mensuelles', build: () => _buildStatsBarCard() },
+            { label: 'Couverture zones', build: () => _buildCircularProgressCard() },
+        ];
+
+        function _initFab(grid) {
+            // Create FAB container inside analyticsView
+            const view = document.getElementById('analyticsView');
+            if (!view || view.querySelector('.aw-fab')) return;
+
+            const fab = document.createElement('div');
+            fab.className = 'aw-fab';
+            fab.innerHTML = `
+                <button class="aw-fab__btn" type="button" title="Ajouter un widget">
+                    <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+                <div class="aw-fab__menu">
+                    ${_fabWidgets.map((w, i) => `
+                        <button class="aw-fab__option" data-fab-idx="${i}" type="button">
+                            ${w.label}
+                        </button>`).join('')}
+                </div>`;
+            view.appendChild(fab);
+
+            // Toggle
+            fab.querySelector('.aw-fab__btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                fab.classList.toggle('is-open');
+            });
+
+            // Option click → add widget
+            fab.querySelectorAll('.aw-fab__option').forEach(opt => {
+                opt.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const idx = parseInt(opt.getAttribute('data-fab-idx'), 10);
+                    const wDef = _fabWidgets[idx];
+                    if (!wDef) return;
+                    const result = wDef.build();
+                    grid.appendChild(result.card);
+                    // Draw canvas / animate / attach hover
+                    requestAnimationFrame(() => {
+                        if (result.canvas) {
+                            const title = result.card.querySelector('.aw-card__title')?.textContent || '';
+                            if (title.includes('présence')) { _drawHeatmap(result.canvas); _attachHeatmapHover(result.canvas); }
+                            else if (title.includes('alertes')) { _drawDivergingBar(result.canvas); _attachDivergingHover(result.canvas); }
+                            else if (title.includes('détections')) { _drawHorizontalBar(result.canvas); _attachHorizontalBarHover(result.canvas); }
+                        }
+                        _animateStatsBars(result.card);
+                        _attachStatsBarHover(result.card);
+                        _animateCircle(result.card);
+                    });
+                    fab.classList.remove('is-open');
+                    // Scroll to new card
+                    result.card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                });
+            });
+
+            // Close on outside click
+            document.addEventListener('click', (e) => {
+                if (!fab.contains(e.target)) fab.classList.remove('is-open');
+            });
+        }
+
+        window.addEventListener('resize', () => {
+            syncCanvasSize();
+            if (_analyticsInited && !document.getElementById('analyticsView')?.classList.contains('hidden')) {
+                const g = document.getElementById('analyticsGrid');
+                if (g) _redrawAllAwCards(g);
+            }
+        });
