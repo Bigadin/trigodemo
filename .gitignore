@@ -208,3 +208,6 @@ __marimo__/
 
 # App runtime data
 data/presence.json
+
+# Build output
+dist/
