@@ -125,7 +125,7 @@
             // Also reset counting if this zone is the counting ROI
             try {
                 const cs = countingStateByVideo?.[video];
-                if (cs?.zone_name === zoneName && cs?.enabled) {
+                if (cs?.zone_name === zoneName && cs.enabled) {
                     fetch(`/api/counting/${encodeURIComponent(video)}/reset`, { method: 'POST' });
                 }
             } catch {}
@@ -2750,6 +2750,8 @@
 
                 // Check if this zone is the counting ROI
                 const cs = countingStateByVideo?.[currentVideo] || {};
+                const zoneSettings = cs.zone_settings || {};
+                const zoneMode = zoneSettings[name]?.mode || 'simple';
                 const isCountingZone = cs.zone_name === name && cs.enabled;
                 const countVal = isCountingZone ? (cs.count || 0) : null;
 
@@ -2773,8 +2775,8 @@
                         ${isCountingZone ? `
                             <div class="line-kpi-row">
                                 <div class="line-kpi-left">
-                                    <div class="line-kpi-num">${countVal}</div>
-                                    <div class="line-kpi-label">Comptage</div>
+                                    <div class="line-kpi-num" style="color:${zoneMode === 'simple' ? '#ff9600' : 'var(--color-accent)'};">${countVal}</div>
+                                    <div class="line-kpi-label">${zoneMode === 'simple' ? 'Simple' : 'Complexe'}</div>
                                 </div>
                                 <div class="line-kpi-right">
                                     <div class="line-kpi-mini"><span>Direction</span><span>${cs.angle != null ? Math.round(cs.angle) + '°' : '—'}</span></div>
@@ -2820,9 +2822,8 @@
             // Update counting UI
             updateCountingZoneOptions();
             const cs = countingStateByVideo?.[currentVideo];
-            if (cs?.enabled && countingDisplay) {
-                countingDisplay.style.display = 'block';
-                countingValue.textContent = cs.count || 0;
+            if (cs && countingDisplay) {
+                if (cs.enabled) { countingDisplay.style.display = 'block'; countingValue.textContent = cs.count || 0; }
             }
             } finally {
                 loadZonesInFlight = false;
@@ -3983,12 +3984,19 @@
 
         // ==================== Counting Module UI ====================
         const countingZoneSelect = document.getElementById('countingZoneSelect');
+        const countingModeSelect = document.getElementById('countingModeSelect');
         const countingToggleBtn = document.getElementById('countingToggleBtn');
         const countingFlipBtn = document.getElementById('countingFlipBtn');
         const countingResetBtn = document.getElementById('countingResetBtn');
         const countingDisplay = document.getElementById('countingDisplay');
+        const countingModeLabel = document.getElementById('countingModeLabel');
         const countingValue = document.getElementById('countingValue');
         const countingAngleLabel = document.getElementById('countingAngleLabel');
+        const simpleParamsPanel = document.getElementById('simpleParamsPanel');
+        const simpleThresholdSlider = document.getElementById('simpleThresholdSlider');
+        const simpleThresholdValue = document.getElementById('simpleThresholdValue');
+        const simpleCooldownSlider = document.getElementById('simpleCooldownSlider');
+        const simpleCooldownValue = document.getElementById('simpleCooldownValue');
 
         function updateCountingZoneOptions() {
             if (!countingZoneSelect) return;
@@ -4003,11 +4011,13 @@
             }
         }
 
+        let _simpleParamsLoaded = false;
         async function syncCountingUI() {
             if (!currentVideo) {
                 if (countingToggleBtn) countingToggleBtn.disabled = true;
                 if (countingDisplay) countingDisplay.style.display = 'none';
                 if (countingAngleLabel) countingAngleLabel.textContent = 'auto';
+                if (simpleParamsPanel) simpleParamsPanel.style.display = 'none';
                 return;
             }
             const data = await fetchCountingState(currentVideo);
@@ -4019,32 +4029,76 @@
                 countingZoneSelect.value = data.zone_name;
             }
 
+            // Restore mode selector from server zone_settings for the active zone
+            const mode = data.mode || 'simple';
+            if (countingModeSelect) {
+                countingModeSelect.value = mode;
+            }
+
             // Show auto-computed angle
             if (countingAngleLabel) {
-                if (data.angle != null) {
-                    countingAngleLabel.textContent = `${Math.round(data.angle)}°`;
-                } else {
-                    countingAngleLabel.textContent = 'auto';
-                }
+                countingAngleLabel.textContent = data.angle != null ? `${Math.round(data.angle)}°` : 'auto';
             }
 
             const inner = ensureRetroInner(countingToggleBtn);
+
+            countingToggleBtn.disabled = !data.configured;
             if (data.enabled) {
-                countingToggleBtn.disabled = false;
                 countingToggleBtn.classList.add('is-on');
                 if (inner) inner.textContent = 'Pause Comptage';
-                countingDisplay.style.display = 'block';
-                countingValue.textContent = data.count || 0;
             } else {
-                countingToggleBtn.disabled = !data.configured;
                 countingToggleBtn.classList.remove('is-on');
                 if (inner) inner.textContent = 'Activer Comptage';
+            }
+
+            // Single counter display (adapts to mode)
+            if (countingDisplay) {
                 countingDisplay.style.display = data.configured ? 'block' : 'none';
-                countingValue.textContent = data.count || 0;
+                if (countingModeLabel) {
+                    countingModeLabel.textContent = mode === 'simple' ? 'Simple (Gradient)' : 'Complexe (MOG2)';
+                }
+                countingDisplay.style.color = mode === 'simple' ? '#ff9600' : 'var(--color-accent)';
+                if (countingValue) countingValue.textContent = data.count || 0;
+            }
+
+            // Simple params panel — only when mode is simple
+            if (simpleParamsPanel) {
+                simpleParamsPanel.style.display = mode === 'simple' ? 'block' : 'none';
+            }
+
+            // Load slider values from server once
+            if (!_simpleParamsLoaded && mode === 'simple') {
+                _simpleParamsLoaded = true;
+                try {
+                    const params = await fetch('/api/counting/params').then(r => r.json());
+                    if (simpleThresholdSlider) {
+                        simpleThresholdSlider.value = params.simple_gradient_threshold || 30;
+                        if (simpleThresholdValue) simpleThresholdValue.textContent = simpleThresholdSlider.value;
+                    }
+                    if (simpleCooldownSlider) {
+                        simpleCooldownSlider.value = params.simple_cooldown_frames || 10;
+                        if (simpleCooldownValue) simpleCooldownValue.textContent = simpleCooldownSlider.value;
+                    }
+                } catch {}
             }
         }
 
-        // Zone select: auto-configure (direction is auto-computed from polygon)
+        // Mode select: save mode to server for this zone, then sync UI
+        if (countingModeSelect) {
+            countingModeSelect.addEventListener('change', async () => {
+                const zoneName = countingZoneSelect ? countingZoneSelect.value : '';
+                if (!currentVideo || !zoneName) return;
+                const mode = countingModeSelect.value;
+                await fetch(`/api/counting/${encodeURIComponent(currentVideo)}/config`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ zone_name: zoneName, mode })
+                });
+                await syncCountingUI();
+            });
+        }
+
+        // Zone select: switch active zone (preserves per-zone mode & flip from server)
         if (countingZoneSelect) {
             countingZoneSelect.addEventListener('change', async () => {
                 const zoneName = countingZoneSelect.value;
@@ -4052,28 +4106,24 @@
                     countingToggleBtn.disabled = true;
                     return;
                 }
+                // Check if this zone already has settings — if so, use its saved mode
+                const data = await fetchCountingState(currentVideo);
+                const zoneSettings = data?.zone_settings || {};
+                const existingMode = zoneSettings[zoneName]?.mode || (countingModeSelect ? countingModeSelect.value : 'simple');
                 await fetch(`/api/counting/${encodeURIComponent(currentVideo)}/config`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ zone_name: zoneName })
+                    body: JSON.stringify({ zone_name: zoneName, mode: existingMode })
                 });
                 countingToggleBtn.disabled = false;
                 await syncCountingUI();
             });
         }
 
-        // Toggle button
+        // Toggle button: enable/disable counting (dispatches to correct mode on server)
         if (countingToggleBtn) {
             countingToggleBtn.addEventListener('click', async () => {
                 if (!currentVideo) return;
-                const zoneName = countingZoneSelect.value;
-                if (zoneName) {
-                    await fetch(`/api/counting/${encodeURIComponent(currentVideo)}/config`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ zone_name: zoneName })
-                    });
-                }
                 await fetch(`/api/counting/${encodeURIComponent(currentVideo)}/toggle`, { method: 'POST' });
                 await syncCountingUI();
                 await loadZones();
@@ -4089,12 +4139,38 @@
             });
         }
 
-        // Reset button
+        // Reset button: reset counting (dispatches to correct mode on server)
         if (countingResetBtn) {
             countingResetBtn.addEventListener('click', async () => {
                 if (!currentVideo) return;
                 await fetch(`/api/counting/${encodeURIComponent(currentVideo)}/reset`, { method: 'POST' });
                 await syncCountingUI();
+            });
+        }
+
+        // Simple params sliders
+        if (simpleThresholdSlider) {
+            simpleThresholdSlider.addEventListener('input', () => {
+                if (simpleThresholdValue) simpleThresholdValue.textContent = simpleThresholdSlider.value;
+            });
+            simpleThresholdSlider.addEventListener('change', async () => {
+                await fetch('/api/counting/params', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ simple_gradient_threshold: parseInt(simpleThresholdSlider.value) })
+                });
+            });
+        }
+        if (simpleCooldownSlider) {
+            simpleCooldownSlider.addEventListener('input', () => {
+                if (simpleCooldownValue) simpleCooldownValue.textContent = simpleCooldownSlider.value;
+            });
+            simpleCooldownSlider.addEventListener('change', async () => {
+                await fetch('/api/counting/params', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ simple_cooldown_frames: parseInt(simpleCooldownSlider.value) })
+                });
             });
         }
 
@@ -4116,7 +4192,11 @@
                 if (v?.zones && name in v.zones) delete v.zones[name];
                 // If deleted zone was counting ROI, stop counting
                 const cs = countingStateByVideo?.[currentVideo];
-                if (cs?.zone_name === name) { try { fetch(`/api/counting/${encodeURIComponent(currentVideo)}/toggle`, { method: 'POST' }); } catch {} }
+                if (cs?.zone_name === name && cs.enabled) {
+                    try {
+                        fetch(`/api/counting/${encodeURIComponent(currentVideo)}/toggle`, { method: 'POST' });
+                    } catch {}
+                }
                 const pr = lastPresenceByVideo?.[currentVideo];
                 if (pr && name in pr) delete pr[name];
                 if (selectedAsset?.zone === name) selectedAsset = null;

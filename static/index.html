@@ -273,6 +273,13 @@
                                 </select>
                             </div>
                             <div style="display: flex; gap: var(--space-2); align-items: center;">
+                                <label class="form-label" style="margin:0; white-space:nowrap; font-size: var(--text-xs);">Mode</label>
+                                <select id="countingModeSelect" style="flex:1; font-size: var(--text-xs); padding: 4px 6px; border-radius: 4px; border: 1px solid var(--color-border); background: var(--color-bg);">
+                                    <option value="simple">Simple (Gradient)</option>
+                                    <option value="complex">Complexe (MOG2)</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; gap: var(--space-2); align-items: center;">
                                 <label class="form-label" style="margin:0; white-space:nowrap; font-size: var(--text-xs);">Direction</label>
                                 <span id="countingAngleLabel" style="font-size: var(--text-xs); color: var(--color-text-secondary);">auto</span>
                                 <button class="btn btn-secondary btn-small" id="countingFlipBtn" title="Tourner la direction de 90°" style="padding:2px 8px; font-size:12px;">&#x21BB; +90°</button>
@@ -287,8 +294,23 @@
                                     </svg>
                                 </button>
                             </div>
-                            <div id="countingDisplay" style="text-align:center; font-size: var(--text-xl); font-weight:700; color: var(--color-accent); display:none;">
+                            <!-- Counter display (adapts to active mode) -->
+                            <div id="countingDisplay" style="text-align:center; font-size: var(--text-lg); font-weight:700; color: var(--color-accent); display:none;">
+                                <span id="countingModeLabel" style="font-size: var(--text-xs); color: var(--color-text-secondary);"></span><br>
                                 <span id="countingValue">0</span>
+                            </div>
+                            <!-- Simple mode params -->
+                            <div id="simpleParamsPanel" style="display:none; padding: var(--space-2); border: 1px solid var(--color-border); border-radius: 4px;">
+                                <div style="display:flex; gap:var(--space-2); align-items:center; margin-bottom:4px;">
+                                    <label style="font-size:var(--text-xs); white-space:nowrap;">Seuil</label>
+                                    <input type="range" id="simpleThresholdSlider" min="5" max="100" value="30" style="flex:1;">
+                                    <span id="simpleThresholdValue" style="font-size:var(--text-xs); min-width:28px;">30</span>
+                                </div>
+                                <div style="display:flex; gap:var(--space-2); align-items:center;">
+                                    <label style="font-size:var(--text-xs); white-space:nowrap;">Cooldown</label>
+                                    <input type="range" id="simpleCooldownSlider" min="1" max="30" value="10" style="flex:1;">
+                                    <span id="simpleCooldownValue" style="font-size:var(--text-xs); min-width:28px;">10</span>
+                                </div>
                             </div>
                         </div>
                     </div>
