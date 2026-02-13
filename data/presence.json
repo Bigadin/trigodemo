@@ -18,9 +18,12 @@
     "total_time": 13.49596905708313
   },
   "oioio": {
-    "total_time": 5.522028684616089
+    "total_time": 10.789064168930054
   },
   "cmp": {
+    "total_time": 0
+  },
+  "cmp2": {
     "total_time": 0
   }
 }

@@ -1,14 +1,36 @@
 {
   "video_01.mp4": {
     "zone_name": "oioio",
-    "flip_count": 1
+    "flip_count": 0,
+    "zone_settings": {
+      "cmp2": {
+        "mode": "simple",
+        "flip_count": 3
+      },
+      "oioio": {
+        "mode": "complex",
+        "flip_count": 1
+      }
+    }
   },
   "w1.mp4": {
     "zone_name": "cmp",
-    "flip_count": 0
+    "flip_count": 0,
+    "zone_settings": {
+      "cmp": {
+        "mode": "simple",
+        "flip_count": 0
+      }
+    }
   },
   "w2.mp4": {
     "zone_name": "cmp",
-    "flip_count": 0
+    "flip_count": 0,
+    "zone_settings": {
+      "cmp": {
+        "mode": "complex",
+        "flip_count": 0
+      }
+    }
   }
 }
