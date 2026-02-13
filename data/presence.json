@@ -17,10 +17,13 @@
   "de": {
     "total_time": 13.49596905708313
   },
-  "oioio": {
-    "total_time": 5.522028684616089
-  },
   "cmp": {
+    "total_time": 0
+  },
+  "cmp1": {
+    "total_time": 0
+  },
+  "cmp2": {
     "total_time": 0
   }
 }

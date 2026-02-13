@@ -67,17 +67,16 @@ TRACKING_REINFERENCE_INTERVAL = 30  # Réinférence complète toutes les 30 fram
 cameras = {}
 
 # ==================== Counting Module State ====================
-# Config per video: {video_name: {"zone_name": str, "flip_count": int}}
-# Direction is auto-computed from polygon shape; flip_count rotates by 90° increments
+# Config per video: {video_name: {"active_zone": str, "zones": {zone_name: {"mode": str, "flip_count": int}}}}
 counting_config = {}
-# Runtime state per video: {video_name: {"enabled": bool, "count": int, "tracked_objects": {...}, "debug_objects": {...}, "recent_crossings": [...]}}
+# Runtime state per video per zone: {video_name: {zone_name: {"enabled": bool, "count": int, "tracked_objects": {...}, ...}}}
 counting_state = {}
 counting_lock = threading.Lock()
 COUNTING_FILE = DATA_DIR / "counting.json"
 
-# Blob-based counting: MOG2 background subtractors per video
-counting_bg_subtractors = {}  # {video_name: cv2.BackgroundSubtractorMOG2}
-counting_debug_masks = {}     # {video_name: ndarray} - foreground mask for overlay
+# Blob-based counting: MOG2 background subtractors per (video, zone)
+counting_bg_subtractors = {}  # {(video_name, zone_name): cv2.BackgroundSubtractorMOG2}
+counting_debug_masks = {}     # {(video_name, zone_name): ndarray} - foreground mask for overlay
 
 # Counting parameters (loaded from data/counting_params.json)
 COUNTING_PARAMS_FILE = DATA_DIR / "counting_params.json"
@@ -98,6 +97,9 @@ COUNTING_PARAMS_DEFAULTS = {
     "grace_frames": 5,
     "counted_grace_frames": 1,
     "crossing_display_time": 2.0,
+    "gradient_baseline_frames": 30,
+    "gradient_threshold_high": 15,
+    "gradient_threshold_low": 5,
 }
 counting_params = {}
 
@@ -190,6 +192,22 @@ def load_counting_config():
     if COUNTING_FILE.exists():
         with open(COUNTING_FILE, "r") as f:
             counting_config = json.load(f)
+    # Migrate old format (single zone per video) to new per-zone format
+    migrated = False
+    for video_name, cfg in list(counting_config.items()):
+        if "zones" not in cfg:
+            zone_name = cfg.get("zone_name", "")
+            old_counts = cfg.get("zone_counts", {})
+            zones = {}
+            if zone_name:
+                zones[zone_name] = {"mode": cfg.get("mode", "blob"), "flip_count": cfg.get("flip_count", 0), "count": old_counts.get(zone_name, 0)}
+            for zn, fc in cfg.get("zone_flips", {}).items():
+                if zn not in zones:
+                    zones[zn] = {"mode": cfg.get("mode", "blob"), "flip_count": fc, "count": old_counts.get(zn, 0)}
+            counting_config[video_name] = {"active_zone": zone_name, "zones": zones}
+            migrated = True
+    if migrated:
+        print("[COUNTING] Migrated config to per-zone format")
 
 
 def save_counting_config():
@@ -221,21 +239,22 @@ def compute_polygon_direction(all_points):
     return angle % 360
 
 
-def get_counting_line(video_name: str):
+def get_counting_line(video_name: str, zone_name: str):
     """Calculate counting line from ROI polygon's principal direction.
     Returns dict with line endpoints, direction vector, threshold, angle, roi_bounds or None.
     """
     config = counting_config.get(video_name)
-    with counting_lock:
-        state = counting_state.get(video_name)
-        if not state or not state.get("enabled"):
-            return None
-
-    if not config:
+    if not config or zone_name not in config.get("zones", {}):
         return None
 
-    zone_name = config["zone_name"]
-    flip_count = config.get("flip_count", 0)
+    with counting_lock:
+        zone_states = counting_state.get(video_name, {})
+        zs = zone_states.get(zone_name)
+        if not zs or not zs.get("enabled"):
+            return None
+
+    zone_cfg = config["zones"][zone_name]
+    flip_count = zone_cfg.get("flip_count", 0)
 
     video_zones = zones_by_video.get(video_name, {})
     zone_data = video_zones.get(zone_name)
@@ -292,17 +311,18 @@ _counting_log_counter = 0  # throttle console logs
 _counting_next_blob_id = 1  # auto-increment blob track IDs
 
 
-def update_counting_blob(video_name: str, frame: np.ndarray):
+def update_counting_blob(video_name: str, zone_name: str, frame: np.ndarray):
     """Blob-based counting: background subtraction (MOG2) on ROI → contour detection → proximity tracking → line crossing.
     Independent from YOLO — works on raw pixels only."""
     global _counting_log_counter, _counting_next_blob_id
 
-    line_info = get_counting_line(video_name)
+    line_info = get_counting_line(video_name, zone_name)
     if not line_info:
         return
 
-    # Check if MOG2 instance exists for this video
-    if video_name not in counting_bg_subtractors:
+    # Check if MOG2 instance exists for this (video, zone)
+    mog2_key = (video_name, zone_name)
+    if mog2_key not in counting_bg_subtractors:
         return
 
     dir_x = line_info["dir_x"]
@@ -312,7 +332,8 @@ def update_counting_blob(video_name: str, frame: np.ndarray):
     now = time.time()
 
     with counting_lock:
-        state = counting_state.get(video_name)
+        zone_states = counting_state.get(video_name, {})
+        state = zone_states.get(zone_name)
         if not state or not state.get("enabled"):
             return
 
@@ -328,10 +349,6 @@ def update_counting_blob(video_name: str, frame: np.ndarray):
     crop = frame[r_t:r_b, r_l:r_r].copy()
 
     # --- Step 2: Apply polygon mask within the crop ---
-    config = counting_config.get(video_name)
-    if not config:
-        return
-    zone_name = config["zone_name"]
     video_zones = zones_by_video.get(video_name, {})
     zone_data = video_zones.get(zone_name)
     if not zone_data or not zone_data.get("polygons"):
@@ -351,7 +368,7 @@ def update_counting_blob(video_name: str, frame: np.ndarray):
     # --- Step 3: Gaussian blur + MOG2 background subtraction ---
     k = counting_params["gaussian_blur_kernel"]
     blurred = cv2.GaussianBlur(masked_crop, (k, k), 0)
-    mog2 = counting_bg_subtractors[video_name]
+    mog2 = counting_bg_subtractors[mog2_key]
 
     # Track frame count: learn background for N frames, then freeze (learningRate=0)
     with counting_lock:
@@ -409,11 +426,12 @@ def update_counting_blob(video_name: str, frame: np.ndarray):
     # Store debug mask (in global frame coords: place into full-size mask)
     debug_mask = np.zeros((h, w), dtype=np.uint8)
     debug_mask[r_t:r_b, r_l:r_r] = fg_mask
-    counting_debug_masks[video_name] = debug_mask
+    counting_debug_masks[mog2_key] = debug_mask
 
     # --- Step 6: Proximity-based blob tracking + line crossing ---
     with counting_lock:
-        state = counting_state.get(video_name)
+        zone_states = counting_state.get(video_name, {})
+        state = zone_states.get(zone_name)
         if not state or not state.get("enabled"):
             return
 
@@ -512,6 +530,155 @@ def update_counting_blob(video_name: str, frame: np.ndarray):
         _counting_log_counter += 1
         if _counting_log_counter % 60 == 0:
             print(f"[COUNTING-BLOB] blobs={len(blob_centers)} tracked={len(tracked)} count={state['count']} thr={threshold:.0f} roi=({roi_left:.0f},{roi_top:.0f})-({roi_right:.0f},{roi_bottom:.0f}) angle={line_info['angle']:.0f}°")
+
+
+# ==================== Gradient 1D Counting (Simple mode) ====================
+# State: counting_state[video]["gradient_state"] = "idle" | "triggered"
+# Debug: counting_state[video]["gradient_profile"] = 1D array for overlay
+
+def update_counting_gradient(video_name: str, zone_name: str, frame: np.ndarray):
+    """Simple counting: project ROI to 1D intensity profile along direction axis.
+    Uses hysteresis (front descendant): baseline → deviation triggers → return to baseline = +1."""
+    global _counting_log_counter
+
+    line_info = get_counting_line(video_name, zone_name)
+    if not line_info:
+        return
+
+    dir_x = line_info["dir_x"]
+    dir_y = line_info["dir_y"]
+    roi_left, roi_top, roi_right, roi_bottom = line_info["roi_bounds"]
+
+    with counting_lock:
+        zone_states = counting_state.get(video_name, {})
+        state = zone_states.get(zone_name)
+        if not state or not state.get("enabled"):
+            return
+
+    # --- Step 1: Crop frame to ROI bounding box ---
+    r_l, r_t = max(0, int(roi_left)), max(0, int(roi_top))
+    r_r, r_b = min(frame.shape[1], int(roi_right)), min(frame.shape[0], int(roi_bottom))
+    if r_r <= r_l or r_b <= r_t:
+        return
+
+    crop = frame[r_t:r_b, r_l:r_r]
+
+    # --- Step 2: Apply polygon mask ---
+    video_zones = zones_by_video.get(video_name, {})
+    zone_data = video_zones.get(zone_name)
+    if not zone_data or not zone_data.get("polygons"):
+        return
+
+    crop_h, crop_w = crop.shape[:2]
+    poly_mask = np.zeros((crop_h, crop_w), dtype=np.uint8)
+    for poly_pts in zone_data["polygons"]:
+        if len(poly_pts) >= 3:
+            shifted = np.array([[p[0] - r_l, p[1] - r_t] for p in poly_pts], dtype=np.int32)
+            cv2.fillPoly(poly_mask, [shifted], 255)
+
+    # --- Step 3: Convert to grayscale, mask, compute 1D profile ---
+    gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+    gray_masked = cv2.bitwise_and(gray, gray, mask=poly_mask)
+
+    # Project each pixel onto direction axis → bin by position → average intensity per bin
+    # Create coordinate grids (in crop space)
+    ys, xs = np.mgrid[0:crop_h, 0:crop_w]
+    # Global coordinates
+    xs_g = xs + r_l
+    ys_g = ys + r_t
+
+    # Projection onto direction axis
+    proj = xs_g.astype(np.float64) * dir_x + ys_g.astype(np.float64) * dir_y
+
+    # Only consider pixels inside polygon mask
+    mask_bool = poly_mask > 0
+    proj_vals = proj[mask_bool]
+    intensity_vals = gray_masked[mask_bool].astype(np.float64)
+
+    if len(proj_vals) == 0:
+        return
+
+    # Bin into N bins along the direction axis
+    n_bins = 50
+    proj_min, proj_max = proj_vals.min(), proj_vals.max()
+    if proj_max - proj_min < 1:
+        return
+
+    bin_indices = np.clip(
+        ((proj_vals - proj_min) / (proj_max - proj_min) * (n_bins - 1)).astype(int),
+        0, n_bins - 1
+    )
+    profile = np.zeros(n_bins, dtype=np.float64)
+    counts = np.zeros(n_bins, dtype=np.float64)
+    np.add.at(profile, bin_indices, intensity_vals)
+    np.add.at(counts, bin_indices, 1)
+    counts[counts == 0] = 1
+    profile /= counts  # Average intensity per bin
+
+    # --- Step 4: Compute mean intensity (scalar signal) ---
+    mean_intensity = float(profile.mean())
+
+    with counting_lock:
+        zone_states = counting_state.get(video_name, {})
+        state = zone_states.get(zone_name)
+        if not state or not state.get("enabled"):
+            return
+
+        frame_count = state.get("gradient_frame_count", 0)
+        state["gradient_frame_count"] = frame_count + 1
+        learning_frames = counting_params["gradient_baseline_frames"]
+
+        # --- Step 5: Baseline learning phase ---
+        if frame_count < learning_frames:
+            # Accumulate baseline
+            baseline_acc = state.get("gradient_baseline_acc", 0.0)
+            baseline_profile_acc = state.get("gradient_baseline_profile_acc", np.zeros(n_bins))
+            state["gradient_baseline_acc"] = baseline_acc + mean_intensity
+            state["gradient_baseline_profile_acc"] = baseline_profile_acc + profile
+            if frame_count == learning_frames - 1:
+                state["gradient_baseline"] = state["gradient_baseline_acc"] / learning_frames
+                state["gradient_baseline_profile"] = state["gradient_baseline_profile_acc"] / learning_frames
+                print(f"[COUNTING-GRADIENT] Baseline frozen: {state['gradient_baseline']:.1f} for {video_name}")
+            # Store profile for debug even during learning
+            state["gradient_profile"] = profile.tolist()
+            state["gradient_mean"] = mean_intensity
+            return
+
+        baseline = state.get("gradient_baseline")
+        if baseline is None:
+            return
+
+        # --- Step 6: Hysteresis detection (front descendant) ---
+        deviation = abs(mean_intensity - baseline)
+        thr_high = counting_params["gradient_threshold_high"]
+        thr_low = counting_params["gradient_threshold_low"]
+        grad_state = state.get("gradient_state", "idle")
+
+        if grad_state == "idle":
+            if deviation > thr_high:
+                state["gradient_state"] = "triggered"
+        elif grad_state == "triggered":
+            if deviation < thr_low:
+                # Object has fully passed → count +1
+                state["count"] += 1
+                state["gradient_state"] = "idle"
+                now = time.time()
+                recent = state.get("recent_crossings", [])
+                recent.append({"track_id": f"g{state['count']}", "cx": (r_l + r_r) / 2, "cy": (r_t + r_b) / 2, "time": now})
+                state["recent_crossings"] = recent
+                print(f"[COUNTING-GRADIENT] COUNT={state['count']} deviation returned to {deviation:.1f} < {thr_low}")
+
+        # Store debug data
+        state["gradient_profile"] = profile.tolist()
+        state["gradient_baseline_profile_data"] = state.get("gradient_baseline_profile", np.zeros(n_bins)).tolist() if isinstance(state.get("gradient_baseline_profile"), np.ndarray) else state.get("gradient_baseline_profile", [])
+        state["gradient_mean"] = mean_intensity
+        state["gradient_deviation"] = deviation
+        state["gradient_state_label"] = grad_state
+
+        # Periodic diagnostic log
+        _counting_log_counter += 1
+        if _counting_log_counter % 60 == 0:
+            print(f"[COUNTING-GRADIENT] mean={mean_intensity:.1f} baseline={baseline:.1f} dev={deviation:.1f} state={grad_state} count={state['count']}")
 
 
 def _list_video_files() -> list[str]:
@@ -846,53 +1013,79 @@ async def set_blur(state: str):
 
 class CountingConfig(BaseModel):
     zone_name: str
+    mode: str = "blob"  # "blob" (MOG2 advanced) or "gradient" (simple 1D)
 
 
 @app.get("/api/counting/{video_name:path}")
 async def get_counting(video_name: str):
-    """Get counting config and state for a video"""
+    """Get counting config and state for a video (all zones)"""
     config = counting_config.get(video_name)
+    if not config:
+        return {"configured": False, "active_zone": None, "zones": {}}
+
+    active_zone = config.get("active_zone", "")
+    zones_cfg = config.get("zones", {})
+    video_zones = zones_by_video.get(video_name, {})
+
+    # Build per-zone response
+    zones_resp = {}
     with counting_lock:
-        state = counting_state.get(video_name, {})
+        zone_states = counting_state.get(video_name, {})
+        for zn, zcfg in zones_cfg.items():
+            zs = zone_states.get(zn, {})
+            flip_count = zcfg.get("flip_count", 0)
+            # Compute angle
+            angle = None
+            zone_data = video_zones.get(zn)
+            if zone_data and zone_data.get("polygons"):
+                all_points = [p for poly in zone_data["polygons"] for p in poly]
+                if len(all_points) >= 3:
+                    base_angle = compute_polygon_direction(all_points)
+                    angle = (base_angle + flip_count * 90) % 360
+            # Use runtime count if available, otherwise fall back to persisted count
+            count = zs.get("count", zcfg.get("count", 0))
+            zones_resp[zn] = {
+                "mode": zcfg.get("mode", "blob"),
+                "flip_count": flip_count,
+                "angle": angle,
+                "enabled": zs.get("enabled", False),
+                "count": count,
+            }
 
-    # Compute effective angle for display
-    effective_angle = None
-    if config:
-        zone_name = config["zone_name"]
-        flip_count = config.get("flip_count", 0)
-        video_zones = zones_by_video.get(video_name, {})
-        zone_data = video_zones.get(zone_name)
-        if zone_data and zone_data.get("polygons"):
-            all_points = [p for poly in zone_data["polygons"] for p in poly]
-            if len(all_points) >= 3:
-                base_angle = compute_polygon_direction(all_points)
-                effective_angle = (base_angle + flip_count * 90) % 360
-
+    # Also return active zone's info at top level for backward compat
+    active_info = zones_resp.get(active_zone, {})
     return {
-        "configured": config is not None,
-        "zone_name": config["zone_name"] if config else None,
-        "flip_count": config.get("flip_count", 0) if config else 0,
-        "angle": effective_angle,
-        "enabled": state.get("enabled", False),
-        "count": state.get("count", 0),
+        "configured": len(zones_cfg) > 0,
+        "active_zone": active_zone,
+        "zone_name": active_zone,  # backward compat
+        "flip_count": active_info.get("flip_count", 0),
+        "mode": active_info.get("mode", "blob"),
+        "angle": active_info.get("angle"),
+        "enabled": active_info.get("enabled", False),
+        "count": active_info.get("count", 0),
+        "zones": zones_resp,
     }
 
 
 @app.post("/api/counting/{video_name:path}/config")
 async def set_counting_config(video_name: str, cfg: CountingConfig):
-    """Configure counting for a video: set ROI zone (direction is auto-computed from polygon)"""
-    # Verify zone exists
+    """Configure counting for a video: add/update a zone and set as active"""
     video_zones = zones_by_video.get(video_name, {})
     if cfg.zone_name not in video_zones:
         raise HTTPException(status_code=404, detail=f"Zone '{cfg.zone_name}' not found for this video")
 
-    # Preserve existing flip_count if reconfiguring same zone
-    old = counting_config.get(video_name, {})
-    flip_count = old.get("flip_count", 0) if old.get("zone_name") == cfg.zone_name else 0
+    existing = counting_config.get(video_name, {"active_zone": "", "zones": {}})
+    zones = existing.get("zones", {})
+
+    # Add or update zone config (preserve flip_count if already exists)
+    if cfg.zone_name not in zones:
+        zones[cfg.zone_name] = {"mode": cfg.mode, "flip_count": 0}
+    else:
+        zones[cfg.zone_name]["mode"] = cfg.mode
 
     counting_config[video_name] = {
-        "zone_name": cfg.zone_name,
-        "flip_count": flip_count,
+        "active_zone": cfg.zone_name,
+        "zones": zones,
     }
     save_counting_config()
     return {"message": "Counting configured", "zone_name": cfg.zone_name}
@@ -900,90 +1093,130 @@ async def set_counting_config(video_name: str, cfg: CountingConfig):
 
 @app.post("/api/counting/{video_name:path}/toggle")
 async def toggle_counting(video_name: str):
-    """Toggle counting on/off. Creates/destroys MOG2 background subtractor."""
+    """Toggle counting on/off for the active zone."""
     config = counting_config.get(video_name)
-    if not config:
+    if not config or not config.get("active_zone"):
         raise HTTPException(status_code=400, detail="Counting not configured for this video. Set config first.")
 
+    zone_name = config["active_zone"]
+    zone_cfg = config.get("zones", {}).get(zone_name, {})
+    mode = zone_cfg.get("mode", "blob")
+    mog2_key = (video_name, zone_name)
+
     with counting_lock:
-        state = counting_state.get(video_name)
-        if state and state.get("enabled"):
-            # Disable: destroy MOG2 instance
-            state["enabled"] = False
-            state["tracked_objects"] = {}
-            state["debug_objects"] = {}
-            state["debug_contours"] = []
-            state["recent_crossings"] = []
-            if video_name in counting_bg_subtractors:
-                del counting_bg_subtractors[video_name]
-            if video_name in counting_debug_masks:
-                del counting_debug_masks[video_name]
+        if video_name not in counting_state:
+            counting_state[video_name] = {}
+        zone_states = counting_state[video_name]
+        zs = zone_states.get(zone_name)
+
+        if zs and zs.get("enabled"):
+            # Disable this zone — save count to config for persistence
+            zone_cfg["count"] = zs.get("count", 0)
+            zs["enabled"] = False
+            zs["tracked_objects"] = {}
+            zs["debug_objects"] = {}
+            zs["debug_contours"] = []
+            zs["recent_crossings"] = []
+            if mog2_key in counting_bg_subtractors:
+                del counting_bg_subtractors[mog2_key]
+            if mog2_key in counting_debug_masks:
+                del counting_debug_masks[mog2_key]
+            print(f"[COUNTING] Disabled {zone_name} for {video_name} (count={zone_cfg['count']})")
         else:
-            # Enable: create MOG2 instance and reset counter
-            counting_state[video_name] = {
+            # Enable this zone — restore count from runtime state or persisted config
+            prev_count = zs.get("count", 0) if zs else zone_cfg.get("count", 0)
+            zone_states[zone_name] = {
                 "enabled": True,
-                "count": 0,
-                "bg_frame_count": 0,
+                "count": prev_count,
                 "tracked_objects": {},
                 "debug_objects": {},
                 "debug_contours": [],
                 "recent_crossings": [],
             }
-            # Create MOG2 background subtractor for this video
-            mog2 = cv2.createBackgroundSubtractorMOG2(
-                history=counting_params["mog2_history"],
-                varThreshold=counting_params["mog2_var_threshold"],
-                detectShadows=counting_params["mog2_detect_shadows"],
-            )
-            counting_bg_subtractors[video_name] = mog2
-            print(f"[COUNTING-BLOB] Created MOG2 instance for {video_name}")
+            if mode == "blob":
+                zone_states[zone_name]["bg_frame_count"] = 0
+                mog2 = cv2.createBackgroundSubtractorMOG2(
+                    history=counting_params["mog2_history"],
+                    varThreshold=counting_params["mog2_var_threshold"],
+                    detectShadows=counting_params["mog2_detect_shadows"],
+                )
+                counting_bg_subtractors[mog2_key] = mog2
+                print(f"[COUNTING-BLOB] Created MOG2 for {video_name}/{zone_name} (count={prev_count})")
+            else:
+                zone_states[zone_name]["gradient_frame_count"] = 0
+                zone_states[zone_name]["gradient_baseline_acc"] = 0.0
+                zone_states[zone_name]["gradient_state"] = "idle"
+                print(f"[COUNTING-GRADIENT] Enabled {video_name}/{zone_name} (count={prev_count})")
+
+    save_counting_config()
     with counting_lock:
-        enabled = counting_state.get(video_name, {}).get("enabled", False)
-        count = counting_state.get(video_name, {}).get("count", 0)
-    return {"enabled": enabled, "count": count}
+        zs = counting_state.get(video_name, {}).get(zone_name, {})
+    return {"enabled": zs.get("enabled", False), "count": zs.get("count", 0)}
 
 
 @app.post("/api/counting/{video_name:path}/flip")
 async def flip_counting_direction(video_name: str):
-    """Rotate counting direction by 90 degrees"""
+    """Rotate counting direction by 90 degrees for the active zone"""
     config = counting_config.get(video_name)
-    if not config:
+    if not config or not config.get("active_zone"):
         raise HTTPException(status_code=400, detail="Counting not configured")
 
-    config["flip_count"] = (config.get("flip_count", 0) + 1) % 4
-    counting_config[video_name] = config
+    zone_name = config["active_zone"]
+    zone_cfg = config.get("zones", {}).get(zone_name, {})
+    zone_cfg["flip_count"] = (zone_cfg.get("flip_count", 0) + 1) % 4
+    config["zones"][zone_name] = zone_cfg
     save_counting_config()
 
-    # Reset tracked objects since the line moved
+    # Reset tracked objects for this zone since the line moved
     with counting_lock:
-        state = counting_state.get(video_name)
-        if state:
-            state["tracked_objects"] = {}
-            state["debug_objects"] = {}
-            state["debug_contours"] = []
+        zs = counting_state.get(video_name, {}).get(zone_name)
+        if zs:
+            zs["tracked_objects"] = {}
+            zs["debug_objects"] = {}
+            zs["debug_contours"] = []
 
-    return {"flip_count": config["flip_count"]}
+    return {"flip_count": zone_cfg["flip_count"]}
 
 
 @app.post("/api/counting/{video_name:path}/reset")
 async def reset_counting(video_name: str):
-    """Reset the counter to 0 and reinitialize MOG2 background model"""
+    """Reset the counter to 0 for the active zone and reinitialize background model"""
+    config = counting_config.get(video_name, {})
+    zone_name = config.get("active_zone", "")
+    zone_cfg = config.get("zones", {}).get(zone_name, {})
+    mode = zone_cfg.get("mode", "blob")
+    mog2_key = (video_name, zone_name)
+
+    # Reset persisted count
+    zone_cfg["count"] = 0
+    save_counting_config()
+
     with counting_lock:
-        state = counting_state.get(video_name)
-        if state:
-            state["count"] = 0
-            state["bg_frame_count"] = 0
-            state["tracked_objects"] = {}
-            state["debug_objects"] = {}
-            state["debug_contours"] = []
-    # Reinitialize MOG2 to reset the background model
-    if video_name in counting_bg_subtractors:
-        counting_bg_subtractors[video_name] = cv2.createBackgroundSubtractorMOG2(
+        zs = counting_state.get(video_name, {}).get(zone_name)
+        if zs:
+            zs["count"] = 0
+            zs["tracked_objects"] = {}
+            zs["debug_objects"] = {}
+            zs["debug_contours"] = []
+            zs["recent_crossings"] = []
+            if mode == "blob":
+                zs["bg_frame_count"] = 0
+            else:
+                zs["gradient_frame_count"] = 0
+                zs["gradient_baseline_acc"] = 0.0
+                zs["gradient_state"] = "idle"
+                zs.pop("gradient_baseline", None)
+                zs.pop("gradient_baseline_profile", None)
+    # Reinitialize MOG2 (blob mode only)
+    if mode == "blob" and mog2_key in counting_bg_subtractors:
+        counting_bg_subtractors[mog2_key] = cv2.createBackgroundSubtractorMOG2(
             history=counting_params["mog2_history"],
             varThreshold=counting_params["mog2_var_threshold"],
             detectShadows=counting_params["mog2_detect_shadows"],
         )
-        print(f"[COUNTING-BLOB] Reset MOG2 instance for {video_name}")
+        print(f"[COUNTING-BLOB] Reset MOG2 for {video_name}/{zone_name}")
+    elif mode == "gradient":
+        print(f"[COUNTING-GRADIENT] Reset for {video_name}/{zone_name}")
     return {"count": 0}
 
 
@@ -1519,8 +1752,16 @@ def video_processor(source_name: str):
             # Check zones and update timers (uses real wall-clock time internally)
             check_zones(detections, source_name)
 
-            # Update counting module (blob-based, independent from YOLO)
-            update_counting_blob(source_name, frame)
+            # Update counting module (independent from YOLO) — process ALL enabled zones
+            c_cfg = counting_config.get(source_name, {})
+            for c_zone_name, c_zone_cfg in c_cfg.get("zones", {}).items():
+                with counting_lock:
+                    zs = counting_state.get(source_name, {}).get(c_zone_name)
+                if zs and zs.get("enabled"):
+                    if c_zone_cfg.get("mode", "blob") == "gradient":
+                        update_counting_gradient(source_name, c_zone_name, frame)
+                    else:
+                        update_counting_blob(source_name, c_zone_name, frame)
 
             if time.time() - last_save > 2:
                 save_presence()
@@ -1542,18 +1783,28 @@ def video_processor(source_name: str):
             if source_name in active_streams:
                 active_streams[source_name]["active"] = False
                 active_streams[source_name]["detections"] = []
-        # Clean up counting state and MOG2 when stream stops
+        # Clean up counting state and MOG2 when stream stops — save counts and disable all zones
+        cfg = counting_config.get(source_name, {})
         with counting_lock:
-            if source_name in counting_state:
-                counting_state[source_name]["enabled"] = False
-                counting_state[source_name]["tracked_objects"] = {}
-                counting_state[source_name]["debug_objects"] = {}
-                counting_state[source_name]["debug_contours"] = []
-                counting_state[source_name]["recent_crossings"] = []
-        if source_name in counting_bg_subtractors:
-            del counting_bg_subtractors[source_name]
-        if source_name in counting_debug_masks:
-            del counting_debug_masks[source_name]
+            zone_states = counting_state.get(source_name, {})
+            for zn, zs in zone_states.items():
+                # Persist count to config
+                zcfg = cfg.get("zones", {}).get(zn)
+                if zcfg is not None:
+                    zcfg["count"] = zs.get("count", 0)
+                zs["enabled"] = False
+                zs["tracked_objects"] = {}
+                zs["debug_objects"] = {}
+                zs["debug_contours"] = []
+                zs["recent_crossings"] = []
+        # Clean up MOG2 instances and debug masks for this video
+        keys_to_del = [k for k in counting_bg_subtractors if k[0] == source_name]
+        for k in keys_to_del:
+            del counting_bg_subtractors[k]
+        keys_to_del = [k for k in counting_debug_masks if k[0] == source_name]
+        for k in keys_to_del:
+            del counting_debug_masks[k]
+        save_counting_config()
         save_presence()
         print(f"Video processor stopped for {source_name}")
 
@@ -1706,80 +1957,72 @@ def generate_frames(video_name: str):
                 cv2.putText(frame, label, (int(first_point[0]), int(first_point[1])),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
-        # Draw counting line, blob mask overlay, contours, debug overlay, and counter
-        line_info = get_counting_line(video_name)
-        if line_info:
+        # Draw counting overlays for ALL enabled zones
+        c_cfg = counting_config.get(video_name, {})
+        for c_zn, c_zcfg in c_cfg.get("zones", {}).items():
+            line_info = get_counting_line(video_name, c_zn)
+            if not line_info:
+                continue
+
             ls = line_info["line_start"]
             le = line_info["line_end"]
-            dx = line_info["dir_x"]
-            dy = line_info["dir_y"]
+            c_dx = line_info["dir_x"]
+            c_dy = line_info["dir_y"]
             angle_deg = line_info["angle"]
             r_left, r_top, r_right, r_bottom = line_info["roi_bounds"]
-            line_color = (0, 200, 255)  # Cyan/yellow
+            line_color = (0, 200, 255)
+            c_mode = c_zcfg.get("mode", "blob")
 
-            # --- Draw foreground mask as semi-transparent green overlay ---
-            debug_mask = counting_debug_masks.get(video_name)
-            if debug_mask is not None:
-                # Create colored overlay from the binary mask (green tint)
-                mask_colored = np.zeros_like(frame)
-                mask_colored[:, :, 1] = debug_mask  # Green channel
-                mask_bool = debug_mask > 0
-                frame[mask_bool] = cv2.addWeighted(frame, 0.6, mask_colored, 0.4, 0)[mask_bool]
-
-            # --- Draw blob contours ---
             with counting_lock:
-                cs = counting_state.get(video_name, {})
+                cs = counting_state.get(video_name, {}).get(c_zn, {})
                 count_val = cs.get("count", 0)
                 debug_objs = cs.get("debug_objects", {}).copy()
                 debug_contours = list(cs.get("debug_contours", []))
                 recent_cross = list(cs.get("recent_crossings", []))
 
-            # Draw contours in bright cyan
-            if debug_contours:
-                cv2.drawContours(frame, debug_contours, -1, (255, 255, 0), 2, cv2.LINE_AA)
+            if c_mode == "blob":
+                # === BLOB MODE overlay ===
+                debug_mask = counting_debug_masks.get((video_name, c_zn))
+                if debug_mask is not None:
+                    mask_colored = np.zeros_like(frame)
+                    mask_colored[:, :, 1] = debug_mask
+                    mask_bool = debug_mask > 0
+                    frame[mask_bool] = cv2.addWeighted(frame, 0.6, mask_colored, 0.4, 0)[mask_bool]
 
-            # Draw the counting line
+                if debug_contours:
+                    cv2.drawContours(frame, debug_contours, -1, (255, 255, 0), 2, cv2.LINE_AA)
+
+                for tid, dobj in debug_objs.items():
+                    cx_d, cy_d = int(dobj["cx"]), int(dobj["cy"])
+                    counted = dobj["counted"]
+                    dot_color = (0, 200, 0) if counted else (0, 165, 255)
+                    cv2.circle(frame, (cx_d, cy_d), 6, dot_color, -1, cv2.LINE_AA)
+                    proj_val = dobj.get("proj", 0)
+                    thr_val = line_info["threshold"]
+                    area_val = dobj.get("area", 0)
+                    id_label = f"#{tid}" + (" OK" if counted else f" p={proj_val:.0f}/t={thr_val:.0f}")
+                    cv2.putText(frame, id_label, (cx_d + 8, cy_d - 4),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, dot_color, 1, cv2.LINE_AA)
+                    cv2.putText(frame, f"a={area_val:.0f}", (cx_d + 8, cy_d + 12),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.3, (180, 180, 180), 1, cv2.LINE_AA)
+                    if "prev_cx" in dobj:
+                        pcx, pcy = int(dobj["prev_cx"]), int(dobj["prev_cy"])
+                        if abs(pcx - cx_d) > 1 or abs(pcy - cy_d) > 1:
+                            cv2.arrowedLine(frame, (pcx, pcy), (cx_d, cy_d),
+                                            dot_color, 1, cv2.LINE_AA, tipLength=0.3)
+
+            # === Common overlays (both modes) ===
             cv2.line(frame, (int(ls[0]), int(ls[1])), (int(le[0]), int(le[1])), line_color, 2, cv2.LINE_AA)
 
-            # Draw direction arrow at center of the line
             mid_x = (ls[0] + le[0]) / 2
             mid_y = (ls[1] + le[1]) / 2
             arrow_len = 30
-            arr_start = (int(mid_x - dx * arrow_len), int(mid_y - dy * arrow_len))
-            arr_end = (int(mid_x + dx * arrow_len), int(mid_y + dy * arrow_len))
+            arr_start = (int(mid_x - c_dx * arrow_len), int(mid_y - c_dy * arrow_len))
+            arr_end = (int(mid_x + c_dx * arrow_len), int(mid_y + c_dy * arrow_len))
             cv2.arrowedLine(frame, arr_start, arr_end, line_color, 2, cv2.LINE_AA, tipLength=0.4)
 
-            # === Visual Debug Logs ===
             now = time.time()
 
-            # Draw tracked blob centers + IDs + movement arrows
-            for tid, dobj in debug_objs.items():
-                cx_d, cy_d = int(dobj["cx"]), int(dobj["cy"])
-                counted = dobj["counted"]
-
-                # Color: green if counted, orange if not yet
-                dot_color = (0, 200, 0) if counted else (0, 165, 255)
-                cv2.circle(frame, (cx_d, cy_d), 6, dot_color, -1, cv2.LINE_AA)
-
-                # Blob ID label + projection value + area for debugging
-                proj_val = dobj.get("proj", 0)
-                thr_val = line_info["threshold"]
-                area_val = dobj.get("area", 0)
-                id_label = f"#{tid}" + (" OK" if counted else f" p={proj_val:.0f}/t={thr_val:.0f}")
-                cv2.putText(frame, id_label, (cx_d + 8, cy_d - 4),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.4, dot_color, 1, cv2.LINE_AA)
-                # Show blob area below
-                cv2.putText(frame, f"a={area_val:.0f}", (cx_d + 8, cy_d + 12),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.3, (180, 180, 180), 1, cv2.LINE_AA)
-
-                # Movement arrow (prev -> current)
-                if "prev_cx" in dobj:
-                    pcx, pcy = int(dobj["prev_cx"]), int(dobj["prev_cy"])
-                    if abs(pcx - cx_d) > 1 or abs(pcy - cy_d) > 1:
-                        cv2.arrowedLine(frame, (pcx, pcy), (cx_d, cy_d),
-                                        dot_color, 1, cv2.LINE_AA, tipLength=0.3)
-
-            # Flash recent crossing events (bright circle + label)
             for ev in recent_cross:
                 age = now - ev["time"]
                 if age < counting_params["crossing_display_time"]:
@@ -1791,7 +2034,6 @@ def generate_frames(video_name: str):
                         cv2.putText(frame, "COUNTED", (ecx + radius + 4, ecy + 5),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, flash_color, 1, cv2.LINE_AA)
 
-            # Log panel: recent crossings list (bottom-left of ROI)
             if recent_cross:
                 log_x = int(r_left) + 5
                 log_y = int(r_bottom) - 10
@@ -1802,8 +2044,8 @@ def generate_frames(video_name: str):
                     cv2.putText(frame, log_label, (log_x, log_y - i * 18),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.4, log_col, 1, cv2.LINE_AA)
 
-            # Draw count label (top-right of ROI)
-            count_label = f"Count: {count_val}"
+            # Count label (top-right of ROI) — includes zone name
+            count_label = f"{c_zn}: {count_val}"
             (tw, th), _ = cv2.getTextSize(count_label, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)
             label_x = int(r_right) - tw - 10
             label_y = int(r_top) - 10
@@ -1812,8 +2054,8 @@ def generate_frames(video_name: str):
             cv2.rectangle(frame, (label_x - 5, label_y - th - 5), (label_x + tw + 5, label_y + 5), (0, 0, 0), -1)
             cv2.putText(frame, count_label, (label_x, label_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, line_color, 2)
 
-            # Angle indicator + mode label (top-left of ROI)
-            angle_label = f"{angle_deg:.0f} deg | BLOB/MOG2"
+            mode_label = "BLOB/MOG2" if c_mode == "blob" else "GRADIENT"
+            angle_label = f"{angle_deg:.0f} deg | {mode_label}"
             cv2.putText(frame, angle_label, (int(r_left) + 5, int(r_top) + 18),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.45, (200, 200, 200), 1, cv2.LINE_AA)
 

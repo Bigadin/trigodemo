@@ -14,5 +14,9 @@
   "counting_line_position": 0.65,
   "grace_frames": 5,
   "counted_grace_frames": 1,
-  "crossing_display_time": 2.0
+  "crossing_display_time": 2.0,
+
+  "gradient_baseline_frames": 30,
+  "gradient_threshold_high": 15,
+  "gradient_threshold_low": 5
 }
