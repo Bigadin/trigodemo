@@ -4864,6 +4864,9 @@
         async function syncCountingUI() {
             if (!currentVideo) {
                 if (countingToggleBtn) countingToggleBtn.disabled = true;
+                if (countingFlipBtn) countingFlipBtn.disabled = true;
+                if (countingResetBtn) countingResetBtn.disabled = true;
+                if (countingModeSelect) countingModeSelect.disabled = true;
                 if (countingDisplay) countingDisplay.style.display = 'none';
                 if (countingAngleLabel) countingAngleLabel.textContent = 'auto';
                 if (simpleParamsPanel) simpleParamsPanel.style.display = 'none';
@@ -4889,15 +4892,18 @@
                 countingAngleLabel.textContent = data.angle != null ? `${Math.round(data.angle)}°` : 'auto';
             }
 
-            const inner = ensureRetroInner(countingToggleBtn);
-
-            countingToggleBtn.disabled = !data.configured;
+            const configured = !!data.configured;
+            countingToggleBtn.disabled = !configured;
+            if (countingFlipBtn) countingFlipBtn.disabled = !configured;
+            if (countingResetBtn) countingResetBtn.disabled = !configured;
+            if (countingModeSelect) countingModeSelect.disabled = !data.zone_name;
+            const toggleSpan = countingToggleBtn.querySelector('span');
             if (data.enabled) {
                 countingToggleBtn.classList.add('is-on');
-                if (inner) inner.textContent = 'Pause Comptage';
+                if (toggleSpan) toggleSpan.textContent = 'Pause Comptage';
             } else {
                 countingToggleBtn.classList.remove('is-on');
-                if (inner) inner.textContent = 'Activer Comptage';
+                if (toggleSpan) toggleSpan.textContent = 'Activer Comptage';
             }
 
             // Single counter display (adapts to mode)
@@ -4952,7 +4958,11 @@
             countingZoneSelect.addEventListener('change', async () => {
                 const zoneName = countingZoneSelect.value;
                 if (!currentVideo || !zoneName) {
-                    countingToggleBtn.disabled = true;
+                    if (countingToggleBtn) countingToggleBtn.disabled = true;
+                    if (countingFlipBtn) countingFlipBtn.disabled = true;
+                    if (countingResetBtn) countingResetBtn.disabled = true;
+                    if (countingModeSelect) countingModeSelect.disabled = true;
+                    if (countingDisplay) countingDisplay.style.display = 'none';
                     return;
                 }
                 // Check if this zone already has settings — if so, use its saved mode

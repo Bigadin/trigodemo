@@ -1,6 +1,6 @@
 {
   "video_01.mp4": {
-    "zone_name": "oioio",
+    "zone_name": "cmp1",
     "flip_count": 0,
     "zone_settings": {
       "cmp2": {
@@ -8,6 +8,10 @@
         "flip_count": 3
       },
       "oioio": {
+        "mode": "complex",
+        "flip_count": 1
+      },
+      "cmp1": {
         "mode": "complex",
         "flip_count": 1
       }

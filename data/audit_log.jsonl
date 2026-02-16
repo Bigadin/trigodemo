@@ -89,3 +89,16 @@
 {"ts": "2026-02-12T18:52:27.961206+00:00", "category": "zone", "action": "edited", "detail": "Zone « Tapis » éditée sur video_01.mp4 (1 forme(s))", "level": "info", "meta": {"zone": "Tapis", "video": "video_01.mp4", "polygons": 1}}
 {"ts": "2026-02-12T18:52:29.128663+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_01.mp4", "level": "success", "meta": {"source": "video_01.mp4"}}
 {"ts": "2026-02-12T18:52:42.697053+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_01.mp4", "level": "info", "meta": {"source": "video_01.mp4"}}
+{"ts": "2026-02-16T19:26:49.942793+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_01.mp4", "level": "success", "meta": {"source": "video_01.mp4"}}
+{"ts": "2026-02-16T19:27:11.301478+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-16T19:27:13.969774+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_01.mp4", "level": "success", "meta": {"source": "video_01.mp4"}}
+{"ts": "2026-02-16T19:27:36.556781+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-16T19:27:42.414238+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_01.mp4", "level": "success", "meta": {"source": "video_01.mp4"}}
+{"ts": "2026-02-16T19:28:17.317893+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-16T19:28:19.508922+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_01.mp4", "level": "success", "meta": {"source": "video_01.mp4"}}
+{"ts": "2026-02-16T19:28:33.194197+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-16T19:29:45.239944+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_01.mp4", "level": "success", "meta": {"source": "video_01.mp4"}}
+{"ts": "2026-02-16T19:30:14.907356+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-16T19:31:38.205633+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : w1.mp4", "level": "success", "meta": {"source": "w1.mp4"}}
+{"ts": "2026-02-16T19:42:20.127549+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_01.mp4", "level": "success", "meta": {"source": "video_01.mp4"}}
+{"ts": "2026-02-16T19:43:16.049669+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : w1.mp4", "level": "success", "meta": {"source": "w1.mp4"}}
