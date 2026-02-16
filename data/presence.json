@@ -1,0 +1,29 @@
+{
+  "Zone A": {
+    "total_time": 1232.1961135864258
+  },
+  "Contr\u00f4le Pi\u00e8ces": {
+    "total_time": 0
+  },
+  "T2": {
+    "total_time": 405.26007413864136
+  },
+  "Zone B": {
+    "total_time": 997.0931406021118
+  },
+  "Z2": {
+    "total_time": 51.49583888053894
+  },
+  "de": {
+    "total_time": 13.49596905708313
+  },
+  "oioio": {
+    "total_time": 13.070563554763794
+  },
+  "cmp": {
+    "total_time": 0
+  },
+  "cmp2": {
+    "total_time": 0
+  }
+}
