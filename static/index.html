@@ -302,14 +302,16 @@
                             <div style="display: flex; gap: var(--space-2); align-items: center;">
                                 <label class="form-label" style="margin:0; white-space:nowrap; font-size: var(--text-xs);">Direction</label>
                                 <span id="countingAngleLabel" style="font-size: var(--text-xs); color: var(--color-text-secondary);">auto</span>
-                                <button class="btn btn-secondary btn-small" id="countingFlipBtn" title="Tourner la direction de 90°" style="padding:2px 8px; font-size:12px;">&#x21BB; +90°</button>
+                                <button class="ctrl-btn ctrl-btn--ghost ctrl-btn--sm" id="countingFlipBtn" title="Tourner la direction de 90°">
+                                    <span>&#x21BB; +90°</span>
+                                </button>
                             </div>
                             <div style="display: flex; gap: var(--space-2); align-items:center;">
-                                <button class="retro-btn retro-default retro-full" id="countingToggleBtn" disabled>
-                                    <span class="retro-btn-inner">Activer Comptage</span>
+                                <button class="ctrl-btn ctrl-btn--primary" id="countingToggleBtn" disabled style="flex:1;">
+                                    <span>Activer Comptage</span>
                                 </button>
-                                <button class="btn btn-secondary btn-small" id="countingResetBtn" title="Reset compteur" style="padding:4px 8px;">
-                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <button class="ctrl-btn ctrl-btn--ghost ctrl-btn--sm" id="countingResetBtn" title="Reset compteur">
+                                    <svg class="ctrl-btn__svg" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                                     </svg>
                                 </button>
