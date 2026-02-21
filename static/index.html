@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/index.css?v=2">
+    <link rel="stylesheet" href="/static/css/index.css?v=4">
 </head>
 <body>
     <div class="app-layout">
@@ -84,10 +84,26 @@
                             <img class="step-icon-img" src="/static/assets_youn/SvIcons/includezone.svg" alt="">
                             <span class="step-num">2</span>
                         </div>
-                        <div class="step" id="step3" title="Détection">
+                        <div class="step" id="step3" title="Lancer">
                             <img class="step-icon-img" src="/static/assets_youn/SvIcons/checkmark-svgrepo-com.svg" alt="">
                             <span class="step-num">3</span>
                         </div>
+                    </div>
+                    <div class="header-tracker-actions hidden" id="headerTrackerActions">
+                        <button class="header-action-btn" id="startDetectionBtn" disabled title="Lancer la détection">
+                            <img class="ctrl-btn__icon" src="/static/assets_youn/SvIcons/play-svgrepo-com.svg" alt="">
+                        </button>
+                        <button class="header-action-btn" id="stopAllBtn" disabled title="Tout arrêter">
+                            <img class="ctrl-btn__icon" src="/static/assets_youn/SvIcons/stop-svgrepo-com.svg" alt="">
+                        </button>
+                        <button class="header-action-btn" id="toggleBlurBtn" title="Floutage">
+                            <svg class="ctrl-btn__svg" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                            </svg>
+                        </button>
+                        <button class="header-action-btn" id="editZonesBtn" disabled title="Éditer les zones">
+                            <img class="ctrl-btn__icon" src="/static/assets_youn/SvIcons/draw.svg" alt="">
+                        </button>
                     </div>
                     <div class="status-indicator ready" id="statusBadge">
                         <span class="status-dot-indicator"></span>
@@ -186,6 +202,9 @@
                             <img id="videoStream" class="hidden" alt="Video stream">
                             <canvas id="drawCanvas" class="hidden"></canvas>
                         </div>
+                        <div class="site-overview hidden" id="siteOverviewPanel">
+                            <div class="site-overview-grid" id="siteOverviewGrid"></div>
+                        </div>
 
                         <!-- Dessin: bouton overlay (bas-droite) -->
                         <button class="video-fab" id="drawFab" title="Dessin" type="button">
@@ -240,43 +259,8 @@
                     </div>
                 </div>
 
-                <!-- Camera/Control Panel -->
-                <div class="camera-panel">
-                    <div class="card">
-                        <div class="card-header">
-                            <div>
-                                <div class="card-subtitle">Détection</div>
-                                <div class="card-title">Contrôles</div>
-                            </div>
-                        </div>
-                        <div class="ctrl-actions">
-                            <button class="ctrl-btn ctrl-btn--primary" id="startDetectionBtn" disabled>
-                                <img class="ctrl-btn__icon" src="/static/assets_youn/SvIcons/play-svgrepo-com.svg" alt="">
-                                <span>Lancer la détection</span>
-                            </button>
-
-                            <button class="ctrl-btn ctrl-btn--secondary" id="editZonesBtn" disabled>
-                                <img class="ctrl-btn__icon" src="/static/assets_youn/SvIcons/draw.svg" alt="">
-                                <span>Éditer les zones</span>
-                            </button>
-
-                            <!-- (Legacy) conservé hidden pour compat éventuelle -->
-                            <button class="btn btn-danger hidden" id="stopDetectionBtn" style="width: 100%;">Pause</button>
-
-                            <button class="ctrl-btn ctrl-btn--danger" id="stopAllBtn" disabled>
-                                <img class="ctrl-btn__icon" src="/static/assets_youn/SvIcons/stop-svgrepo-com.svg" alt="">
-                                <span>Tout arrêter</span>
-                            </button>
-
-                            <button class="ctrl-btn ctrl-btn--ghost" id="toggleBlurBtn">
-                                <svg class="ctrl-btn__svg" width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
-                                </svg>
-                                <span>Floutage: OFF</span>
-                            </button>
-                        </div>
-                    </div>
-
+                <!-- Comptage + Sources sous la vidéo -->
+                <div class="tracker-below-video">
                     <!-- Counting Module Panel -->
                     <div class="card" id="countingPanel">
                         <div class="card-header">
@@ -337,7 +321,7 @@
                         </div>
                     </div>
 
-                    <div class="card">
+                    <div class="card" id="sourcesPanel">
                         <div class="card-header">
                             <div>
                                 <div class="card-subtitle">Sources</div>
@@ -383,13 +367,14 @@
                                 </div>
                             </div>
                             <!-- Video upload (only for video source) -->
-                            <div class="cam-source-panel" data-source="video" style="display:flex; align-items:center; gap: 8px;">
+                            <div class="cam-source-panel" data-source="video" style="display:flex; align-items:center; gap: 8px; flex-wrap:wrap;">
                                 <form id="uploadVideoForm" style="display:contents;">
                                     <label class="cam-btn-light" style="cursor:pointer;">
                                         <input type="file" id="uploadVideoInput" accept="video/*" style="display:none;">
                                         <span id="uploadVideoLabelText">Upload</span>
                                     </label>
                                 </form>
+                                <button class="cam-btn-light" id="optimizeVideoBtn" type="button" title="Réduire la taille de la vidéo sélectionnée (720p, H.264)">Optimiser</button>
                                 <span id="uploadProgress" style="color: rgba(255,255,255,0.4); font-size: 11px;"></span>
                             </div>
                             <!-- RTSP scan (only for rtsp source) -->
@@ -410,16 +395,39 @@
                             <!-- Cameras will be populated here -->
                         </div>
                     </div>
+
+                    <div class="card hidden" id="trackerParamsPanel">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-subtitle">Paramètres</div>
+                                <div class="card-title">Module</div>
+                            </div>
+                        </div>
+                        <div style="padding: var(--space-3); display:flex; flex-direction:column; gap: var(--space-3);">
+                            <div class="form-group" style="margin:0;">
+                                <label class="form-label">Nom du module</label>
+                                <input id="trackerModuleName" type="text" placeholder="Ex: Module supervision" style="width:100%;">
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label class="form-label">Notes</label>
+                                <textarea id="trackerModuleNotes" placeholder="Commentaires internes..." style="width:100%; min-height:72px;"></textarea>
+                            </div>
+                            <label style="display:flex; gap:8px; align-items:center; font-size: var(--text-xs); color: var(--color-text-secondary);">
+                                <input id="trackerModuleReadonly" type="checkbox">
+                                <span>Lecture seule (bientôt)</span>
+                            </label>
+                        </div>
+                    </div>
                 </div>
             </section>
 
             <!-- Zones Section -->
-            <section class="zones-section">
-                <div class="card">
+            <section class="zones-section" id="zonesSection">
+                <div class="card" id="benefitsPanel">
                     <div class="card-header">
                         <div>
-                            <div class="card-subtitle">Bénéfices (ROI)</div>
-                            <div class="card-title">Zones de détection</div>
+                            <div class="card-subtitle">Bénéfices</div>
+                            <div class="card-title">Bénéfices créés</div>
                         </div>
                         <button class="ctrl-btn ctrl-btn--ghost ctrl-btn--sm" id="deleteAllZonesBtn" title="Reset all">
                             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -538,6 +546,10 @@
                     <div class="editor-canvas-wrap">
                         <img id="editorFrame" alt="Frame">
                         <canvas id="editorCanvas"></canvas>
+                        <button type="button" class="editor-preview-pp hidden" id="editorPreviewPlayPauseBtn" title="Lecture aperçu">
+                            <img class="editor-preview-pp__icon editor-preview-pp__icon--play" src="/static/assets_youn/SvIcons/play-svgrepo-com.svg" alt="">
+                            <img class="editor-preview-pp__icon editor-preview-pp__icon--pause hidden" src="/static/assets_youn/SvIcons/pause-svgrepo-com.svg" alt="">
+                        </button>
                         <div class="editor-hoverbar hidden" id="editorHoverBar">
                             <button class="editor-hoverbtn danger" id="hoverDeletePointBtn" title="Supprimer le point">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -621,8 +633,93 @@
             </div>
 
             <div class="editor-bottombar">
+                <button class="tool-btn save hidden" id="benFinalizeBtn" title="Créer le bénéfice">CRÉER LE BÉNÉFICE</button>
                 <button class="tool-btn" id="editorCloseBtn2" title="Fermer l’éditeur">FERMER</button>
             </div>
+    <!-- Benefit Config Modal -->
+    <div class="editor-overlay benefit-config-modal hidden" id="benefitConfigModal" role="dialog" aria-modal="true" aria-label="Configuration bénéfice">
+        <div class="benefit-config-modal-content">
+            <div class="benefit-config-modal-header">
+                <div>
+                    <div class="card-subtitle">Configuration</div>
+                    <div class="card-title" id="benefitConfigTitle">Nouveau bénéfice</div>
+                </div>
+                <button type="button" class="benefit-config-modal-close" id="benefitConfigModalClose" title="Fermer">✕</button>
+            </div>
+            <div class="benefit-config-body">
+                <div class="benefit-config-shell">
+                    <aside class="benefit-config-nav" id="benefitConfigNav">
+                        <button type="button" class="benefit-nav-item active" data-section-link="nom">
+                            <span class="benefit-nav-label">Configuration name</span>
+                            <span class="benefit-nav-status" data-status="nom"></span>
+                        </button>
+                        <button type="button" class="benefit-nav-item" data-section-link="skill">
+                            <span class="benefit-nav-label">Skill</span>
+                            <span class="benefit-nav-status" data-status="skill"></span>
+                        </button>
+                        <button type="button" class="benefit-nav-item" data-section-link="category">
+                            <span class="benefit-nav-label">Type / Category</span>
+                            <span class="benefit-nav-status" data-status="category"></span>
+                        </button>
+                        <button type="button" class="benefit-nav-item" data-section-link="forme">
+                            <span class="benefit-nav-label">Zone</span>
+                            <span class="benefit-nav-status" data-status="forme"></span>
+                        </button>
+                        <button type="button" class="benefit-nav-item" data-section-link="schedule">
+                            <span class="benefit-nav-label">Scheduling</span>
+                            <span class="benefit-nav-status" data-status="schedule"></span>
+                        </button>
+                    </aside>
+
+                    <section class="benefit-config-stage">
+                        <div class="benefit-stage-panel active" data-section="nom">
+                            <input type="text" id="benefitConfigName" placeholder="Ex: Waiting line - Entrance" class="benefit-input">
+                        </div>
+
+                        <div class="benefit-stage-panel" data-section="skill">
+                            <div class="benefit-icon-grid" id="benefitSkillGrid"></div>
+                        </div>
+
+                        <div class="benefit-stage-panel" data-section="category">
+                            <div class="benefit-icon-grid" id="benefitCategoryGrid"></div>
+                            <div class="hidden" id="benefitSubcategoryGroup">
+                                <div class="benefit-icon-grid" id="benefitSubcategoryGrid"></div>
+                            </div>
+                        </div>
+
+                        <div class="benefit-stage-panel" data-section="forme">
+                            <div class="benefit-icon-grid" id="benefitFormeGrid">
+                                <button type="button" class="benefit-icon-btn" data-forme="full_screen" title="Full frame">
+                                    <img src="/static/assets_youn/SvIcons/benefit-fullscreen.svg" alt="">
+                                    <span>Full frame</span>
+                                </button>
+                                <button type="button" class="benefit-icon-btn" data-forme="zone" title="Polygon">
+                                    <img src="/static/assets_youn/SvIcons/benefit-zone.svg" alt="">
+                                    <span>Polygon</span>
+                                </button>
+                                <button type="button" class="benefit-icon-btn" data-forme="ligne" title="Line">
+                                    <img src="/static/assets_youn/SvIcons/benefit-line.svg" alt="">
+                                    <span>Line</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="benefit-stage-panel" data-section="schedule">
+                            <div class="benefit-schedule-placeholder">
+                                <span class="benefit-schedule-placeholder-text">À venir</span>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="benefit-config-actions">
+                    <button class="ctrl-btn ctrl-btn--primary" id="benefitConfigSaveBtn">Valider</button>
+                    <button class="ctrl-btn ctrl-btn--ghost" id="benefitConfigCancelBtn">Annuler</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
         </div>
     </div>
 
@@ -647,6 +744,6 @@
                         </div>
 
     <script src="/static/js/lov-dropdown.js?v=1"></script>
-    <script src="/static/js/index.js?v=2" defer></script>
+    <script src="/static/js/index.js?v=4" defer></script>
 </body>
 </html>

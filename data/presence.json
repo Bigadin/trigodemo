@@ -1,6 +1,6 @@
 {
   "Zone A": {
-    "total_time": 1232.1961135864258
+    "total_time": 2693.515072107315
   },
   "Contr\u00f4le Pi\u00e8ces": {
     "total_time": 0
@@ -9,13 +9,13 @@
     "total_time": 405.26007413864136
   },
   "Zone B": {
-    "total_time": 997.0931406021118
+    "total_time": 10229.506362199783
   },
   "Z2": {
     "total_time": 51.49583888053894
   },
   "de": {
-    "total_time": 13.49596905708313
+    "total_time": 19.49824833869934
   },
   "oioio": {
     "total_time": 13.070563554763794
@@ -28,5 +28,17 @@
   },
   "cmp1": {
     "total_time": 0.541391134262085
+  },
+  "Counting": {
+    "total_time": 2403.2952642440796
+  },
+  "Counting Car": {
+    "total_time": 0
+  },
+  "ZOne1": {
+    "total_time": 344.7037215232849
+  },
+  "Zon1": {
+    "total_time": 0
   }
 }

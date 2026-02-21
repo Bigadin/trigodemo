@@ -1,4 +1,6 @@
 import json
+import subprocess
+import tempfile
 import time
 import threading
 from pathlib import Path
@@ -967,6 +969,32 @@ async def root():
         return f.read()
 
 
+# Optimisation vidéo à l'upload (réduction taille)
+VIDEO_OPTIMIZE_MAX_WIDTH = 1280
+VIDEO_OPTIMIZE_MAX_HEIGHT = 720
+VIDEO_OPTIMIZE_CRF = 28  # Qualité H.264 (18-28 = bon compromis)
+
+
+def _optimize_video(src: Path, dst: Path) -> bool:
+    """Réencode la vidéo avec ffmpeg pour réduire la taille (résolution + bitrate)."""
+    try:
+        result = subprocess.run(
+            [
+                "ffmpeg", "-y", "-i", str(src),
+                "-vf", f"scale='min({VIDEO_OPTIMIZE_MAX_WIDTH},iw)':'min({VIDEO_OPTIMIZE_MAX_HEIGHT},ih)':force_original_aspect_ratio=decrease",
+                "-c:v", "libx264", "-crf", str(VIDEO_OPTIMIZE_CRF),
+                "-preset", "fast", "-c:a", "aac", "-b:a", "128k", "-f", "mp4",
+                str(dst)
+            ],
+            capture_output=True,
+            timeout=600,
+            creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0,
+        )
+        return result.returncode == 0
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+
+
 @app.get("/api/videos")
 async def list_videos():
     return {"videos": _list_video_files()}
@@ -974,13 +1002,63 @@ async def list_videos():
 
 @app.post("/api/videos/upload")
 async def upload_video(file: UploadFile = File(...)):
-    video_path = VIDEOS_DIR / file.filename
-    with open(video_path, "wb") as f:
-        content = await file.read()
-        f.write(content)
-    audit_event("video", "upload", f"Vidéo « {file.filename} » uploadée", "success",
-                {"filename": file.filename})
-    return {"message": "Video uploaded", "filename": file.filename}
+    content = await file.read()
+    ext = Path(file.filename).suffix or ".mp4"
+    # Optimisation: sortie en .mp4 (H.264) si ffmpeg disponible
+    out_optimized = VIDEOS_DIR / (Path(file.filename).stem + ".mp4")
+    out_fallback = VIDEOS_DIR / file.filename
+
+    with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+        tmp.write(content)
+        tmp_path = Path(tmp.name)
+
+    try:
+        if _optimize_video(tmp_path, out_optimized):
+            final_filename = out_optimized.name
+        else:
+            with open(out_fallback, "wb") as f:
+                f.write(content)
+            final_filename = file.filename
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+    audit_event("video", "upload", f"Vidéo « {final_filename} » uploadée", "success",
+                {"filename": final_filename})
+    return {"message": "Video uploaded", "filename": final_filename}
+
+
+@app.post("/api/videos/optimize/{video_name:path}")
+async def optimize_existing_video(video_name: str):
+    """Optimise une vidéo déjà présente dans le dossier videos/."""
+    if is_camera_source(video_name):
+        raise HTTPException(status_code=400, detail="Cannot optimize camera streams")
+    src = VIDEOS_DIR / video_name
+    if not src.exists():
+        raise HTTPException(status_code=404, detail="Video not found")
+    stem = Path(video_name).stem
+    out_name = stem + ".mp4"
+    tmp_path = VIDEOS_DIR / (stem + "_tmp_opt.mp4")
+    if not _optimize_video(src, tmp_path):
+        raise HTTPException(
+            status_code=500,
+            detail="Optimization failed. Ensure ffmpeg is installed and in PATH."
+        )
+    src.unlink()
+    tmp_path.rename(VIDEOS_DIR / out_name)
+
+    # Migration: si le nom a changé (ex. .webm -> .mp4), copier zones et counting
+    if video_name != out_name:
+        with data_lock:
+            if video_name in zones_by_video:
+                zones_by_video[out_name] = zones_by_video.pop(video_name)
+                save_zones()
+        with counting_lock:
+            if video_name in counting_config:
+                counting_config[out_name] = counting_config.pop(video_name)
+                save_counting_config()
+
+    audit_event("video", "edited", f"Vidéo « {video_name} » optimisée", "success", {"filename": out_name})
+    return {"message": "Video optimized", "filename": out_name}
 
 
 @app.get("/api/videos/{video_name:path}/frame")
