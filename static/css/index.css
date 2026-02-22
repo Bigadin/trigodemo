@@ -43,6 +43,7 @@
             --text-lg: 18px;
             --text-xl: 24px;
             --text-2xl: 32px;
+            --ui-control-height: 40px;
         }
 
         /* Dark theme (default) */
@@ -95,6 +96,8 @@
             --color-focus: var(--brand-02);
 
             --bg-texture-opacity: 0.18;
+            --interactive-hover: rgba(0,0,0,0.05);
+            --interactive-active: rgba(0,0,0,0.08);
         }
 
         /* Sidebar reste sombre même en light */
@@ -107,6 +110,29 @@
             --sidebar-text: #F5F7FF;
             --sidebar-text-muted: rgba(245, 247, 255, 0.68);
             --sidebar-text-subtle: rgba(245, 247, 255, 0.45);
+            /* Pastilles zones/bénéfices — cohérent avec la palette sidebar (désaturés, harmonieux) */
+            --zone-dot-1: #5a8fb8;
+            --zone-dot-2: #4d9d8a;
+            --zone-dot-3: #8b7fb5;
+            --zone-dot-4: #c47b5a;
+            --zone-dot-5: #6b9b7a;
+            --zone-dot-6: #c4a055;
+            --zone-dot-7: #b07b8b;
+            --zone-dot-8: #6b8fb5;
+            /* LOV menu 3 points — style unifié (SITES + DATA ROOM) */
+            --lov-btn-bg: rgba(17,17,17,0.6);
+            --lov-btn-bg-hover: rgba(17,17,17,0.82);
+            --lov-panel-bg: rgba(17,17,17,0.92);
+            --lov-panel-shadow: 0 8px 24px rgba(0,0,0,0.25);
+            --lov-panel-border: rgba(255,255,255,0.08);
+            --lov-item-hover: rgba(255,255,255,0.08);
+            --lov-item-color: rgba(245,247,255,0.9);
+            /* Harmonisation hover/selected nav, tabs, breadcrumb */
+            --interactive-hover: rgba(255,255,255,0.08);
+            --interactive-active: rgba(255,255,255,0.12);
+            /* Sidebar toujours sombre → valeurs fixes */
+            --sidebar-interactive-hover: rgba(255,255,255,0.08);
+            --sidebar-interactive-active: rgba(255,255,255,0.12);
         }
 
         /* ========================================
@@ -293,10 +319,10 @@
 
         .sidebar-label {
             font-size: 10px;
-            font-weight: 700;
+            font-weight: 800;
             color: var(--sidebar-text-subtle);
             text-transform: uppercase;
-            letter-spacing: 1.2px;
+            letter-spacing: -0.02em;
             margin-bottom: var(--space-2);
             padding-left: var(--space-3);
         }
@@ -316,27 +342,28 @@
             border: 1px solid transparent;
             color: var(--sidebar-text-muted);
             text-decoration: none;
-            font-weight: 500;
+            font-weight: 800;
             font-size: 13px;
+            letter-spacing: -0.03em;
             cursor: pointer;
             transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
             position: relative;
         }
 
         .nav-item:hover {
-            background: rgba(255, 255, 255, 0.22);
-            border-color: rgba(255,255,255,0.20);
+            background: var(--sidebar-interactive-hover);
+            border-color: var(--sidebar-border-hover);
             color: #fff;
         }
 
         .nav-item.active {
-            background: rgba(255,255,255,0.18);
-            border-color: rgba(255,255,255,0.24);
+            background: var(--sidebar-interactive-active);
+            border-color: var(--sidebar-border-hover);
             color: #fff;
         }
         .nav-item.active:hover {
-            background: rgba(255,255,255,0.26);
-            border-color: rgba(255,255,255,0.30);
+            background: rgba(255,255,255,0.14);
+            border-color: rgba(255,255,255,0.18);
         }
 
         .nav-item.active::before { content: none; }
@@ -662,6 +689,18 @@
             opacity: 1 !important;
             filter: invert(1) !important;
         }
+        .sb-item--benefit.sb-item--selected {
+            background: #1d5bff;
+        }
+        .sb-item--benefit.sb-item--selected .sb-item__name,
+        .sb-item--benefit.sb-item--selected .sb-item__time,
+        .sb-item--benefit.sb-item--selected .sb-benefit-type {
+            color: #fff !important;
+            font-weight: 700;
+        }
+        .sb-item--benefit.sb-item--selected .sb-zone-sq {
+            background: #fff !important;
+        }
         .sb-item--benefit .sb-item__name {
             font-size: 12px;
             font-weight: 400;
@@ -832,7 +871,8 @@
 
         .page-title {
             font-size: var(--text-xl);
-            font-weight: 600;
+            font-weight: 800;
+            letter-spacing: -0.04em;
         }
 
         .page-subtitle {
@@ -911,18 +951,25 @@
             align-items: center;
             margin-bottom: var(--space-4);
         }
+        .card-header__actions {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
 
         .card-title {
             font-size: var(--text-md);
-            font-weight: 600;
+            font-weight: 800;
+            letter-spacing: -0.03em;
             color: var(--color-text);
         }
 
         .card-subtitle {
             font-size: 11px;
+            font-weight: 800;
             color: #7a8599;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: -0.02em;
         }
 
         /* ---- Tracker top nav (back + breadcrumb) ---- */
@@ -984,7 +1031,7 @@
             cursor: pointer;
         }
         .tracker-breadcrumb .bc-clickable:hover {
-            background: rgba(255,255,255,0.08);
+            background: var(--interactive-hover);
             color: #fff;
         }
         .tracker-breadcrumb .bc-clickable:hover .hier-icon {
@@ -1039,7 +1086,7 @@
             transition: background 0.12s, color 0.12s;
         }
         .tracker-breadcrumb .bc-lov-hit:hover {
-            background: rgba(255,255,255,0.08);
+            background: var(--interactive-hover);
             color: #fff;
         }
         .tracker-breadcrumb .bc-static-label--link {
@@ -1052,7 +1099,7 @@
             transition: background 0.12s, color 0.12s;
         }
         .tracker-breadcrumb .bc-static-label--link:hover {
-            background: rgba(255,255,255,0.08);
+            background: var(--interactive-hover);
             color: #fff;
         }
         .tracker-breadcrumb .bc-lov-item .lov-trigger {
@@ -1072,7 +1119,7 @@
             transition: background 0.12s, color 0.12s;
         }
         .tracker-breadcrumb .bc-lov-item .lov-trigger:hover {
-            background: rgba(255,255,255,0.08);
+            background: var(--interactive-hover);
             color: #fff;
         }
         .tracker-breadcrumb .bc-lov-item--cam-hit {
@@ -1082,7 +1129,7 @@
             transition: background 0.12s, color 0.12s;
         }
         .tracker-breadcrumb .bc-lov-item--cam-hit:hover {
-            background: rgba(255,255,255,0.08);
+            background: var(--interactive-hover);
             color: #fff;
         }
         .tracker-breadcrumb .bc-lov-item--cam-hit .lov-trigger {
@@ -1134,7 +1181,7 @@
             opacity: 0.55;
         }
         :root[data-theme="light"] .tracker-breadcrumb .bc-clickable:hover {
-            background: rgba(0,0,0,0.05);
+            background: var(--interactive-hover);
             color: rgba(0,0,0,0.8);
         }
         :root[data-theme="light"] .tracker-breadcrumb .bc-current {
@@ -1149,22 +1196,22 @@
             color: rgba(0,0,0,0.65);
         }
         :root[data-theme="light"] .tracker-breadcrumb .bc-lov-item .lov-trigger:hover {
-            background: rgba(0,0,0,0.05);
+            background: var(--interactive-hover);
             color: rgba(0,0,0,0.85);
         }
         :root[data-theme="light"] .tracker-breadcrumb .bc-lov-item--cam-hit:hover {
-            background: rgba(0,0,0,0.05);
+            background: var(--interactive-hover);
             color: rgba(0,0,0,0.85);
         }
         :root[data-theme="light"] .tracker-breadcrumb .bc-lov-item--fixed {
             color: rgba(0,0,0,0.65);
         }
         :root[data-theme="light"] .tracker-breadcrumb .bc-static-label--link:hover {
-            background: rgba(0,0,0,0.05);
+            background: var(--interactive-hover);
             color: rgba(0,0,0,0.85);
         }
         :root[data-theme="light"] .tracker-breadcrumb .bc-lov-hit:hover {
-            background: rgba(0,0,0,0.05);
+            background: var(--interactive-hover);
             color: rgba(0,0,0,0.85);
         }
 
@@ -1255,14 +1302,16 @@
 
         .benefit-config-modal-header .card-subtitle {
             font-size: var(--text-xs);
+            font-weight: 800;
             color: var(--color-text-muted);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: -0.02em;
         }
 
         .benefit-config-modal-header .card-title {
             font-size: var(--text-lg);
-            font-weight: 600;
+            font-weight: 800;
+            letter-spacing: -0.03em;
             margin-top: 2px;
         }
 
@@ -1289,57 +1338,847 @@
         .benefit-config-modal .benefit-config-body {
             padding: var(--space-4);
         }
-        /* Tracker layout: video at left, module stack at right */
+        /* Tracker layout: 3 zones - vidéo 2/3, tabs 1/3, data room en bas */
         #trackerView .video-section {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(340px, 430px);
-            gap: var(--space-4);
-            align-items: start;
-        }
-        #trackerView .video-section > .video-card {
-            grid-column: 1;
-        }
-        #trackerView .video-section > .tracker-below-video {
-            grid-column: 2;
             display: flex;
             flex-direction: column;
-            gap: var(--space-5);
+            gap: var(--space-4);
         }
-        #trackerView .video-section > .tracker-below-video .card {
+        #trackerView .tracker-top-row {
+            display: flex;
+            flex-direction: row;
+            gap: var(--space-4);
+            min-height: 0;
+            /* Hauteur = hauteur vidéo (16/9 sur 2/3 de la largeur) pour que les tabs ne dépassent pas */
+            aspect-ratio: 8/3;
+        }
+        #trackerView .tracker-top-row > .video-card {
+            flex: 2;
+            min-width: 0;
+        }
+        #trackerView .tracker-top-row > .tracker-below-video {
+            flex: 1;
+            min-width: 0;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+            overflow: hidden;
+            align-self: stretch;
+        }
+        #trackerView .tracker-top-row > .tracker-below-video > #trackerRightTabs {
+            flex-shrink: 0;
+        }
+        #trackerView .tracker-top-row > .tracker-below-video > .card:not(.hidden) {
             width: 100%;
+            flex: 1 1 0;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
+        #trackerView .tracker-top-row > .tracker-below-video > .card:not(.hidden) > .card-header {
+            flex-shrink: 0;
+        }
+        #trackerView .tracker-top-row > .tracker-below-video > .card:not(.hidden) > *:not(.card-header) {
+            flex: 1 1 0;
+            min-height: 0;
+            overflow-y: auto;
+        }
+        /* Tabs Zone Tracker - clean white */
         .tracker-right-tabs {
-            display: inline-flex;
+            display: flex;
             align-items: center;
-            justify-content: flex-start;
-            gap: 2px;
-            width: fit-content;
+            gap: 4px;
+            width: 100%;
             max-width: 100%;
-            padding: 2px;
-            border-radius: 10px;
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.10);
-            color: rgba(255,255,255,0.65);
+            padding: 0 0 8px;
+            border-bottom: 1px solid var(--color-border);
         }
         .tracker-right-tab {
             border: none;
             background: transparent;
-            color: inherit;
-            border-radius: 8px;
-            padding: 7px 12px;
-            font-size: 12px;
-            font-weight: 600;
+            color: var(--color-text-secondary);
+            border-radius: 0;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 500;
             cursor: pointer;
-            transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+            transition: background 0.15s, color 0.15s;
             white-space: nowrap;
         }
         .tracker-right-tab:hover {
-            color: rgba(255,255,255,0.92);
+            color: var(--color-text);
+            background: var(--interactive-hover);
         }
         .tracker-right-tab.active {
-            background: rgba(255,255,255,0.14);
-            color: #ffffff;
-            box-shadow: 0 1px 0 rgba(0,0,0,0.18), inset 0 0 0 1px rgba(255,255,255,0.10);
+            background: var(--interactive-active);
+            color: var(--color-text);
+            font-weight: 600;
+        }
+        .zones-grid--benefits {
+            min-height: 200px;
+            padding: var(--space-4);
+            background: var(--color-surface);
+        }
+        /* Overview: tuiles bénéfices directement dans le panel, sans container gris */
+        #benefitsPanel .zones-grid--benefits {
+            background: transparent;
+            padding: var(--space-3) 0;
+            min-height: 0;
+            border: none;
+        }
+        .tracker-benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: var(--space-2);
+        }
+        .benefit-tile {
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 10px;
+            background: #0a0a0a;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .benefit-tile-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .benefit-tile-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #eef3ff;
+        }
+        .benefit-tile-edit {
+            border: 1px solid rgba(255,255,255,0.14);
+            border-radius: 6px;
+            background: rgba(255,255,255,0.04);
+            color: rgba(245,247,255,0.9);
+            font-size: 10px;
+            font-weight: 700;
+            padding: 6px 8px;
+            cursor: pointer;
+        }
+        .benefit-tile-chips {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+        }
+        .benefit-tile-chip {
+            border: 1px solid rgba(59,130,246,0.34);
+            background: rgba(59,130,246,0.16);
+            color: #e8f1ff;
+            border-radius: 999px;
+            padding: 3px 8px;
+            font-size: 10px;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .benefit-tile-chip--ghost {
+            border-color: rgba(255,255,255,0.16);
+            background: rgba(255,255,255,0.06);
+            color: rgba(234,242,255,0.88);
+        }
+        .benefit-tile-chips .benefit-tile-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 6px;
+            font-size: 10px;
+            border-radius: 4px;
+        }
+        .benefit-tile-chips .ben-recap-chip--icon-only {
+            width: 18px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .benefit-tile-chips .ben-recap-chip--icon-only .ben-tree-ico,
+        .benefit-tile-chips .ben-recap-chip--ghost .ben-tree-ico {
+            width: 14px;
+            height: 14px;
+            flex: 0 0 14px;
+            vertical-align: middle;
+            margin-top: 1px;
+        }
+        .benefit-tile-chips .ben-recap-chip--solid {
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(59,130,246,0.2);
+        }
+        .benefit-tile-chips .ben-recap-chip--success.ben-recap-chip--solid { background: rgba(34,197,94,0.22); }
+        .benefit-tile-chips .ben-recap-chip--primary.ben-recap-chip--solid { background: rgba(59,130,246,0.22); }
+        .benefit-tile-chips .ben-recap-chip--info.ben-recap-chip--solid { background: rgba(167,139,250,0.22); }
+        .benefit-tile-chips .ben-recap-chip--warning.ben-recap-chip--solid { background: rgba(250,204,21,0.22); }
+        .benefit-tile-chips .ben-recap-chip--accent-mint .ben-tree-ico { filter: invert(84%) sepia(21%) saturate(742%) hue-rotate(103deg) brightness(98%) contrast(93%); }
+        .benefit-tile-chips .ben-recap-chip--accent-sky .ben-tree-ico { filter: invert(74%) sepia(27%) saturate(1401%) hue-rotate(178deg) brightness(102%) contrast(100%); }
+        .benefit-tile-chips .ben-recap-chip--accent-violet .ben-tree-ico { filter: invert(79%) sepia(31%) saturate(786%) hue-rotate(214deg) brightness(102%) contrast(96%); }
+        .benefit-tile-chips .ben-recap-chip--accent-peach .ben-tree-ico { filter: invert(87%) sepia(25%) saturate(739%) hue-rotate(331deg) brightness(102%) contrast(101%); }
+        .benefit-tile-chips .ben-recap-chip--accent-rose .ben-tree-ico { filter: invert(82%) sepia(17%) saturate(1013%) hue-rotate(296deg) brightness(101%) contrast(99%); }
+        .benefit-tile-chips .ben-recap-chip--accent-sand .ben-tree-ico { filter: invert(92%) sepia(24%) saturate(939%) hue-rotate(339deg) brightness(103%) contrast(100%); }
+        .benefit-tile-chips .ben-recap-chip--accent-teal .ben-tree-ico { filter: invert(83%) sepia(19%) saturate(877%) hue-rotate(131deg) brightness(97%) contrast(96%); }
+        .benefit-tile-chips .ben-recap-chip--accent-slate .ben-tree-ico { filter: invert(83%) sepia(11%) saturate(601%) hue-rotate(186deg) brightness(95%) contrast(93%); }
+        .benefit-tile-chips .ben-recap-chip--accent-lime .ben-tree-ico { filter: invert(88%) sepia(31%) saturate(964%) hue-rotate(62deg) brightness(101%) contrast(95%); }
+        .benefit-tile-chips .ben-recap-chip--accent-coral .ben-tree-ico { filter: invert(82%) sepia(29%) saturate(1008%) hue-rotate(337deg) brightness(103%) contrast(96%); }
+        .benefit-tile-chips .ben-recap-chip--accent-azure .ben-tree-ico { filter: invert(80%) sepia(24%) saturate(1171%) hue-rotate(187deg) brightness(102%) contrast(98%); }
+        .benefit-tile-chips .ben-recap-chip--accent-amber .ben-tree-ico { filter: invert(93%) sepia(24%) saturate(1175%) hue-rotate(336deg) brightness(101%) contrast(97%); }
+        .tracker-benefits-empty {
+            padding: 16px;
+            border: 1px dashed var(--color-border);
+            border-radius: 0;
+            color: var(--color-text-secondary);
+            text-align: center;
+            font-size: 13px;
+            background: rgba(15,23,42,0.02);
+        }
+        .roi-measure-grid > .tracker-benefits-empty {
+            grid-column: 1 / -1;
+        }
+        :root[data-theme="light"] .benefit-tile {
+            border-color: rgba(15,23,42,0.16);
+            background: rgba(255,255,255,0.84);
+        }
+        :root[data-theme="light"] .benefit-tile-title {
+            color: #111827;
+        }
+        :root[data-theme="light"] .benefit-tile-edit {
+            border-color: rgba(15,23,42,0.18);
+            background: rgba(15,23,42,0.06);
+            color: #0f172a;
+        }
+        :root[data-theme="light"] .benefit-tile-chip {
+            border-color: rgba(37,99,235,0.38);
+            background: rgba(37,99,235,0.16);
+            color: #0f172a;
+        }
+        :root[data-theme="light"] .benefit-tile-chip--ghost {
+            border-color: rgba(15,23,42,0.2);
+            background: rgba(15,23,42,0.08);
+            color: #1f2937;
+        }
+        :root[data-theme="light"] .benefit-tile-chips .ben-recap-chip--solid {
+            border-color: rgba(15,23,42,0.16);
+            color: #0f172a;
+        }
+        :root[data-theme="light"] .benefit-tile-chips .ben-recap-chip--success.ben-recap-chip--solid { background: rgba(34,197,94,0.18); color: #065f46; }
+        :root[data-theme="light"] .benefit-tile-chips .ben-recap-chip--primary.ben-recap-chip--solid { background: rgba(59,130,246,0.18); color: #1e40af; }
+        :root[data-theme="light"] .benefit-tile-chips .ben-recap-chip--info.ben-recap-chip--solid { background: rgba(167,139,250,0.18); color: #4c1d95; }
+        :root[data-theme="light"] .benefit-tile-chips .ben-recap-chip--warning.ben-recap-chip--solid { background: rgba(250,204,21,0.22); color: #713f12; }
+        :root[data-theme="light"] .benefit-tile-chips .ben-recap-chip--icon-only .ben-tree-ico,
+        :root[data-theme="light"] .benefit-tile-chips .ben-recap-chip--ghost .ben-tree-ico,
+        :root[data-theme="light"] .benefit-tile-chips .ben-recap-chip--accent-mint .ben-tree-ico,
+        :root[data-theme="light"] .benefit-tile-chips .ben-recap-chip--accent-sky .ben-tree-ico,
+        :root[data-theme="light"] .benefit-tile-chips .ben-recap-chip--accent-violet .ben-tree-ico,
+        :root[data-theme="light"] .benefit-tile-chips .ben-recap-chip--accent-peach .ben-tree-ico,
+        :root[data-theme="light"] .benefit-tile-chips .ben-recap-chip--accent-rose .ben-tree-ico,
+        :root[data-theme="light"] .benefit-tile-chips .ben-recap-chip--accent-sand .ben-tree-ico,
+        :root[data-theme="light"] .benefit-tile-chips .ben-recap-chip--accent-teal .ben-tree-ico,
+        :root[data-theme="light"] .benefit-tile-chips .ben-recap-chip--accent-slate .ben-tree-ico,
+        :root[data-theme="light"] .benefit-tile-chips .ben-recap-chip--accent-lime .ben-tree-ico,
+        :root[data-theme="light"] .benefit-tile-chips .ben-recap-chip--accent-coral .ben-tree-ico,
+        :root[data-theme="light"] .benefit-tile-chips .ben-recap-chip--accent-azure .ben-tree-ico,
+        :root[data-theme="light"] .benefit-tile-chips .ben-recap-chip--accent-amber .ben-tree-ico {
+            filter: brightness(0) saturate(0) opacity(0.6) !important;
+        }
+
+        /* ---- Tracker overview: benefit tiles dark (only in #benefitsPanel), rest white ---- */
+        .tracker-plus-btn {
+            width: 28px;
+            min-width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            padding: 0;
+            font-size: 18px;
+            line-height: 1;
+            font-weight: 800;
+            color: var(--color-accent);
+            border: 1px solid rgba(240,131,33,0.4);
+            background: rgba(240,131,33,0.12);
+        }
+
+        .tracker-benefits-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+            width: 100%;
+        }
+        /* Tuiles bénéfices en dark mode (seul élément conservé en dark) */
+        #benefitsPanel .benefit-row {
+            width: 100%;
+            display: flex;
+            align-items: stretch;
+            gap: 0;
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            border-radius: 0;
+            background: #F6F8FC;
+            min-height: 56px;
+            position: relative;
+        }
+        #benefitsPanel .benefit-row-skill {
+            flex: 0 0 22%;
+            max-width: 22%;
+            min-width: 44px;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            padding: 6px;
+            position: relative;
+            border-right: 1px solid rgba(15, 23, 42, 0.1);
+        }
+        #benefitsPanel .benefit-row-skill .benefit-row-skill-ico {
+            width: 85%;
+            height: 85%;
+            object-fit: contain;
+            filter: brightness(0) saturate(0) opacity(0.65);
+        }
+        #benefitsPanel .benefit-row.benefit-row--selected .benefit-row-skill .benefit-row-skill-ico {
+            filter: brightness(0) invert(1);
+        }
+        #benefitsPanel .benefit-row.benefit-row--selected {
+            background: #1d5bff;
+            border-color: #1d5bff;
+        }
+        #benefitsPanel .benefit-row.benefit-row--selected .benefit-row-skill {
+            background: #1d5bff;
+            border-right-color: rgba(255,255,255,0.25);
+        }
+        #benefitsPanel .benefit-row.benefit-row--selected .benefit-row-title,
+        #benefitsPanel .benefit-row.benefit-row--selected .benefit-row-edit {
+            color: #fff !important;
+        }
+        #benefitsPanel .benefit-row.benefit-row--selected .benefit-row-dot {
+            background: #fff !important;
+        }
+        #benefitsPanel .benefit-row.benefit-row--selected .benefit-row-edit {
+            background: rgba(255,255,255,0.2) !important;
+            border-color: rgba(255,255,255,0.4) !important;
+        }
+        /* Chips : texte blanc, fond blanc translucide uniforme (pas de bleu accent), icônes sans cadre */
+        #benefitsPanel .benefit-row.benefit-row--selected .benefit-row-chips .benefit-tile-badge,
+        #benefitsPanel .benefit-row.benefit-row--selected .benefit-row-chips .ben-recap-chip,
+        #benefitsPanel .benefit-row.benefit-row--selected .benefit-row-chips .ben-recap-chip--solid,
+        #benefitsPanel .benefit-row.benefit-row--selected .benefit-row-chips .ben-recap-chip--primary.ben-recap-chip--solid,
+        #benefitsPanel .benefit-row.benefit-row--selected .benefit-row-chips .ben-recap-chip--info.ben-recap-chip--solid,
+        #benefitsPanel .benefit-row.benefit-row--selected .benefit-row-chips .ben-recap-chip--success.ben-recap-chip--solid,
+        #benefitsPanel .benefit-row.benefit-row--selected .benefit-row-chips .ben-recap-chip--warning.ben-recap-chip--solid {
+            color: #fff !important;
+            background: rgba(255,255,255,0.15) !important;
+            border-color: rgba(255,255,255,0.25) !important;
+        }
+        /* Icônes seules : sans cadre (transparent), affichage simple */
+        #benefitsPanel .benefit-row.benefit-row--selected .benefit-row-chips .benefit-tile-badge.ben-recap-chip--icon-only,
+        #benefitsPanel .benefit-row.benefit-row--selected .benefit-row-chips .ben-recap-chip--icon-only,
+        #benefitsPanel .benefit-row.benefit-row--selected .benefit-row-chips .ben-recap-chip--ghost.ben-recap-chip--icon-only {
+            background: transparent !important;
+            border: none !important;
+            padding: 0 2px;
+        }
+        #benefitsPanel .benefit-row.benefit-row--selected .benefit-row-chips .ben-tree-ico {
+            filter: brightness(0) invert(1) !important;
+        }
+        #benefitsPanel .benefit-row-main {
+            min-width: 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 8px 12px;
+            justify-content: flex-start;
+        }
+        #benefitsPanel .benefit-row-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+            flex-shrink: 0;
+        }
+        #benefitsPanel .benefit-row-dot {
+            flex-shrink: 0;
+            width: 6px;
+            height: 6px;
+            border-radius: 0;
+        }
+        #benefitsPanel .benefit-row-title {
+            color: #0F172A;
+            font-size: 14px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #benefitsPanel .benefit-row-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            min-width: 0;
+        }
+        #benefitsPanel .benefit-row-footer {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: auto;
+            flex-shrink: 0;
+            min-height: 28px;
+        }
+        #benefitsPanel .benefit-row-timer {
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(15, 23, 42, 0.6);
+            font-variant-numeric: tabular-nums;
+        }
+        #benefitsPanel .benefit-row.benefit-row--selected .benefit-row-timer {
+            color: rgba(255,255,255,0.85);
+        }
+        #benefitsPanel .benefit-row-toggle {
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+        #benefitsPanel .benefit-row-edit {
+            border: 1px solid rgba(15, 23, 42, 0.18);
+            border-radius: 0;
+            background: rgba(15, 23, 42, 0.06);
+            color: #0F172A;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 6px 10px;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #benefitsPanel .benefit-row-chip {
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 999px;
+            padding: 3px 8px;
+            color: #f5f7ff;
+            font-size: 10px;
+            font-weight: 700;
+            line-height: 1;
+        }
+        #benefitsPanel .benefit-row-chip--success { background: rgba(34,197,94,0.22); }
+        #benefitsPanel .benefit-row-chip--primary { background: rgba(59,130,246,0.22); }
+
+        #benefitsPanel .benefit-row-chips .benefit-tile-badge,
+        #benefitsPanel .benefit-row-chips .ben-recap-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 6px;
+            font-size: 10px;
+            border-radius: 0;
+            background: rgba(15, 23, 42, 0.06) !important;
+            color: #0F172A !important;
+            border: 1px solid rgba(15, 23, 42, 0.12) !important;
+        }
+        #benefitsPanel .benefit-row-chips .ben-recap-chip--icon-only,
+        #benefitsPanel .benefit-row-chips .benefit-tile-badge.ben-recap-chip--icon-only,
+        #benefitsPanel .benefit-row-chips .ben-recap-chip--ghost.ben-recap-chip--icon-only {
+            width: 18px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0;
+            justify-content: center;
+            border-radius: 0;
+            background: transparent !important;
+            border: none !important;
+        }
+        #benefitsPanel .benefit-row-chips .ben-tree-ico {
+            width: 18px;
+            height: 18px;
+            flex: 0 0 18px;
+            filter: brightness(0) saturate(0) opacity(0.65);
+        }
+        #benefitsPanel .benefit-row-chips .ben-recap-chip--solid {
+            border: 1px solid rgba(15, 23, 42, 0.18) !important;
+            border-radius: 0;
+            background: rgba(15, 23, 42, 0.08) !important;
+            color: #0F172A !important;
+        }
+        #benefitsPanel .benefit-row-chips .ben-recap-chip--success.ben-recap-chip--solid { background: rgba(34,197,94,0.18) !important; color: #065f46; }
+        #benefitsPanel .benefit-row-chips .ben-recap-chip--primary.ben-recap-chip--solid { background: rgba(59,130,246,0.18) !important; color: #1e40af; }
+        #benefitsPanel .benefit-row-chips .ben-recap-chip--info.ben-recap-chip--solid { background: rgba(167,139,250,0.18) !important; color: #4c1d95; }
+        #benefitsPanel .benefit-row-chips .ben-recap-chip--warning.ben-recap-chip--solid { background: rgba(250,204,21,0.22) !important; color: #713f12; }
+        #benefitsPanel .benefit-row-chips .ben-recap-chip--icon-only .ben-tree-ico,
+        #benefitsPanel .benefit-row-chips .ben-recap-chip--ghost .ben-tree-ico { width: 18px; height: 18px; filter: brightness(0) opacity(0.6); }
+        #benefitsPanel .benefit-row-chips .ben-recap-chip--accent-mint .ben-tree-ico { filter: brightness(0) opacity(0.6); }
+        #benefitsPanel .benefit-row-chips .ben-recap-chip--accent-sky .ben-tree-ico { filter: brightness(0) opacity(0.6); }
+        #benefitsPanel .benefit-row-chips .ben-recap-chip--accent-violet .ben-tree-ico { filter: brightness(0) opacity(0.6); }
+        #benefitsPanel .benefit-row-chips .ben-recap-chip--accent-peach .ben-tree-ico { filter: brightness(0) opacity(0.6); }
+        #benefitsPanel .benefit-row-chips .ben-recap-chip--accent-rose .ben-tree-ico { filter: brightness(0) opacity(0.6); }
+        #benefitsPanel .benefit-row-chips .ben-recap-chip--accent-sand .ben-tree-ico { filter: brightness(0) opacity(0.6); }
+        #benefitsPanel .benefit-row-chips .ben-recap-chip--accent-teal .ben-tree-ico { filter: brightness(0) opacity(0.6); }
+        #benefitsPanel .benefit-row-chips .ben-recap-chip--accent-slate .ben-tree-ico { filter: brightness(0) opacity(0.6); }
+        #benefitsPanel .benefit-row-chips .ben-recap-chip--accent-lime .ben-tree-ico { filter: brightness(0) opacity(0.6); }
+        #benefitsPanel .benefit-row-chips .ben-recap-chip--accent-coral .ben-tree-ico { filter: brightness(0) opacity(0.6); }
+        #benefitsPanel .benefit-row-chips .ben-recap-chip--accent-azure .ben-tree-ico { filter: brightness(0) opacity(0.6); }
+        #benefitsPanel .benefit-row-chips .ben-recap-chip--accent-amber .ben-tree-ico { filter: brightness(0) opacity(0.6); }
+        #benefitsPanel .benefit-row-chips .benefit-row-class-ico {
+            background: transparent !important;
+            border: none !important;
+            padding: 0;
+        }
+        #benefitsPanel .benefit-row-chips .benefit-row-class-ico .ben-tree-ico {
+            width: 18px;
+            height: 18px;
+            filter: brightness(0) opacity(0.65);
+        }
+        #benefitsPanel .benefit-row.benefit-row--selected .benefit-row-chips .benefit-row-class-ico .ben-tree-ico {
+            filter: brightness(0) invert(1);
+        }
+
+        /* DATA ROOM - bloc simplifié : titre + sous-titre + grille de cartes (sans cadre conteneur) */
+        .data-room-block {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+            padding: 0;
+            background: transparent;
+            border: none;
+        }
+        .data-room-header {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .data-room-title {
+            font-size: var(--text-lg);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: #0F172A;
+            margin: 0;
+        }
+        .data-room-subtitle {
+            font-size: 13px;
+            font-weight: 500;
+            color: #475569;
+            margin: 0;
+            letter-spacing: 0.02em;
+        }
+        #roiMeasurementsPanel .roi-measure-grid {
+            min-height: 200px;
+            grid-template-columns: repeat(2, minmax(280px, 360px));
+        }
+        .roi-measure-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(280px, 1fr));
+            gap: var(--space-5);
+        }
+        .roi-measure-grid--benefit-style .roi-measure-card {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: var(--space-5);
+            padding: var(--space-5);
+            min-height: 120px;
+        }
+        .roi-measure-card {
+            border: 1px solid var(--color-border);
+            border-radius: 0;
+            background: var(--color-surface);
+            padding: var(--space-4);
+            aspect-ratio: 1;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: var(--space-3);
+        }
+        .roi-measure-card--benefit {
+            background: #F6F8FC;
+            border-color: rgba(15, 23, 42, 0.12);
+            border-radius: 0;
+            aspect-ratio: auto;
+            min-height: 100px;
+        }
+        .roi-measure-card--benefit .roi-card-main {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+        }
+        .roi-measure-card--benefit .roi-card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--space-2);
+            flex-shrink: 0;
+            padding-bottom: var(--space-3);
+            border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+        }
+        .roi-measure-card--benefit .roi-card-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+            flex: 1;
+        }
+        .roi-measure-card--benefit .roi-card-dot {
+            flex-shrink: 0;
+            width: 8px;
+            height: 8px;
+            border-radius: 0;
+        }
+        .roi-measure-card--benefit .roi-card-top .roi-card-title {
+            flex: 1;
+            min-width: 0;
+        }
+        .roi-measure-card--benefit .roi-card-title {
+            color: #0F172A;
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
+        }
+        .roi-measure-card--benefit .roi-card-chips-wrap {
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            flex-shrink: 0;
+            padding-bottom: var(--space-3);
+            border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+        }
+        .roi-measure-card--benefit .roi-card-chips-wrap::-webkit-scrollbar {
+            height: 4px;
+        }
+        .roi-measure-card--benefit .roi-card-chips {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 8px;
+            align-items: center;
+            min-width: min-content;
+        }
+        .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--icon-only .ben-tree-ico {
+            width: 18px;
+            height: 18px;
+        }
+        .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--solid {
+            background: rgba(15, 23, 42, 0.08) !important;
+            color: #0F172A !important;
+            border-color: rgba(15, 23, 42, 0.12) !important;
+        }
+        .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--icon-only,
+        .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--ghost.ben-recap-chip--icon-only {
+            background: transparent !important;
+            border: none !important;
+            padding: 0 2px;
+        }
+        .roi-measure-card--benefit .roi-card-chips .benefit-tile-badge,
+        .roi-measure-card--benefit .roi-card-chips .ben-recap-chip {
+            background: rgba(15, 23, 42, 0.06) !important;
+            color: #0F172A !important;
+            border-color: rgba(15, 23, 42, 0.1) !important;
+        }
+        .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-mint .ben-tree-ico,
+        .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-sky .ben-tree-ico,
+        .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-violet .ben-tree-ico,
+        .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-peach .ben-tree-ico,
+        .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-rose .ben-tree-ico,
+        .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-sand .ben-tree-ico,
+        .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-teal .ben-tree-ico,
+        .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-slate .ben-tree-ico,
+        .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-lime .ben-tree-ico,
+        .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-coral .ben-tree-ico,
+        .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-azure .ben-tree-ico,
+        .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-amber .ben-tree-ico { filter: brightness(0) opacity(0.6); }
+        .roi-measure-card--benefit .roi-presence-label,
+        .roi-measure-card--benefit .roi-counter-sub {
+            color: #334155;
+            font-size: 12px;
+        }
+        .roi-measure-card--benefit .roi-presence-value,
+        .roi-measure-card--benefit .roi-counter-value {
+            color: #0F172A;
+            font-weight: 800;
+        }
+        .roi-measure-card--benefit .roi-presence-bar {
+            background: rgba(15, 23, 42, 0.1);
+            border-radius: 0;
+        }
+        .roi-measure-card--benefit .roi-presence-fill {
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+            border-radius: 0;
+        }
+        .roi-measure-card--benefit .roi-presence-bars {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+        }
+        .roi-measure-card--benefit .roi-presence-bar-wrap .roi-presence-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .roi-measure-card--benefit .roi-presence-value {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .roi-measure-card--benefit .roi-counters {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+        }
+        .roi-measure-card--benefit .roi-counters .roi-counter-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .roi-measure-card--benefit .roi-counter-label {
+            font-size: 12px;
+            color: #334155;
+        }
+        .roi-measure-card--benefit .roi-presence-ico,
+        .roi-measure-card--benefit .roi-counter-icon {
+            width: 32px;
+            height: 32px;
+            filter: brightness(0) opacity(0.6);
+            opacity: 0.9;
+        }
+        .roi-card-menu-dots {
+            font-size: 20px;
+            line-height: 1;
+            letter-spacing: -2px;
+        }
+        .roi-card-header {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .roi-card-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--color-text);
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+        .roi-card-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+        .roi-chip {
+            background: rgba(34,197,94,0.14);
+            color: #15803d;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .roi-chip--success { background: rgba(34,197,94,0.14); color: #15803d; }
+        .roi-chip--primary { background: rgba(59,130,246,0.14); color: #1d4ed8; }
+        .roi-chip--info { background: rgba(167,139,250,0.14); color: #6d28d9; }
+        .roi-chip--warning { background: rgba(250,204,21,0.14); color: #a16207; }
+        .roi-chip .ben-tree-ico { width: 14px; height: 14px; }
+        .roi-measure-card--benefit .roi-chip .ben-tree-ico { filter: brightness(0) opacity(0.6); }
+        .roi-card-chips .benefit-tile-badge,
+        .roi-card-chips .ben-recap-chip {
+            background: rgba(15,23,42,0.08) !important;
+            color: var(--color-text) !important;
+            border-color: rgba(15,23,42,0.12) !important;
+        }
+        .roi-card-chips .ben-recap-chip--success { background: rgba(34,197,94,0.14) !important; color: #15803d !important; }
+        .roi-card-chips .ben-recap-chip--primary { background: rgba(59,130,246,0.14) !important; color: #1d4ed8 !important; }
+        .roi-card-chips .ben-recap-chip--info { background: rgba(167,139,250,0.14) !important; color: #6d28d9 !important; }
+        .roi-card-chips .ben-recap-chip--warning { background: rgba(250,204,21,0.14) !important; color: #a16207 !important; }
+        .roi-presence-bar-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .roi-presence-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--color-text-secondary);
+        }
+        .roi-presence-bar {
+            height: 10px;
+            background: rgba(15,23,42,0.08);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .roi-presence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+            border-radius: 6px;
+            transition: width 0.2s;
+        }
+        .roi-presence-value {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--color-text);
+        }
+        .roi-counter-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .roi-counter-icon {
+            width: 36px;
+            height: 36px;
+            opacity: 0.85;
+        }
+        .roi-counter-value {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--color-text);
+            line-height: 1;
+        }
+        .roi-counter-sub {
+            font-size: 12px;
+            color: var(--color-text-secondary);
+        }
+        .roi-card-btn {
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            background: rgba(15,23,42,0.04);
+            color: var(--color-text);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 6px 10px;
+            cursor: pointer;
+            align-self: flex-start;
+            transition: background 0.15s;
+        }
+        .roi-card-btn:hover {
+            background: rgba(15,23,42,0.08);
+        }
+        @media (max-width: 900px) {
+            .roi-measure-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        #roiMeasurementsPanel.roi-measurements-full {
+            width: 100%;
+            flex-shrink: 0;
+        }
+        @media (max-width: 900px) {
+            .tracker-right-tabs {
+                overflow-x: auto;
+                scrollbar-width: thin;
+            }
+            .tracker-benefits-grid {
+                grid-template-columns: 1fr;
+            }
         }
         .benefit-config-modal.benefit-config-panel {
             position: relative;
@@ -1357,13 +2196,10 @@
             border-radius: var(--radius-lg);
         }
         @media (max-width: 1300px) {
-            #trackerView .video-section {
-                grid-template-columns: 1fr;
-            }
-            #trackerView .video-section > .tracker-below-video {
-                grid-column: 1 / -1;
-                display: grid;
-                grid-template-columns: 1fr;
+            #trackerView .tracker-top-row {
+                flex-direction: column;
+                aspect-ratio: auto;
+                min-height: 400px;
             }
             .benefit-config-modal.benefit-config-panel {
                 grid-column: 1 / -1;
@@ -1373,7 +2209,7 @@
         .video-card {
             background: var(--color-surface);
             border: 1px solid var(--color-border);
-            border-radius: var(--radius-lg);
+            border-radius: 0;
             overflow: hidden;
         }
 
@@ -1384,7 +2220,7 @@
         }
 
         .video-card--clean .video-wrapper {
-            border-radius: var(--radius-lg);
+            border-radius: 0;
             overflow: hidden;
         }
 
@@ -1607,94 +2443,419 @@
             box-shadow: 0 0 0 rgba(0,0,0,0.15);
         }
 
-        .camera-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: var(--space-3);
-        }
-
-        .camera-item {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.06);
-            border-radius: 2px;
-            padding: var(--space-3);
-            cursor: pointer;
-            transition: background 0.15s, border-color 0.15s;
-        }
-
-        .camera-item:hover {
-            border-color: rgba(255,255,255,0.12);
-            background: rgba(255,255,255,0.06);
-        }
-
-        .camera-item.active {
-            border-color: rgba(29,91,255,0.25);
-            background: rgba(29,91,255,0.08);
-        }
-
-        :root[data-theme="light"] .camera-item {
-            background: rgba(0,0,0,0.02);
-            border-color: rgba(0,0,0,0.06);
-        }
-        :root[data-theme="light"] .camera-item:hover {
-            border-color: rgba(0,0,0,0.10);
-            background: rgba(0,0,0,0.04);
-        }
-        :root[data-theme="light"] .camera-item.active {
-            border-color: rgba(29,91,255,0.20);
-            background: rgba(29,91,255,0.05);
-        }
-
-        .camera-item-name {
-            font-size: var(--text-sm);
-            font-weight: 500;
-            margin-bottom: var(--space-1);
-        }
-
-        .camera-item-status {
-            font-size: var(--text-xs);
-            display: flex;
-            align-items: center;
-            gap: var(--space-1);
-        }
-
-        .camera-item-status.online {
-            color: var(--color-success);
-        }
-
-        .camera-item-status.offline {
-            color: var(--color-text-subtle);
-        }
-
-        .camera-item-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-
-        .camera-item-delete {
-            width: 20px;
-            height: 20px;
-            border: none;
-            background: transparent;
-            color: var(--color-text-subtle);
-            cursor: pointer;
-            border-radius: var(--radius-sm);
+        /* Modal Ajout caméra (avec preview) */
+        .add-cam-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            z-index: 400;
             display: flex;
             align-items: center;
             justify-content: center;
-            opacity: 0;
-            transition: all 0.2s ease;
+            padding: var(--space-6);
+        }
+        .add-cam-modal-overlay.hidden { display: none; }
+        .add-cam-modal {
+            width: min(560px, 100%);
+            max-height: 90vh;
+            overflow: hidden;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+        }
+        .add-cam-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--color-border);
+        }
+        .add-cam-modal-title { font-size: 16px; font-weight: 700; color: var(--color-text); }
+        .add-cam-modal-subtitle { font-size: 12px; color: var(--color-text-muted); margin-top: 2px; }
+        .add-cam-modal-close {
+            width: 32px; height: 32px;
+            border: none;
+            background: transparent;
+            color: var(--color-text-subtle);
+            font-size: 20px;
+            cursor: pointer;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .add-cam-modal-close:hover {
+            background: var(--color-surface-3);
+            color: var(--color-text);
+        }
+        .add-cam-modal-body {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-4);
+            padding: var(--space-4);
+            overflow-y: auto;
+        }
+        @media (max-width: 600px) {
+            .add-cam-modal-body { grid-template-columns: 1fr; }
+        }
+        .add-cam-preview {
+            aspect-ratio: 16/9;
+            background: #0a0a0a;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .add-cam-preview img,
+        .add-cam-preview video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .add-cam-preview-placeholder {
+            color: rgba(255,255,255,0.35);
+            font-size: 13px;
+        }
+        .add-cam-form {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+            min-width: 0;
+        }
+        .add-cam-tabs {
+            display: flex;
+            gap: 6px;
+        }
+        .add-cam-tab {
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            background: transparent;
+            color: var(--color-text-muted);
+            cursor: pointer;
+        }
+        .add-cam-tab:hover { color: var(--color-text); }
+        .add-cam-tab.active {
+            background: rgba(29,91,255,0.15);
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+        }
+        .add-cam-fields {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+        }
+        .add-cam-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .add-cam-field .form-label { font-size: 11px; font-weight: 600; color: var(--color-text-muted); }
+        .add-cam-field input,
+        .add-cam-field select {
+            padding: 8px 10px;
+            font-size: 13px;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            background: var(--color-surface-2);
+            color: var(--color-text);
+        }
+        .add-cam-field-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .add-cam-field-row input,
+        .add-cam-field-row select { flex: 1; min-width: 0; }
+        .add-cam-btn {
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            background: var(--color-surface-3);
+            color: var(--color-text);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .add-cam-btn:hover { background: var(--color-surface-2); }
+        .add-cam-status { font-size: 11px; color: var(--color-text-muted); }
+        .add-cam-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--color-border);
+        }
+
+        /* ---- Source tab: tuiles caméra simples (sans gros SVG) ---- */
+        #sourcesPanel .sources-list {
+            padding: var(--space-3) var(--space-4);
+            overflow-y: auto;
+            min-height: 0;
+        }
+        .tracker-sources-empty {
+            padding: var(--space-5);
+            text-align: center;
+            color: var(--color-text-muted);
+            font-size: var(--text-sm);
+        }
+        .tracker-sources-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+            width: 100%;
+        }
+        .source-tile {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            padding: 10px 12px;
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            border-radius: 0;
+            background: #F6F8FC;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .source-tile:not(.source-tile--selected):hover {
+            border-color: rgba(15, 23, 42, 0.18);
+            background: #EEF2F8;
+        }
+        .source-tile--selected {
+            background: #1d5bff;
+            border-color: #1d5bff;
+        }
+        .source-tile--selected .source-tile-name,
+        .source-tile--selected .source-tile-meta {
+            color: #fff !important;
+        }
+        .source-tile-dot {
+            flex-shrink: 0;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .source-tile-dot--online { background: var(--color-success); }
+        .source-tile-dot--ready { background: rgba(15, 23, 42, 0.35); }
+        .source-tile-dot--missing { background: var(--color-danger); }
+        .source-tile-body {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .source-tile-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: #0F172A;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .source-tile-meta {
+            font-size: 11px;
+            color: rgba(15, 23, 42, 0.6);
+        }
+        .source-tile-menu-wrap {
+            position: relative;
             flex-shrink: 0;
         }
-
-        .camera-item:hover .camera-item-delete {
-            opacity: 1;
+        .source-tile-menu-btn {
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            border: none;
+            background: transparent;
+            color: rgba(15, 23, 42, 0.5);
+            font-size: 18px;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+        .source-tile-menu-btn:hover,
+        .source-tile-menu-wrap.is-open .source-tile-menu-btn {
+            color: rgba(15, 23, 42, 0.85);
+        }
+        .source-tile--selected .source-tile-menu-btn {
+            color: rgba(255,255,255,0.7);
+        }
+        .source-tile--selected .source-tile-menu-btn:hover,
+        .source-tile--selected .source-tile-menu-wrap.is-open .source-tile-menu-btn {
+            color: #fff;
+        }
+        .source-tile-menu-panel {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 4px);
+            min-width: 140px;
+            padding: 4px;
+            background: var(--lov-panel-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--lov-panel-border);
+            border-radius: 6px;
+            box-shadow: var(--lov-panel-shadow);
+            display: none;
+            flex-direction: column;
+            gap: 2px;
+            z-index: 100;
+        }
+        .source-tile-menu-wrap.is-open .source-tile-menu-panel {
+            display: flex;
+        }
+        .source-tile-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            background: transparent;
+            color: var(--lov-item-color);
+            font-size: 12px;
+            font-weight: 500;
+            font-family: var(--font-sans);
+            cursor: pointer;
+            text-align: left;
+        }
+        .source-tile-menu-item:hover {
+            background: var(--lov-item-hover);
+        }
+        .source-tile-menu-item--danger {
+            color: var(--color-danger);
+        }
+        .source-tile-menu-item--danger:hover {
+            background: rgba(239, 68, 68, 0.12);
         }
 
-        .camera-item-delete:hover {
-            background: rgba(239, 68, 68, 0.15);
-            color: var(--color-danger);
+        /* ---- Settings panel (compact, pas de scroll) ---- */
+        .settings-panel {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-5);
+            padding: var(--space-4);
+            overflow-y: auto;
+            max-height: 100%;
+        }
+        .settings-panel--compact {
+            gap: var(--space-3);
+            padding: var(--space-3) var(--space-4);
+        }
+        .settings-row-compact {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+        .settings-row-compact .form-label {
+            flex: 0 0 56px;
+            font-size: var(--text-xs);
+            font-weight: 600;
+            color: #0F172A;
+        }
+        .settings-row-compact .settings-input {
+            flex: 1;
+            min-width: 0;
+            padding: 6px 10px;
+            font-size: var(--text-sm);
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            border-radius: 0;
+            background: #F6F8FC;
+        }
+        .settings-stats {
+            font-size: var(--text-xs);
+            color: rgba(15, 23, 42, 0.6);
+            padding: 6px 0;
+        }
+        .settings-notes-row {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .settings-notes-row .form-label {
+            font-size: var(--text-xs);
+            font-weight: 600;
+            color: #0F172A;
+        }
+        .settings-notes-input {
+            min-height: 80px;
+            padding: 10px 12px;
+            font-size: var(--text-sm);
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            border-radius: 6px;
+            background: #F6F8FC;
+            resize: vertical;
+            font-family: var(--font-sans);
+        }
+        .settings-toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--space-3);
+            padding: 8px 0;
+        }
+        .settings-toggle-label {
+            font-size: var(--text-sm);
+            font-weight: 600;
+            color: #0F172A;
+        }
+        .settings-section {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+        }
+        .settings-section-title {
+            font-size: var(--text-xs);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--color-text-subtle);
+            margin: 0 0 4px 0;
+        }
+        .settings-fields {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+        }
+        .settings-option-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--space-4);
+            padding: var(--space-3) var(--space-4);
+            background: #F6F8FC;
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            border-radius: 0;
+            min-height: 56px;
+        }
+        .settings-option-row--disabled {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        .settings-option-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .settings-option-label {
+            font-size: var(--text-sm);
+            font-weight: 600;
+            color: #0F172A;
+        }
+        .settings-option-desc {
+            font-size: var(--text-xs);
+            color: rgba(15, 23, 42, 0.6);
         }
 
         /* Forms */
@@ -2003,6 +3164,7 @@
         .sites-card .card-header {
             padding: var(--space-3) 0;
             margin-bottom: 0;
+            justify-content: flex-end;
         }
 
         .sites-view-toggle {
@@ -2200,6 +3362,27 @@
             align-items: center;
             gap: 6px;
         }
+        .serial-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 34px;
+            height: 18px;
+            padding: 0 6px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.18);
+            background: rgba(255,255,255,0.06);
+            color: rgba(245,247,255,0.9);
+            font-size: 10px;
+            font-weight: 700;
+            line-height: 1;
+            letter-spacing: 0.3px;
+        }
+        :root[data-theme="light"] .serial-badge {
+            border-color: rgba(15,23,42,0.14);
+            background: rgba(15,23,42,0.06);
+            color: rgba(15,23,42,0.85);
+        }
         .site-card-v2__name .hier-icon { width: 15px; height: 15px; opacity: 0.8; }
         :root[data-theme="light"] .site-card-v2__name { color: var(--color-text); }
 
@@ -2269,37 +3452,49 @@
             color: var(--color-danger);
         }
 
-        /* ---- Site context menu (three-dot) ---- */
-        .site-menu-wrap {
+        /* ---- LOV menu 3 points (style unifié SITES + DATA ROOM) ---- */
+        .site-menu-wrap,
+        .roi-card-menu-wrap {
             position: relative;
             flex-shrink: 0;
         }
-
-        .site-menu-btn {
-            width: 26px;
-            height: 26px;
+        .site-menu-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+        .site-menu-btn,
+        .roi-card-menu-btn {
+            width: 28px;
+            height: 28px;
+            padding: 0;
             border: none;
-            border-radius: 2px;
             background: transparent;
-            color: rgba(245,247,255,0.35);
+            color: rgba(15,23,42,0.45);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: color 0.15s ease, background 0.15s ease;
+            transition: color 0.15s ease;
         }
         .site-menu-btn:hover,
-        .site-menu-wrap.is-open .site-menu-btn {
+        .site-menu-wrap.is-open .site-menu-btn,
+        .roi-card-menu-btn:hover,
+        .roi-card-menu-wrap.is-open .roi-card-menu-btn {
+            color: rgba(15,23,42,0.75);
+        }
+        .roi-card-menu-btn .roi-card-menu-dots {
+            color: inherit;
+        }
+        /* Sur fond sombre (thème sombre uniquement) */
+        :root:not([data-theme="light"]) .site-card-v2 .site-menu-btn,
+        :root:not([data-theme="light"]) .site-list-row .site-menu-btn {
+            color: rgba(245,247,255,0.4);
+        }
+        :root:not([data-theme="light"]) .site-card-v2 .site-menu-btn:hover,
+        :root:not([data-theme="light"]) .site-card-v2 .site-menu-wrap.is-open .site-menu-btn,
+        :root:not([data-theme="light"]) .site-list-row .site-menu-btn:hover,
+        :root:not([data-theme="light"]) .site-list-row .site-menu-wrap.is-open .site-menu-btn {
             color: rgba(245,247,255,0.8);
-            background: rgba(255,255,255,0.06);
-        }
-        :root[data-theme="light"] .site-menu-btn {
-            color: rgba(15,23,42,0.3);
-        }
-        :root[data-theme="light"] .site-menu-btn:hover,
-        :root[data-theme="light"] .site-menu-wrap.is-open .site-menu-btn {
-            color: rgba(15,23,42,0.7);
-            background: rgba(15,23,42,0.06);
         }
 
         .site-card-v2:has(.site-menu-wrap.is-open),
@@ -2307,53 +3502,71 @@
             z-index: 100;
             position: relative;
         }
-        .site-menu-wrap.is-open {
+        .site-menu-wrap.is-open,
+        .roi-card-menu-wrap.is-open {
             z-index: 999;
         }
-        .site-menu-panel {
+        .site-menu-panel,
+        .roi-card-menu-dropdown {
             position: absolute;
             right: 0;
-            top: calc(100% + 4px);
+            top: calc(100% + 6px);
+            left: auto;
             z-index: 999;
             min-width: 150px;
             padding: 4px;
-            background: rgba(22,22,22,0.92);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            border: 1px solid rgba(255,255,255,0.08);
+            background: var(--lov-panel-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--lov-panel-border);
             border-radius: 2px;
+            box-shadow: var(--lov-panel-shadow);
             display: none;
             flex-direction: column;
             gap: 2px;
+            animation: lov-panel-in 0.25s ease;
         }
-        .site-menu-wrap.is-open .site-menu-panel {
+        @keyframes lov-panel-in {
+            from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .site-menu-wrap.is-open .site-menu-panel,
+        .roi-card-menu-wrap.is-open .roi-card-menu-dropdown {
             display: flex;
         }
-        /* Menu panel stays dark in all themes */
+        .roi-card-menu-dropdown {
+            min-width: 140px;
+        }
 
-        .site-menu-item {
+        .site-menu-item,
+        .roi-card-menu-item {
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 7px 10px;
+            width: 100%;
+            padding: 8px 12px;
             border: none;
             border-radius: 2px;
             background: transparent;
-            color: rgba(245,247,255,0.75);
+            color: var(--lov-item-color);
             font-size: 12px;
             font-weight: 500;
             font-family: var(--font-sans);
             cursor: pointer;
             white-space: nowrap;
-            transition: background 0.12s ease;
+            text-align: left;
+            transition: background 0.15s ease;
         }
-        .site-menu-item:hover {
-            background: rgba(255,255,255,0.08);
+        .site-menu-item:hover,
+        .roi-card-menu-item:hover {
+            background: var(--lov-item-hover);
         }
-        .site-menu-item--danger {
+        .site-menu-item--danger,
+        .roi-card-menu-item[data-delete-benefit] {
             color: var(--color-danger);
         }
-        .site-menu-item--danger:hover {
+        .site-menu-item--danger:hover,
+        .roi-card-menu-item[data-delete-benefit]:hover {
             background: rgba(239,68,68,0.12);
         }
 
@@ -2640,6 +3853,47 @@
         :root[data-theme="light"] .recap-card__value { color: #1a2a3a; }
         :root[data-theme="light"] .recap-card__sub { color: #6b7c93; }
 
+        /* Mode clair : SVGs noirs sur zones claires (DATA ROOM, bénéfices, etc.) */
+        :root[data-theme="light"] .roi-measure-card--benefit .roi-presence-ico,
+        :root[data-theme="light"] .roi-measure-card--benefit .roi-counter-icon,
+        :root[data-theme="light"] .roi-measure-card--benefit .roi-chip .ben-tree-ico,
+        :root[data-theme="light"] .roi-measure-card--benefit .roi-card-chips .ben-tree-ico {
+            filter: brightness(0) saturate(0) opacity(0.65) !important;
+        }
+        :root[data-theme="light"] .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-mint .ben-tree-ico,
+        :root[data-theme="light"] .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-sky .ben-tree-ico,
+        :root[data-theme="light"] .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-violet .ben-tree-ico,
+        :root[data-theme="light"] .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-peach .ben-tree-ico,
+        :root[data-theme="light"] .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-rose .ben-tree-ico,
+        :root[data-theme="light"] .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-sand .ben-tree-ico,
+        :root[data-theme="light"] .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-teal .ben-tree-ico,
+        :root[data-theme="light"] .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-slate .ben-tree-ico,
+        :root[data-theme="light"] .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-lime .ben-tree-ico,
+        :root[data-theme="light"] .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-coral .ben-tree-ico,
+        :root[data-theme="light"] .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-azure .ben-tree-ico,
+        :root[data-theme="light"] .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-amber .ben-tree-ico {
+            filter: brightness(0) saturate(0) opacity(0.6) !important;
+        }
+        :root[data-theme="light"] .data-room-title { color: #0F172A; }
+        :root[data-theme="light"] .data-room-subtitle { color: #475569; }
+        :root[data-theme="light"] .tracker-benefits-empty { border-color: rgba(15,23,42,0.2); color: #475569; background: rgba(15,23,42,0.03); }
+
+        /* Mode clair : modal config bénéfice (fond clair) — SVGs noirs */
+        :root[data-theme="light"] .benefit-config-modal .ben-forme-btn img,
+        :root[data-theme="light"] .benefit-config-modal .ben-tree-ico {
+            filter: brightness(0) saturate(0) opacity(0.65) !important;
+        }
+        :root[data-theme="light"] .benefit-config-modal .ben-forme-btn {
+            border-color: rgba(15,23,42,0.14);
+            background: rgba(15,23,42,0.04);
+            color: #0F172A;
+        }
+        :root[data-theme="light"] .benefit-config-modal .ben-forme-btn.active {
+            background: rgba(29,91,255,0.1);
+            border-color: rgba(29,91,255,0.3);
+            color: #1d5bff;
+        }
+
         /* ---- Zone cards (detection zones) ---- */
         .zone-card {
             background: rgba(17,17,17,0.55);
@@ -2883,6 +4137,10 @@
         :root[data-theme="light"] .draw-hud {
             background: rgba(255, 255, 255, 0.65);
             border: 1px solid rgba(15, 23, 42, 0.12);
+        }
+        :root[data-theme="light"] .draw-hud svg { color: var(--color-text); }
+        :root[data-theme="light"] .video-placeholder-icon img {
+            filter: brightness(0) saturate(0) opacity(0.5);
         }
 
         .draw-hud-left {
@@ -3822,6 +5080,7 @@
             display: flex;
             flex-direction: column;
         }
+        #editorOverlay .editor { border-radius: 12px; }
         .editor.benefit-mode-open {
             width: min(1460px, 100%);
         }
@@ -3924,6 +5183,15 @@
         .editor-overlay.benefit-mode-open .editor-body {
             grid-template-columns: 1fr 430px;
         }
+        #editorOverlay .editor-body {
+            grid-template-columns: 1fr;
+        }
+        #editorOverlay.benefit-mode-open .editor-body {
+            grid-template-columns: 1fr 430px;
+        }
+        #editorOverlay .editor-right:not(.benefit-mode) {
+            display: none;
+        }
 
         .editor-left {
             display: flex;
@@ -3942,6 +5210,9 @@
             align-items: center;
             justify-content: center;
             min-height: 0;
+        }
+        .editor-canvas-wrap.is-draw-mode {
+            cursor: crosshair;
         }
 
         .editor-preview-pp {
@@ -4117,6 +5388,41 @@
             white-space: nowrap;
         }
 
+        .editor-shape-labels {
+            position: absolute;
+            left: 12px;
+            bottom: 12px;
+            z-index: 4;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            pointer-events: auto;
+        }
+        .editor-shape-labels.hidden {
+            display: none;
+        }
+        .editor-shape-label {
+            padding: 5px 10px;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.18);
+            background: rgba(255,255,255,0.06);
+            color: #f5f7ff;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+            white-space: nowrap;
+        }
+        .editor-shape-label:hover {
+            background: rgba(29,91,255,0.28);
+            border-color: rgba(29,91,255,0.55);
+        }
+        .editor-shape-label.active {
+            background: rgba(29,91,255,0.28);
+            border-color: rgba(29,91,255,0.55);
+        }
+
         .editor-tools {
             background: #0e0e0e;
             border-top: 1px solid rgba(255,255,255,0.06);
@@ -4163,7 +5469,7 @@
             --tb: rgba(255,255,255,0.06);
             --tb-active: rgba(255,255,255,0.12);
             padding: 0 16px;
-            height: 40px;
+            height: var(--ui-control-height);
             border-radius: 2px;
             border: 1px solid rgba(255,255,255,0.10);
             background: var(--tb);
@@ -4189,17 +5495,17 @@
         }
 
         .tool-btn.icon {
-            padding: 0 12px;
-            height: 40px;
-            min-width: 0;
-            gap: 7px;
+            padding: 0 14px;
+            height: var(--ui-control-height);
+            min-width: 130px;
+            gap: 8px;
         }
 
         /* Icon-only compact buttons (Undo / Clear) */
         .tool-btn.compact {
-            min-width: 40px !important;
+            min-width: var(--ui-control-height) !important;
             padding: 0 10px;
-            height: 40px;
+            height: var(--ui-control-height);
             letter-spacing: 0;
         }
         #toolUndoBtn {
@@ -4244,11 +5550,23 @@
             font-weight: 700;
             font-size: 11px;
             letter-spacing: 0.06em;
-            height: 40px;
+            height: var(--ui-control-height);
             padding: 0 20px;
         }
         .tool-btn.save:hover { background: #1652e0; border-color: #1652e0; }
         .tool-btn.save:active { transform: translateY(1px); }
+        .tool-btn.save.is-disabled,
+        .tool-btn.save:disabled {
+            background: rgba(29,91,255,0.25);
+            border-color: rgba(29,91,255,0.3);
+            color: rgba(255,255,255,0.6);
+            cursor: not-allowed;
+        }
+        .tool-btn.save.is-disabled:hover,
+        .tool-btn.save:disabled:hover {
+            background: rgba(29,91,255,0.25);
+            border-color: rgba(29,91,255,0.3);
+        }
 
         /* pressed (momentary) */
         .tool-btn:active:not(.save) {
@@ -4256,10 +5574,32 @@
             background: var(--tb-active);
         }
 
-        /* active tool (latched) */
+        /* active tool (latched) — très visible, bordure épaisse + fond plein */
         .tool-btn.active {
             background: var(--tb-active);
-            border-color: rgba(29,91,255,0.40);
+            border-width: 2px;
+            border-color: rgba(29,91,255,0.6);
+        }
+        .tool-btn.primary.active {
+            background: rgba(29,91,255,0.4);
+            border-width: 2px;
+            border-color: rgba(29,91,255,0.85);
+        }
+        .tool-btn.primary.active .tool-label {
+            color: #fff;
+        }
+        .tool-btn.primary.active .tool-ico {
+            opacity: 1;
+        }
+        .tool-btn.green.active {
+            background: rgba(34,197,94,0.35);
+            border-width: 2px;
+            border-color: rgba(34,197,94,0.75);
+        }
+        .tool-btn.yellow.active {
+            background: rgba(240,131,33,0.35);
+            border-width: 2px;
+            border-color: rgba(240,131,33,0.75);
         }
 
         /* Close button on topbar */
@@ -4289,7 +5629,7 @@
         /* Tool-btn overrides inside right panel */
         .editor-right .tool-btn,
         .editor-bottombar .tool-btn {
-            height: 32px;
+            height: var(--ui-control-height);
             font-size: 10px;
         }
         /* "+" add zone button: prominent blue */
@@ -4339,12 +5679,35 @@
             min-height: 100%;
             color: #eaf2ff;
             background: rgba(17,17,17,0.42);
+            position: relative;
+            overflow: hidden;
         }
         .ben-wizard {
             display: flex;
             flex-direction: column;
             min-height: 0;
             flex: 1;
+            position: relative;
+            z-index: 2;
+        }
+        .ben-watermark {
+            position: absolute;
+            left: 50%;
+            top: calc(78% + 5rem);
+            transform: translate(-50%, -50%);
+            z-index: 1;
+            pointer-events: none;
+            user-select: none;
+            opacity: 0.07;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .ben-watermark img {
+            width: 88px;
+            height: auto;
+            display: block;
+            filter: saturate(0.82) brightness(0.95);
         }
         .ben-nav {
             border-right: 1px solid rgba(255,255,255,0.08);
@@ -4414,6 +5777,11 @@
         }
         .ben-step-item:hover {
             color: #ffffff;
+        }
+        .ben-step-item.is-locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
         }
         .ben-step-indicator {
             position: relative;
@@ -4503,8 +5871,8 @@
             flex: 1;
         }
         .ben-step-btn {
-            height: 36px;
-            border-radius: 12px;
+            height: var(--ui-control-height);
+            border-radius: 2px;
             border: 1px solid rgba(255,255,255,0.12);
             background: rgba(17,17,17,0.58);
             backdrop-filter: blur(10px);
@@ -4544,17 +5912,18 @@
         }
         .ben-input {
             width: 100%;
-            background: rgba(255,255,255,0.05);
+            background: rgba(36,40,47,0.88) !important;
             border: 1px solid rgba(255,255,255,0.12);
-            border-radius: 8px;
-            color: #fff;
+            border-radius: 2px;
+            color: #eef3ff;
             padding: 10px 12px;
             font-size: 13px;
             font-weight: 600;
+            color-scheme: dark;
         }
         .ben-info-card {
             border: 1px solid rgba(255,255,255,0.10);
-            border-radius: 10px;
+            border-radius: 2px;
             background: rgba(255,255,255,0.03);
             padding: 10px;
         }
@@ -4575,20 +5944,39 @@
         .ben-field__label {
             font-size: 11px;
             font-weight: 600;
-            color: rgba(234,242,255,0.66);
+            color: rgba(234,242,255,0.90);
             letter-spacing: 0.02em;
         }
         .ben-textarea {
             width: 100%;
             min-height: 72px;
             resize: vertical;
-            background: rgba(255,255,255,0.05);
+            background: rgba(36,40,47,0.88) !important;
             border: 1px solid rgba(255,255,255,0.12);
-            border-radius: 8px;
-            color: #fff;
+            border-radius: 2px;
+            color: #eef3ff;
             padding: 10px 12px;
             font-size: 13px;
             font-family: inherit;
+        }
+        .ben-input:focus,
+        .ben-textarea:focus {
+            background: rgba(36,40,47,0.96) !important;
+            border-color: rgba(110,152,255,0.52);
+            outline: none;
+            border-radius: 2px;
+        }
+        .ben-input::placeholder,
+        .ben-textarea::placeholder {
+            color: rgba(226,236,255,0.42);
+        }
+        .ben-input:-webkit-autofill,
+        .ben-input:-webkit-autofill:hover,
+        .ben-input:-webkit-autofill:focus {
+            -webkit-text-fill-color: #eef3ff !important;
+            -webkit-box-shadow: 0 0 0px 1000px rgba(36,40,47,0.96) inset !important;
+            box-shadow: 0 0 0px 1000px rgba(36,40,47,0.96) inset !important;
+            border-radius: 2px;
         }
         .ben-check {
             display: inline-flex;
@@ -4599,6 +5987,99 @@
             font-weight: 600;
             padding: 2px 0;
         }
+        .ben-toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 2px 0;
+        }
+        .ben-toggle-row__label {
+            font-size: 12px;
+            font-weight: 600;
+            color: rgba(234,242,255,0.88);
+        }
+        .ben-toggle {
+            --c-active: #275efe;
+            --c-success: #10b981;
+            --c-warning: #f59e0b;
+            --c-danger: #ef4444;
+            --c-default: #d2d6e9;
+            --c-default-dark: #c7cbdf;
+            --c-background: var(--c-active);
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            height: 28px;
+            width: 52px;
+            transform: translateZ(0);
+            backface-visibility: hidden;
+            perspective: 1000px;
+        }
+        .ben-toggle--success { --c-background: var(--c-success); }
+        /* Overview bénéfices caméra : même vert que la sidebar (sb-benefit-toggle) */
+        .benefit-row-toggle.ben-toggle--success { --c-background: var(--color-success); }
+        .ben-toggle--warning { --c-background: var(--c-warning); }
+        .ben-toggle--danger { --c-background: var(--c-danger); }
+        .ben-toggle__input {
+            position: absolute;
+            inset: 0;
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            appearance: none;
+            border-radius: 999px;
+            background: var(--c-default);
+            outline: none;
+            transition: background-color 0.45s ease;
+            z-index: 2;
+        }
+        .ben-toggle__input:hover { background: var(--c-default-dark); }
+        .ben-toggle__input:checked { background: var(--c-background); }
+        .ben-toggle__track {
+            pointer-events: none;
+            position: absolute;
+            inset: 0;
+            filter: url(#ben-goo);
+            z-index: 3;
+        }
+        .ben-toggle__dot,
+        .ben-toggle__drop {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 999px;
+            background: #fff;
+            top: 4px;
+            transform: translate3d(0, 0, 0);
+            transition: transform 0.5s ease, opacity 0.5s ease;
+        }
+        .ben-toggle__dot--left { left: 6px; }
+        .ben-toggle__dot--right {
+            left: 26px;
+            transform: scale(0);
+            opacity: 0;
+        }
+        .ben-toggle__drop {
+            width: 5px;
+            height: 5px;
+            left: 35px;
+            top: -2px;
+            opacity: 0;
+            transform: scale(0);
+            transition-duration: 0.7s;
+        }
+        .ben-toggle__input:checked + .ben-toggle__track .ben-toggle__dot--left {
+            transform: translateX(12px) scale(0);
+            opacity: 0;
+        }
+        .ben-toggle__input:checked + .ben-toggle__track .ben-toggle__dot--right {
+            transform: translateX(0) scale(1);
+            opacity: 1;
+        }
+        /* Keep switch clean: disable decorative top drop. */
+        .ben-toggle__input:checked + .ben-toggle__track .ben-toggle__drop { opacity: 0; transform: scale(0); }
         .ben-schedule-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0,1fr));
@@ -4606,7 +6087,7 @@
         }
         .ben-tree-shell {
             border: 1px solid rgba(255,255,255,0.10);
-            border-radius: 12px;
+            border-radius: 2px;
             background: rgba(17,17,17,0.58);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
@@ -4629,9 +6110,9 @@
         }
         .ben-skill-card {
             border: 1px solid rgba(255,255,255,0.10);
-            border-radius: 12px;
+            border-radius: 2px;
             background: rgba(17,17,17,0.50);
-            min-height: 112px;
+            min-height: 124px;
             padding: 10px 8px;
             display: flex;
             flex-direction: column;
@@ -4651,10 +6132,10 @@
             border-color: rgba(14,165,233,0.45);
         }
         .ben-skill-card__ico {
-            width: 42px;
-            height: 42px;
-            filter: invert(1);
-            opacity: 0.95;
+            width: 56px;
+            height: 56px;
+            filter: invert(95%) sepia(6%) saturate(610%) hue-rotate(184deg) brightness(104%) contrast(98%);
+            opacity: 0.96;
         }
         .ben-skill-card__label {
             font-size: 12px;
@@ -4665,16 +6146,21 @@
         .ben-tree { display: flex; flex-direction: column; gap: 8px; }
         .ben-tree-group {
             border: 1px solid rgba(255,255,255,0.10);
-            border-radius: 10px;
+            border-radius: 2px;
             overflow: hidden;
             background: rgba(17,17,17,0.45);
+        }
+        .ben-tree-group.is-active {
+            border-color: rgba(29,91,255,0.45);
+            background: rgba(29,91,255,0.10);
         }
         .ben-tree-toggle {
             width: 100%;
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 10px;
+            min-height: var(--ui-control-height);
+            padding: 0 10px;
             border: none;
             background: transparent;
             color: #e6edfb;
@@ -4682,6 +6168,10 @@
             font-weight: 600;
             cursor: pointer;
             text-align: left;
+        }
+        .ben-tree-toggle.active {
+            background: rgba(29,91,255,0.14);
+            color: #fff;
         }
         .ben-tree-chev {
             margin-left: auto;
@@ -4714,13 +6204,34 @@
             align-items: center;
             gap: 8px;
             border: 1px solid transparent;
-            border-radius: 6px;
+            border-radius: 2px;
             background: transparent;
             color: rgba(234,242,255,0.78);
-            padding: 9px 10px;
+            min-height: var(--ui-control-height);
+            padding: 0 10px;
             font-size: 12px;
             cursor: pointer;
             text-align: left;
+        }
+        .ben-recap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        .ben-recap-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            vertical-align: middle;
+            border: 1px solid var(--ui-selected-border);
+            border-radius: 2px;
+            background: var(--ui-selected-bg-soft);
+            color: #eef3ff;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 5px 8px;
+            line-height: 1.2;
         }
         .ben-tree-leaf:hover { background: rgba(255,255,255,0.06); color: #fff; }
         .ben-tree-leaf.active {
@@ -4732,7 +6243,7 @@
         @keyframes ben-step-rotate {
             to { transform: rotate(360deg); }
         }
-        .ben-tree-ico { width: 16px; height: 16px; filter: invert(1); opacity: 0.9; flex: 0 0 16px; }
+        .ben-tree-ico { width: 16px; height: 16px; filter: invert(95%) sepia(6%) saturate(610%) hue-rotate(184deg) brightness(104%) contrast(98%); opacity: 0.96; flex: 0 0 16px; }
         .ben-forme-grid {
             display: grid;
             grid-template-columns: repeat(3, minmax(0,1fr));
@@ -4803,16 +6314,26 @@
 
         .editor-guide {
             margin-top: 6px;
-            padding: 6px 10px;
-            border-radius: 2px;
-            border: none;
-            background: rgba(255,255,255,0.04);
-            color: rgba(255,255,255,0.40);
-            font-size: 10px;
-            line-height: 1.4;
-            min-height: 32px;
+            padding: 4px 0;
+            min-height: 44px;
+            color: rgba(255,255,255,0.5);
+            font-size: 12px;
+            line-height: 1.5;
             display: flex;
+            align-items: flex-start;
+        }
+        .editor-guide-kbd {
+            display: inline-flex;
             align-items: center;
+            justify-content: center;
+            min-width: 20px;
+            padding: 2px 4px;
+            margin: 0 2px;
+            font-size: 11px;
+            font-weight: 700;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 4px;
         }
 
         .editor-bottombar {
@@ -4824,10 +6345,6 @@
             justify-content: flex-end;
             gap: 10px;
         }
-        #benFinalizeBtn {
-            min-width: 180px;
-        }
-
         .editor-save-main.btn {
             display: inline-flex;
             align-items: center;
@@ -5525,3 +7042,109 @@
             font-size: 12px;
             color: #9A9AAF;
         }
+
+        /* Benefit info step: sharp fields + recap badge styling */
+        #editorOverlay .ben-input,
+        #editorOverlay .ben-input:focus,
+        #editorOverlay .ben-input:-webkit-autofill,
+        #editorOverlay .ben-input:-webkit-autofill:hover,
+        #editorOverlay .ben-input:-webkit-autofill:focus,
+        #editorOverlay .ben-textarea,
+        #editorOverlay .ben-textarea:focus {
+            border-radius: 0 !important;
+        }
+        #editorOverlay #benName,
+        #editorOverlay #benName:focus,
+        #editorOverlay #benName:-webkit-autofill,
+        #editorOverlay #benCreatedBy,
+        #editorOverlay #benCreatedBy:focus,
+        #editorOverlay #benCreatedBy:-webkit-autofill {
+            border-radius: 0 !important;
+            appearance: none !important;
+            -webkit-appearance: none !important;
+            color: #f3f8ff !important;
+            -webkit-text-fill-color: #f3f8ff !important;
+            caret-color: #dcecff;
+        }
+        #editorOverlay .ben-info-card .ben-input,
+        #editorOverlay .ben-info-card .ben-input:focus,
+        #editorOverlay .ben-info-card .ben-input:-webkit-autofill {
+            color: #eef3ff !important;
+            -webkit-text-fill-color: #eef3ff !important;
+        }
+        #editorOverlay #benName::placeholder,
+        #editorOverlay #benCreatedBy::placeholder {
+            color: rgba(220, 234, 255, 0.55) !important;
+        }
+        #editorOverlay .ben-goo-filter {
+            position: fixed;
+            width: 0;
+            height: 0;
+            opacity: 0;
+            pointer-events: none;
+        }
+        #editorOverlay #benInfoRecap.ben-recap {
+            margin-top: -2px;
+            margin-bottom: 2px;
+        }
+        #editorOverlay .ben-recap-chip {
+            border: 1px solid transparent !important;
+            background: transparent !important;
+            color: #e9f1ff;
+            font-weight: 700;
+            border-radius: 2px;
+            padding: 5px 8px;
+        }
+        #editorOverlay .ben-recap-chip--solid { border-color: rgba(255,255,255,0.18) !important; }
+        #editorOverlay .ben-recap-chip--ghost {
+            border-color: transparent !important;
+            padding-left: 0;
+            padding-right: 0;
+        }
+        /* Badge skill: lisible, discret */
+        #editorOverlay .ben-recap-chip--primary.ben-recap-chip--solid { background: rgba(59,130,246,0.22) !important; color: #e8f1ff !important; }
+        #editorOverlay .ben-recap-chip--success.ben-recap-chip--solid { background: rgba(34,197,94,0.22) !important; color: #ebfff4 !important; }
+        #editorOverlay .ben-recap-chip--info.ben-recap-chip--solid { background: rgba(167,139,250,0.22) !important; color: #f1eaff !important; }
+        #editorOverlay .ben-recap-chip--warning.ben-recap-chip--solid { background: rgba(250,204,21,0.22) !important; color: #fff7df !important; }
+        #editorOverlay .ben-recap-chip--destructive.ben-recap-chip--solid { background: rgba(248,113,113,0.22) !important; color: #ffeded !important; }
+        /* Badges objets: uniquement SVG coloré */
+        #editorOverlay .ben-recap-chip--icon-only {
+            width: 18px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none !important;
+            background: transparent !important;
+            transform: translateY(2px);
+        }
+        #editorOverlay .ben-recap-chip--icon-only .ben-tree-ico {
+            vertical-align: middle;
+        }
+        #editorOverlay .ben-recap-chip--icon-only span { display: none !important; }
+        #editorOverlay .ben-recap-chip .ben-tree-ico { opacity: 1; }
+        #editorOverlay .ben-recap-chip--solid .ben-tree-ico { opacity: 0.86; }
+        #editorOverlay .ben-recap-chip--primary.ben-recap-chip--solid .ben-tree-ico { filter: invert(95%) sepia(6%) saturate(610%) hue-rotate(184deg) brightness(104%) contrast(98%); }
+        #editorOverlay .ben-recap-chip--success.ben-recap-chip--solid .ben-tree-ico { filter: invert(97%) sepia(18%) saturate(288%) hue-rotate(83deg) brightness(104%) contrast(100%); }
+        #editorOverlay .ben-recap-chip--info.ben-recap-chip--solid .ben-tree-ico { filter: invert(95%) sepia(8%) saturate(512%) hue-rotate(218deg) brightness(104%) contrast(98%); }
+        #editorOverlay .ben-recap-chip--warning.ben-recap-chip--solid .ben-tree-ico { filter: invert(97%) sepia(31%) saturate(349%) hue-rotate(336deg) brightness(103%) contrast(98%); }
+        #editorOverlay .ben-recap-chip--destructive.ben-recap-chip--solid .ben-tree-ico { filter: invert(96%) sepia(17%) saturate(344%) hue-rotate(309deg) brightness(104%) contrast(98%); }
+        #editorOverlay .ben-recap-chip--ghost .ben-tree-ico { width: 16px; height: 16px; }
+        #editorOverlay .ben-recap-chip--accent-mint .ben-tree-ico { filter: invert(84%) sepia(21%) saturate(742%) hue-rotate(103deg) brightness(98%) contrast(93%); }
+        #editorOverlay .ben-recap-chip--accent-sky .ben-tree-ico { filter: invert(74%) sepia(27%) saturate(1401%) hue-rotate(178deg) brightness(102%) contrast(100%); }
+        #editorOverlay .ben-recap-chip--accent-violet .ben-tree-ico { filter: invert(79%) sepia(31%) saturate(786%) hue-rotate(214deg) brightness(102%) contrast(96%); }
+        #editorOverlay .ben-recap-chip--accent-peach .ben-tree-ico { filter: invert(87%) sepia(25%) saturate(739%) hue-rotate(331deg) brightness(102%) contrast(101%); }
+        #editorOverlay .ben-recap-chip--accent-rose .ben-tree-ico { filter: invert(82%) sepia(17%) saturate(1013%) hue-rotate(296deg) brightness(101%) contrast(99%); }
+        #editorOverlay .ben-recap-chip--accent-sand .ben-tree-ico { filter: invert(92%) sepia(24%) saturate(939%) hue-rotate(339deg) brightness(103%) contrast(100%); }
+        #editorOverlay .ben-recap-chip--accent-teal .ben-tree-ico { filter: invert(83%) sepia(19%) saturate(877%) hue-rotate(131deg) brightness(97%) contrast(96%); }
+        #editorOverlay .ben-recap-chip--accent-slate .ben-tree-ico { filter: invert(83%) sepia(11%) saturate(601%) hue-rotate(186deg) brightness(95%) contrast(93%); }
+        #editorOverlay .ben-recap-chip--accent-lime .ben-tree-ico { filter: invert(88%) sepia(31%) saturate(964%) hue-rotate(62deg) brightness(101%) contrast(95%); }
+        #editorOverlay .ben-recap-chip--accent-coral .ben-tree-ico { filter: invert(82%) sepia(29%) saturate(1008%) hue-rotate(337deg) brightness(103%) contrast(96%); }
+        #editorOverlay .ben-recap-chip--accent-azure .ben-tree-ico { filter: invert(80%) sepia(24%) saturate(1171%) hue-rotate(187deg) brightness(102%) contrast(98%); }
+        #editorOverlay .ben-recap-chip--accent-amber .ben-tree-ico { filter: invert(93%) sepia(24%) saturate(1175%) hue-rotate(336deg) brightness(101%) contrast(97%); }
+        /* Alignement vertical: icônes catégories alignées avec badge skill */
+        #editorOverlay .ben-recap-chip--icon-only .ben-tree-ico,
+        #editorOverlay .ben-recap-chip .ben-tree-ico { vertical-align: middle; }
+        #editorOverlay .ben-recap-chip { align-items: center; }

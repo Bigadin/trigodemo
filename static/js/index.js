@@ -1,4 +1,9 @@
-// State
+// State — aliases vers appUtils (chargé avant index.js)
+        const escapeHtml = (t) => (window.appUtils?.escapeHtml) ? window.appUtils.escapeHtml(t) : String(t ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+        const truncateFilename = (n, len) => (window.appUtils?.truncateFilename) ? window.appUtils.truncateFilename(n, len) : (n && len && n.length > len ? n.slice(0, len - 3) + '...' : n);
+        const toLocalInputDateTime = (d) => (window.appUtils?.toLocalInputDateTime) ? window.appUtils.toLocalInputDateTime(d) : new Date(d ?? Date.now()).toISOString().slice(0, 16);
+        const formatLogTimestamp = (s) => (window.appUtils?.formatLogTimestamp) ? window.appUtils.formatLogTimestamp(s) : s;
+
         let currentVideo = null;
         let currentCameraId = null;
         let currentView = 'home'; // 'home' | 'tracker'
@@ -8,7 +13,10 @@
                 name: 'Entrepôt Central',
                 location: 'Lyon',
                 cameras: [
-                    { id: 'cam1', name: 'Entrepôt', hint: 'Déchargement & présence', video: 'entr1.mp4', benefits: [] },
+                    { id: 'cam1', name: 'Entrepôt', hint: 'Déchargement & présence', video: 'entr1.mp4', benefits: [
+                        { id: 'ben-cam1-1', name: 'Détection voiture humain', skill: 'detection', skillSub: 'detection_presence', category: 'human', subcategory: 'silhouette', categories: [{ category: 'human', subcategory: 'silhouette' }, { category: 'transport', subcategory: 'voiture' }], forme: 'zone', createdBy: 'Opérateur', createdAt: '', comment: '', enabled: true, polygons: [[[120, 180], [520, 180], [520, 480], [120, 480]]] },
+                        { id: 'ben-cam1-2', name: 'Comptage personne et vélo', skill: 'counting', skillSub: 'counting_people', category: 'human', subcategory: 'silhouette', categories: [{ category: 'human', subcategory: 'silhouette' }, { category: 'transport', subcategory: 'velo' }], forme: 'zone', createdBy: 'Opérateur', createdAt: '', comment: '', enabled: true, polygons: [[[200, 200], [400, 200], [400, 400], [200, 400]]] }
+                    ] },
                     { id: 'cam2', name: 'Convoyeur', hint: 'Tapis roulant & contrôle', video: 'video_01.mp4', benefits: [] }
                 ]
             },
@@ -50,12 +58,17 @@
         let zonesCacheRefreshTs = 0;
         // Counting module state (backed by server)
         const countingStateByVideo = {};   // { [videoName]: { configured, zone_name, direction, enabled, count, reversed } }
+        // Demo: présence par catégorie (human, car) et comptage par type (human, bike)
+        const presenceDemoByCategory = { 'entr1.mp4': { human: 52, car: 38 } };
+        const countingDemoByType = { 'entr1.mp4': { human: 12, bike: 7 } };
         const presencePreviewsCollapsedByVideo = {}; // { [videoName]: { [zoneName]: boolean } }
         const sidebarZonesCollapsedByVideo = {}; // { [videoName]: { [zoneName]: boolean } } pour replier les zones dans la sidebar
         const sidebarLocationsCollapsed = {};    // { [loc]: boolean } replier chaque lieu (cache les sites)
         const sidebarSitesCollapsed = {};        // { [siteName]: boolean } replier chaque site (cache les caméras)
         const sidebarCamerasCollapsed = {};      // { [camId]: boolean } replier chaque caméra (cache les bénéfices)
         let sidebarLocationFilter = null;       // Lieu sélectionné dans la sidebar (null = tous)
+        let selectedBenefitId = null;           // Bénéfice sélectionné pour filtrer l'affichage canvas (null = tous)
+        let selectedBenefitCamId = null;       // Caméra du bénéfice sélectionné
         const zonesDefsFetchTsByVideo = {}; // { [videoName]: epochMs } pour throttle /api/zones/{video}
         const zonesDefsFetchedByVideo = {}; // { [videoName]: boolean } pour distinguer "0 zones" vs "pas encore fetch"
         const presenceOkTsByVideo = {};     // { [videoName]: epochMs } dernier /api/presence OK (anti-stale)
@@ -95,15 +108,6 @@
                 return acc + Math.max(0, (Date.now() - start) / 1000);
             }
             return acc;
-        }
-
-        function formatHMS(totalSeconds) {
-            const s = Math.max(0, Math.floor(Number(totalSeconds) || 0));
-            const h = Math.floor(s / 3600);
-            const m = Math.floor((s % 3600) / 60);
-            const ss = s % 60;
-            const pad = (n) => String(n).padStart(2, '0');
-            return `${pad(h)}:${pad(m)}:${pad(ss)}`;
         }
 
         function ensureZoneLive(video) {
@@ -314,9 +318,12 @@
         const trackerBackBtn = document.getElementById('trackerBackBtn');
         const trackerBreadcrumb = document.getElementById('trackerBreadcrumb');
         const trackerOverviewToggleBtn = document.getElementById('trackerOverviewToggleBtn');
+        const trackerVideoSection = document.querySelector('#trackerView .video-section');
         const trackerBelowVideo = document.querySelector('#trackerView .tracker-below-video');
         const sourcesPanel = document.getElementById('sourcesPanel');
         const benefitsPanel = document.getElementById('benefitsPanel');
+        const roiMeasurementsPanel = document.getElementById('roiMeasurementsPanel');
+        const roiMeasurementsGrid = document.getElementById('roiMeasurementsGrid');
         const trackerParamsPanel = document.getElementById('trackerParamsPanel');
         const countingPanel = document.getElementById('countingPanel');
         const zonesSection = document.getElementById('zonesSection');
@@ -326,15 +333,15 @@
 
         // Cameras (per site)
         const addCameraBtn = document.getElementById('addCameraBtn');
-        const addCameraForm = document.getElementById('addCameraForm');
+        const addCameraModal = document.getElementById('addCameraModal');
         const newCamName = document.getElementById('newCamName');
         const newCamVideo = document.getElementById('newCamVideo');
         const newCamHint = document.getElementById('newCamHint');
         const saveCamBtn = document.getElementById('saveCamBtn');
         const cancelCamBtn = document.getElementById('cancelCamBtn');
 
-        // Camera source tabs and panels
-        const camSourceTabs = document.querySelectorAll('.cam-source-tab');
+        // Camera source tabs and panels (modal)
+        const camSourceTabs = document.querySelectorAll('.add-cam-tab');
         const camSourcePanels = document.querySelectorAll('.cam-source-panel');
         let currentCamSourceType = 'video'; // 'video' | 'webcam' | 'rtsp'
 
@@ -350,7 +357,7 @@
 
         // Backend cameras (webcam/rtsp) - loaded from /api/cameras
         let backendCameras = {};
-        let trackerRightTab = 'benefits'; // 'benefits' | 'sources' | 'params'
+        let trackerRightTab = 'overview'; // 'overview' | 'details' | 'settings'
         let trackerSiteOverviewMode = false;
 
         async function loadBackendCameras() {
@@ -478,13 +485,14 @@
         const toolUndoBtn = document.getElementById('toolUndoBtn');
         const toolClearBtn = document.getElementById('toolClearBtn');
         const toolSaveBtn = document.getElementById('toolSaveBtn');
-        const benFinalizeBtn = document.getElementById('benFinalizeBtn');
         const editorPreviewPlayPauseBtn = document.getElementById('editorPreviewPlayPauseBtn');
         const editorGuide = document.getElementById('editorGuide');
         const editorHoverBar = document.getElementById('editorHoverBar');
         const hoverDeletePointBtn = document.getElementById('hoverDeletePointBtn');
         const hoverDeleteShapeBtn = document.getElementById('hoverDeleteShapeBtn');
         const editorToolsEl = editorOverlay?.querySelector?.('.editor-tools') || null;
+        const editorCanvasWrap = editorOverlay?.querySelector?.('.editor-canvas-wrap') || null;
+        const editorShapeLabels = document.getElementById('editorShapeLabels');
 
         const editorToolbarButtons = [
             toolSelectBtn,
@@ -588,6 +596,8 @@
             didDrag: false,
             lastSavedTs: 0
         };
+        const DISABLE_LEGACY_EDITOR = true;
+        let allowEditorOpenForBenefit = false;
 
         function setTool(tool) {
             drawMode = tool;
@@ -597,21 +607,35 @@
         }
 
         // ===== Editor modal logic (paint-like) =====
+        function updateToolSaveButtonState() {
+            if (!toolSaveBtn) return;
+            const tool = editorState.tool || 'select';
+            const hasDraft = (tool === 'countingROI' || tool === 'include' || tool === 'exclude') && editorState.points.length >= 3;
+            const hasModification = tool === 'select' && editorState.dirty;
+            const canSave = hasDraft || hasModification;
+            toolSaveBtn.disabled = !canSave;
+            toolSaveBtn.classList.toggle('is-disabled', !canSave);
+        }
+
         function editorSetTool(tool) {
             editorState.tool = tool;
             toolSelectBtn.classList.toggle('active', tool === 'select');
             toolCountLineBtn.classList.toggle('active', tool === 'countingROI');
             toolIncludeBtn.classList.toggle('active', tool === 'include');
             toolExcludeBtn.classList.toggle('active', tool === 'exclude');
+            editorCanvasWrap?.classList.toggle('is-draw-mode', tool === 'include' || tool === 'exclude' || tool === 'countingROI');
             editorState.lineDirEnd = null;
-            editorGuide.textContent =
-                tool === 'select'
-                    ? "Sélection: cliquez un point (hit zone large) puis glissez pour déplacer. Shift + clic près d'une arête = ajouter un point."
-                    : tool === 'countingROI'
-                        ? "ROI Comptage: dessinez un polygone (3+ points) délimitant la zone du convoyeur. La ligne de comptage sera à 75%. Puis Sauver."
+            updateToolSaveButtonState();
+            if (tool === 'select') {
+                editorGuide.innerHTML = "Sélection : cliquez un point puis glissez pour déplacer.<br><span class=\"editor-guide-kbd\">⇧</span> + clic près d'une arête = ajouter un point.";
+            } else {
+                editorGuide.textContent =
+                    tool === 'countingROI'
+                        ? "ROI Comptage: dessinez un polygone (3+ points) délimitant la zone du convoyeur. La ligne de comptage sera à 75%. Puis Valider."
                         : tool === 'exclude'
-                            ? "Zone d'exclusion: cliquez pour placer des points (3+), puis Sauver."
-                            : "Zone d'inclusion: cliquez pour placer des points (3+), puis Sauver.";
+                            ? "Zone d'exclusion: cliquez pour placer des points (3+), puis Valider."
+                            : "Zone d'inclusion: cliquez pour placer des points (3+), puis Valider.";
+            }
         }
 
         function editorPushUndo() {
@@ -660,6 +684,7 @@
         function editorScheduleAutosave() {
             if (!currentVideo || !editorState.zone) return;
             editorState.dirty = true;
+            updateToolSaveButtonState();
             if (editorState.autosaveTimer) clearTimeout(editorState.autosaveTimer);
             editorState.autosaveTimer = setTimeout(async () => {
                 try {
@@ -671,6 +696,7 @@
         }
 
         async function editorPutNow() {
+            if (editorBenefitMode) return;
             if (!currentVideo || !editorState.zone) return;
             const zoneName = editorState.zone;
             const polygons = editorState.zones?.[zoneName]?.polygons || [];
@@ -682,14 +708,27 @@
             if (!putRes.ok) throw new Error('PUT zone failed');
             editorState.dirty = false;
             editorState.lastSavedTs = Date.now();
+            updateToolSaveButtonState();
             // sync main view quietly (force pour refléter immédiatement les changements)
             try { await refreshMainAfterEditor(true); } catch {}
         }
 
         async function editorPostNewPolygon(type, poly, extraMeta = null) {
-            if (!currentVideo || !editorState.zone) return;
+            if (!editorState.zone) return;
             const zoneName = editorState.zone;
             const prevCount = (editorState.zones?.[zoneName]?.polygons || []).length;
+
+            if (editorBenefitMode && editorState._benefitTempZone) {
+                if (!editorState.zones[zoneName]) editorState.zones[zoneName] = { polygons: [] };
+                editorState.zones[zoneName].polygons.push(clonePoints(poly));
+                editorSetTool('select');
+                editorState.polygonIdx = prevCount;
+                editorRender();
+                _benefitRefreshFinalizeState?.();
+                return;
+            }
+
+            if (!currentVideo) return;
             const res = await fetch('/api/zones', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -788,6 +827,35 @@
 
         window.__editorSelectZone = (z) => editorSelectZone(z);
 
+        function editorRenderShapeLabels() {
+            if (!editorShapeLabels) return;
+            const zoneName = editorState.zone;
+            const polygons = zoneName ? (editorState.zones?.[zoneName]?.polygons || []) : [];
+            if (polygons.length === 0) {
+                editorShapeLabels.innerHTML = '';
+                editorShapeLabels.classList.add('hidden');
+                return;
+            }
+            editorShapeLabels.classList.remove('hidden');
+            const typeLabels = { include: 'Include', exclude: 'Exclure', line: 'Ligne', countingROI: 'Counting' };
+            editorShapeLabels.innerHTML = polygons.map((_, idx) => {
+                const type = currentVideo ? (getDrawType(currentVideo, zoneName, idx) || 'include') : 'include';
+                const typeLabel = typeLabels[type] || 'Forme';
+                const active = editorState.polygonIdx === idx ? 'active' : '';
+                return `<button type="button" class="editor-shape-label ${active}" data-shape-idx="${idx}" title="Sélectionner cette forme">Forme ${idx + 1} - ${typeLabel}</button>`;
+            }).join('');
+            editorShapeLabels.querySelectorAll('.editor-shape-label').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const idx = Number(btn.dataset.shapeIdx);
+                    if (typeof idx !== 'number' || isNaN(idx)) return;
+                    editorSetTool('select');
+                    editorState.polygonIdx = idx;
+                    editorRenderShapeLabels();
+                    editorRender();
+                });
+            });
+        }
+
         async function editorDeleteZone() {
             if (!currentVideo || !editorState.zone) {
                 uiAlert('Sélectionnez une zone à supprimer.', 'Zones');
@@ -803,6 +871,14 @@
                 return;
             }
 
+            // Invalider caches zones pour forcer refetch
+            try {
+                zonesDefsFetchedByVideo[currentVideo] = false;
+                zonesDefsFetchTsByVideo[currentVideo] = 0;
+                delete zonesCacheByVideo[currentVideo];
+                zonesCacheRefreshTs = 0;
+            } catch {}
+
             // Refresh editor + main UI
             editorState.zone = null;
             editorState.polygonIdx = null;
@@ -812,6 +888,10 @@
         }
 
         async function editorOpen() {
+            if (DISABLE_LEGACY_EDITOR && !allowEditorOpenForBenefit) {
+                uiAlert('Ancienne fenêtre d’édition désactivée. Utilisez "Créer un bénéfice".', 'Édition');
+                return;
+            }
             if (!currentVideo) {
                 uiAlert('Choisissez une caméra avant de dessiner.', 'Dessin');
                 return;
@@ -884,12 +964,8 @@
             const wasBenefitMode = editorBenefitMode;
 
             if (wasBenefitMode) {
-                // Clean up temp zone
                 const tempZone = editorState._benefitTempZone;
-                if (tempZone && currentVideo) {
-                    try { fetch(`/api/zones/${encodeURIComponent(currentVideo)}/${encodeURIComponent(tempZone)}`, { method: 'DELETE' }); } catch {}
-                    delete editorState.zones[tempZone];
-                }
+                if (tempZone) delete editorState.zones[tempZone];
                 editorState._benefitTempZone = null;
 
                 const editorRight = editorOverlay?.querySelector('.editor-right');
@@ -921,7 +997,6 @@
 
             setEditorPreviewPlaying(false);
             editorPreviewPlayPauseBtn?.classList.add('hidden');
-            benFinalizeBtn?.classList.add('hidden');
             toolCountLineBtn?.classList.remove('hidden');
             toolIncludeBtn?.classList.remove('hidden');
             toolExcludeBtn?.classList.remove('hidden');
@@ -961,6 +1036,7 @@
                     editorCtx.strokeStyle = c.stroke;
                     editorCtx.lineWidth = isActive ? 4 : (isGhost ? 1.6 : 2);
                     editorCtx.stroke();
+
                 });
 
                 editorCtx.globalAlpha = prevAlpha;
@@ -1043,6 +1119,10 @@
                     });
                 }
             }
+            // Keep benefit CTA state synced with drawing changes.
+            try { _benefitRefreshFinalizeState?.(); } catch {}
+            editorRenderShapeLabels();
+            updateToolSaveButtonState();
         }
 
         let hoverHideTimer = null;
@@ -1344,7 +1424,7 @@
         editorCanvas.addEventListener('dblclick', (e) => {
             if (!editorState.open) return;
             // IMPORTANT UX: pas d'auto-save au double-clic (trop surprenant).
-            // Le flow fiable: dessiner → cliquer "Sauver".
+            // Le flow fiable: dessiner → cliquer "Valider".
             e.preventDefault();
         });
 
@@ -1515,11 +1595,12 @@
                 if (dragKind !== 'lineDir' && dragKind !== 'lineDirSaved') {
                     editorScheduleAutosave();
                 }
+                updateToolSaveButtonState();
             }
         });
 
         async function editorCommitDraftShape() {
-            // Toolbar "Sauvegarder": confirme la forme actuellement tracée (draft -> forme)
+            // Toolbar "Valider": confirme la forme actuellement tracée (draft -> forme)
             if (!currentVideo) {
                 uiAlert('Choisissez une caméra avant de dessiner.', 'Sauvegarde');
                 return;
@@ -1539,7 +1620,7 @@
                     if (keys.length >= 1) {
                         editorSelectZone(keys[0]);
                     } else {
-                        uiAlert('Créez d\'abord une zone à droite (bouton +), puis cliquez sur \"Sauvegarder\".', 'Sauvegarde');
+                        uiAlert('Créez d\'abord une zone à droite (bouton +), puis cliquez sur \"Valider\".', 'Validation');
                         try { editorNewZoneName?.focus(); } catch {}
                         return;
                     }
@@ -1550,6 +1631,12 @@
             // On fait un "save normal" (PUT) uniquement si quelque chose a changé.
             if (editorState.tool === 'select') {
                 if (!editorState.dirty) return; // rien à faire
+                if (editorBenefitMode) {
+                    // En mode bénéfice: pas de PUT API, on valide juste la modification locale
+                    editorState.dirty = false;
+                    updateToolSaveButtonState();
+                    return;
+                }
                 try {
                     await editorPutNow(); // silencieux (pas de modal de succès)
                 } catch (e) {
@@ -1674,10 +1761,6 @@
         editorSaveBtn?.addEventListener('click', editorSaveAll);
         editorCloseBtn.addEventListener('click', editorClose);
         editorCloseBtn2?.addEventListener('click', editorClose);
-        benFinalizeBtn?.addEventListener('click', () => {
-            if (!editorBenefitMode) return;
-            editorOverlay?.querySelector('#benSaveBtn')?.click();
-        });
         editorPreviewPlayPauseBtn?.addEventListener('click', () => {
             if (!editorBenefitMode) return;
             setEditorPreviewPlaying(!editorPreviewPlaying);
@@ -1755,27 +1838,23 @@
             if (e.key === 'Escape') closeAppModal(false);
         });
 
-        // Open editor when clicking the drawing button (now: overlay icon)
-        toggleDrawPanelBtn?.addEventListener('click', () => editorOpen());
-        drawFab?.addEventListener('click', () => editorOpen());
-        editZonesBtn?.addEventListener('click', () => editorOpen());
-
-        function toLocalInputDateTime(date = new Date()) {
-            const d = new Date(date);
-            const pad = (n) => String(n).padStart(2, '0');
-            const y = d.getFullYear();
-            const m = pad(d.getMonth() + 1);
-            const day = pad(d.getDate());
-            const h = pad(d.getHours());
-            const min = pad(d.getMinutes());
-            return `${y}-${m}-${day}T${h}:${min}`;
+        // Open legacy editor entry points (disabled by default)
+        if (!DISABLE_LEGACY_EDITOR) {
+            toggleDrawPanelBtn?.addEventListener('click', () => editorOpen());
+            drawFab?.addEventListener('click', () => editorOpen());
+            editZonesBtn?.addEventListener('click', () => editorOpen());
+        } else {
+            toggleDrawPanelBtn?.classList.add('hidden');
+            drawFab?.classList.add('hidden');
+            editZonesBtn?.classList.add('hidden');
         }
+
 
         // Benefit config — integrated into the editor modal
         let benefitConfigState = {
             name: '',
             skill: 'detection',
-            skillSub: 'detection_person',
+            skillSub: 'detection_presence',
             step: 'skill',
             selectedCategories: ['human::silhouette'],
             category: 'human',
@@ -1788,12 +1867,14 @@
             scheduleEnabled: false,
             scheduleStart: '',
             scheduleEnd: '',
-            editingCamId: null
+            enabled: true,
+            editingCamId: null,
+            editingBenefitId: null
         };
         let editorBenefitMode = false;
         let _editorRightOriginal = '';
         const benefitSkillTreeOpen = { detection: true, heatmap: true, quality: true, counting: true };
-        const benefitCategoryTreeOpen = { human: true, transport: true, defaut: true };
+        const benefitCategoryTreeOpen = { human: true, transport: true, defaut: true, encombrement: true };
 
         function benefitSkillIsCounting(skill) {
             return String(skill || '') === 'counting';
@@ -1803,61 +1884,20 @@
             return benefitSkillIsCounting(skill) ? 'ligne' : 'zone';
         }
 
+        function benefitDraftShapeCount() {
+            const tz = editorState._benefitTempZone;
+            const polys = tz ? (editorState.zones?.[tz]?.polygons || []) : [];
+            let n = polys.length;
+            if (editorState.points && editorState.points.length >= 3) n += 1;
+            return n;
+        }
+
         function getBenefitSkillGroups() {
-            return [
-                {
-                    key: 'counting',
-                    label: 'Counting',
-                    icon: '/static/assets_youn/SvIcons/SVGnew/Ycounting.svg',
-                    items: [
-                        { id: 'counting_people', label: 'Comptage personnes', icon: '/static/assets_youn/SvIcons/SVGnew/Ycounting.svg' },
-                        { id: 'counting_line', label: 'Franchissement ligne', icon: '/static/assets_youn/SvIcons/SVGnew/polygon-line-check-svgrepo-com.svg' },
-                        { id: 'counting_zone', label: 'Comptage de zone', icon: '/static/assets_youn/SvIcons/SVGnew/polygon-svgrepo-com.svg' }
-                    ]
-                },
-                {
-                    key: 'detection',
-                    label: 'Détection',
-                    icon: '/static/assets_youn/SvIcons/SVGnew/Ydetection.svg',
-                    items: [
-                        { id: 'detection_person', label: 'Détection personnes', icon: '/static/assets_youn/SvIcons/SVGnew/Yface.svg' },
-                        { id: 'detection_vehicle', label: 'Détection transport', icon: '/static/assets_youn/SvIcons/SVGnew/Ycar.svg' },
-                        { id: 'detection_quality', label: 'Détection défauts', icon: '/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg' }
-                    ]
-                },
-                {
-                    key: 'heatmap',
-                    label: 'Heatmap',
-                    icon: '/static/assets_youn/SvIcons/SVGnew/Yheatmap.svg',
-                    items: [
-                        { id: 'heatmap_presence', label: 'Heatmap présence', icon: '/static/assets_youn/SvIcons/SVGnew/Yheatmap.svg' },
-                        { id: 'heatmap_density', label: 'Heatmap densité', icon: '/static/assets_youn/SvIcons/SVGnew/data-raster-svgrepo-com.svg' },
-                        { id: 'heatmap_trajectory', label: 'Heatmap trajectoire', icon: '/static/assets_youn/SvIcons/SVGnew/chart-magnifying-glass-svgrepo-com.svg' }
-                    ]
-                },
-                {
-                    key: 'quality',
-                    label: 'Quality',
-                    icon: '/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg',
-                    items: [
-                        { id: 'quality_defect', label: 'Défaut qualité', icon: '/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg' },
-                        { id: 'quality_stain', label: 'Tache', icon: '/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg' },
-                        { id: 'quality_crack', label: 'Fissure', icon: '/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg' }
-                    ]
-                }
-            ];
+            return (window.skillsAdapter && window.skillsAdapter.getSkillGroups()) || [];
         }
 
         function getBenefitCategoryGroupsBySkill(skill) {
-            if (skill === 'quality') {
-                return [
-                    { key: 'defaut', label: 'Défaut', icon: '/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg', items: BENEFIT_SUBCATEGORIES.defaut || [] }
-                ];
-            }
-            return [
-                { key: 'human', label: 'Humain', icon: '/static/assets_youn/SvIcons/SVGnew/Yface.svg', items: BENEFIT_SUBCATEGORIES.human || [] },
-                { key: 'transport', label: 'Transport', icon: '/static/assets_youn/SvIcons/SVGnew/Ycar.svg', items: BENEFIT_SUBCATEGORIES.transport || [] }
-            ];
+            return (window.skillsAdapter && window.skillsAdapter.getCategoryGroupsBySkill(skill)) || [];
         }
 
         function normalizeBenefitCategorySelection() {
@@ -1901,6 +1941,69 @@
             return (benefitConfigState.selectedCategories || []).map((k) => labelByKey[k]).filter(Boolean);
         }
 
+        function renderBenefitInfoRecap() {
+            const skills = getBenefitSkillGroups();
+            const skill = skills.find((g) => g.key === benefitConfigState.skill);
+            const categories = getBenefitCategoryGroupsBySkill(benefitConfigState.skill);
+            const byKey = {};
+            categories.forEach((g) => (g.items || []).forEach((it) => {
+                const catKey = `${g.key}::${it.id}`;
+                byKey[catKey] = {
+                    key: catKey,
+                    icon: it.icon || g.icon,
+                    label: it.label || g.label || ''
+                };
+            }));
+            const selected = (benefitConfigState.selectedCategories || []).map((k) => byKey[k]).filter(Boolean);
+            const skillSub = (skill?.items || []).find((it) => it.id === benefitConfigState.skillSub) || null;
+            const toWord = (txt) => String(txt || '').trim().split(/\s+/)[0] || '';
+            const toneBySkill = { detection: 'success', counting: 'primary', heatmap: 'info', quality: 'warning' };
+            const tone = toneBySkill[String(benefitConfigState.skill || '').toLowerCase()] || 'primary';
+            const accentPalette = ['mint', 'sky', 'violet', 'peach', 'rose', 'sand', 'teal', 'slate', 'lime', 'coral', 'azure', 'amber'];
+            const accentFromKey = (value) => {
+                const src = String(value || '');
+                let h = 0;
+                for (let i = 0; i < src.length; i += 1) h = ((h << 5) - h) + src.charCodeAt(i);
+                return accentPalette[Math.abs(h) % accentPalette.length];
+            };
+            const chips = [];
+            if (skill) {
+                chips.push({
+                    icon: skill.icon,
+                    label: toWord(skill.label),
+                    appearance: 'solid',
+                    tone,
+                    iconOnly: false
+                });
+            }
+            if (selected.length) {
+                selected.forEach((c) => chips.push({
+                    icon: c.icon,
+                    label: '',
+                    appearance: 'ghost',
+                    tone,
+                    accent: accentFromKey(c.key),
+                    iconOnly: true
+                }));
+            } else if (skillSub) {
+                chips.push({
+                    icon: skillSub.icon || skill?.icon,
+                    label: '',
+                    appearance: 'ghost',
+                    tone,
+                    accent: accentFromKey(benefitConfigState.skillSub || skillSub.label),
+                    iconOnly: true
+                });
+            }
+            if (!chips.length) return '';
+            return chips.map((c) => `
+                <div class="ben-recap-chip ben-recap-chip--${c.appearance || 'ghost'} ben-recap-chip--${c.tone || 'primary'}${c.accent ? ` ben-recap-chip--accent-${c.accent}` : ''}${c.iconOnly ? ' ben-recap-chip--icon-only' : ''}">
+                    ${c.icon ? `<img class="ben-tree-ico" src="${c.icon}" alt="" onerror="this.onerror=null;this.src='/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg'">` : ''}
+                    ${c.iconOnly ? '' : `<span>${escapeHtml(c.label || '')}</span>`}
+                </div>
+            `).join('');
+        }
+
         function renderBenefitTopbarMeta() {
             if (!editorBenefitMode) return;
             // Topbar simplifiée: pas de labels ni édition inline pour l'instant.
@@ -1915,7 +2018,9 @@
 
         function applyBenefitToolbarForSkill() {
             if (!editorBenefitMode) return;
-            const canDraw = benefitConfigState.step === 'category';
+            const step = benefitConfigState.step || 'skill';
+            const canDraw = step === 'category' || step === 'info';
+            const isEditMode = !!benefitConfigState.editingBenefitId;
             if (editorCanvas) editorCanvas.style.pointerEvents = canDraw ? 'auto' : 'none';
             editorToolbarButtons.forEach((b) => { try { b.disabled = !canDraw; } catch {} });
             if (!canDraw) {
@@ -1929,9 +2034,11 @@
             toolCountLineBtn?.classList.toggle('hidden', !isCounting);
             toolIncludeBtn?.classList.toggle('hidden', isCounting);
             toolExcludeBtn?.classList.toggle('hidden', isCounting);
-            if (isCounting) editorSetTool('countingROI');
-            else editorSetTool('include');
-            editorState.points = [];
+            /* En mode modification : garder Sélect. En mode création : Inclure ou Comptage selon le skill. */
+            if (!isEditMode) {
+                if (isCounting) editorSetTool('countingROI');
+                else editorSetTool('include');
+            }
             editorRender();
         }
 
@@ -1945,22 +2052,21 @@
             const activeSkillSub = benefitConfigState.skillSub || activeSkillItems[0]?.id || '';
 
             function renderCategoryTree(groups) {
-                return groups.map(g => {
-                    const openMap = benefitCategoryTreeOpen;
-                    const open = !!openMap[g.key];
-                    const attrGroup = `data-bcat-group="${g.key}"`;
-                    return `<div class="ben-tree-group${open ? ' is-open' : ''}">
-                        <button type="button" class="ben-tree-toggle" ${attrGroup}>
-                            <img class="ben-tree-ico" src="${g.icon}" alt="">
+                return groups.map((g) => {
+                    const open = !!benefitCategoryTreeOpen[g.key];
+                    const isGroupActive = (benefitConfigState.selectedCategories || []).some((k) => k.startsWith(`${g.key}::`));
+                    return `<div class="ben-tree-group${open ? ' is-open' : ''}${isGroupActive ? ' is-active' : ''}">
+                        <button type="button" class="ben-tree-toggle${isGroupActive ? ' active' : ''}" data-bcat-group="${g.key}">
+                            <img class="ben-tree-ico" src="${g.icon}" alt="" onerror="this.onerror=null;this.src='/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg'">
                             <span class="ben-tree-label">${escapeHtml(g.label)}</span>
                             <svg class="ben-tree-chev" width="10" height="10" viewBox="0 0 10 10"><path d="M3 2l4 3-4 3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         </button>
                         <div class="ben-tree-leaves${open ? '' : ' collapsed'}">
-                            ${g.items.map(it => {
-                                const isActive = (benefitConfigState.selectedCategories || []).includes(`${g.key}::${it.id}`);
-                                const attrLeaf = `data-bcat="${g.key}" data-bsub="${it.id}"`;
-                                return `<button type="button" class="ben-tree-leaf${isActive ? ' active' : ''}" ${attrLeaf}>
-                                    <img class="ben-tree-ico" src="${it.icon}" alt="">
+                            ${(g.items || []).map((it) => {
+                                const key = `${g.key}::${it.id}`;
+                                const isActive = (benefitConfigState.selectedCategories || []).includes(key);
+                                return `<button type="button" class="ben-tree-leaf${isActive ? ' active' : ''}" data-bcat="${g.key}" data-bsub="${it.id}">
+                                    <img class="ben-tree-ico" src="${it.icon}" alt="" onerror="this.onerror=null;this.src='/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg'">
                                     <span>${escapeHtml(it.label)}</span>
                                 </button>`;
                             }).join('')}
@@ -1972,7 +2078,7 @@
             const skillCardsHtml = SKILL_GROUPS.map((g) => {
                 const isActive = benefitConfigState.skill === g.key;
                 return `<button type="button" class="ben-skill-card${isActive ? ' active' : ''}" data-bskill-card="${g.key}">
-                    <img class="ben-skill-card__ico" src="${g.icon}" alt="">
+                    <img class="ben-skill-card__ico" src="${g.icon}" alt="" onerror="this.onerror=null;this.src='/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg'">
                     <span class="ben-skill-card__label">${escapeHtml(g.label)}</span>
                 </button>`;
             }).join('');
@@ -1980,75 +2086,60 @@
             const skillSubHtml = activeSkillItems.map((it) => {
                 const isActive = activeSkillSub === it.id;
                 return `<button type="button" class="ben-tree-leaf${isActive ? ' active' : ''}" data-bskill-sub="${it.id}">
-                    <img class="ben-tree-ico" src="${it.icon}" alt="">
+                    <img class="ben-tree-ico" src="${it.icon}" alt="" onerror="this.onerror=null;this.src='/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg'">
                     <span>${escapeHtml(it.label)}</span>
                 </button>`;
             }).join('');
-            const step = benefitConfigState.step || 'skill';
 
+            const step = benefitConfigState.step || 'skill';
             return `
                 <div class="ben-panel" id="benPanel">
                     <div class="ben-wizard">
                         <section class="ben-stage">
                             <div class="ben-stepper" id="benStepper">
-                                <button type="button" class="ben-step-item" data-ben-step-go="skill" data-step-index="0">
-                                    <span class="ben-step-indicator">
-                                        <span class="ben-step-num">1</span>
-                                        <span class="ben-step-spin"></span>
-                                        <span class="ben-step-check">✓</span>
-                                    </span>
+                                <button type="button" class="ben-step-item" data-ben-step-go="skill" data-step-index="0" data-state="${step === 'skill' ? 'active' : 'completed'}">
+                                    <span class="ben-step-indicator"><span class="ben-step-num">1</span><span class="ben-step-spin"></span><span class="ben-step-check">✓</span></span>
                                     <span class="ben-step-title">Skill</span>
                                 </button>
                                 <span class="ben-step-sep" data-ben-step-sep="0"></span>
-                                <button type="button" class="ben-step-item" data-ben-step-go="category" data-step-index="1">
-                                    <span class="ben-step-indicator">
-                                        <span class="ben-step-num">2</span>
-                                        <span class="ben-step-spin"></span>
-                                        <span class="ben-step-check">✓</span>
-                                    </span>
+                                <button type="button" class="ben-step-item" data-ben-step-go="category" data-step-index="1" data-state="${step === 'category' ? 'active' : (step === 'info' ? 'completed' : 'inactive')}">
+                                    <span class="ben-step-indicator"><span class="ben-step-num">2</span><span class="ben-step-spin"></span><span class="ben-step-check">✓</span></span>
                                     <span class="ben-step-title">Catégorie</span>
                                 </button>
                                 <span class="ben-step-sep" data-ben-step-sep="1"></span>
-                                <button type="button" class="ben-step-item" data-ben-step-go="info" data-step-index="2">
-                                    <span class="ben-step-indicator">
-                                        <span class="ben-step-num">3</span>
-                                        <span class="ben-step-spin"></span>
-                                        <span class="ben-step-check">✓</span>
-                                    </span>
+                                <button type="button" class="ben-step-item" data-ben-step-go="info" data-step-index="2" data-state="${step === 'info' ? 'active' : 'inactive'}">
+                                    <span class="ben-step-indicator"><span class="ben-step-num">3</span><span class="ben-step-spin"></span><span class="ben-step-check">✓</span></span>
                                     <span class="ben-step-title">Infos</span>
                                 </button>
                             </div>
 
                             <div class="ben-step-panel${step === 'skill' ? ' active' : ''}" data-ben-step-panel="skill">
-                            <div class="ben-stage-head">Skill</div>
-                            <div class="ben-block">
-                                <div class="ben-tree-shell">
-                                    <div class="ben-skill-cards" id="benSkillCards">${skillCardsHtml}</div>
-                                    <div class="ben-tree" id="benSkillSubList">${skillSubHtml}</div>
+                                <div class="ben-block">
+                                    <div class="ben-tree-shell">
+                                        <div class="ben-skill-cards" id="benSkillCards">${skillCardsHtml}</div>
+                                        <div class="ben-tree" id="benSkillSubList">${skillSubHtml}</div>
+                                    </div>
                                 </div>
-                            </div>
                             </div>
 
                             <div class="ben-step-panel${step === 'category' ? ' active' : ''}" data-ben-step-panel="category">
-                            <div class="ben-stage-head">Category</div>
-                            <div class="ben-block">
-                                <div class="ben-tree-shell">
-                                    <div class="ben-tree-shell__title">Catégories</div>
+                                <div class="ben-block">
                                     <div class="ben-tree" id="benCategoryTree">${renderCategoryTree(CAT_GROUPS)}</div>
                                 </div>
                             </div>
-                            </div>
 
                             <div class="ben-step-panel${step === 'info' ? ' active' : ''}" data-ben-step-panel="info">
-                                <div class="ben-stage-head">Informations générales de la zone</div>
                                 <div class="ben-block">
                                     <div class="ben-info-card">
                                         <div class="ben-info-grid">
-                                            <label class="ben-field">
+                                            <label class="ben-field ben-field--full">
                                                 <span class="ben-field__label">Nom</span>
                                                 <input type="text" class="ben-input" id="benName" placeholder="Ex: Waiting line - Entrance" autocomplete="off" value="${escapeHtml(benefitConfigState.name || '')}">
                                             </label>
-                                            <label class="ben-field">
+                                            <div class="ben-field ben-field--full">
+                                                <div class="ben-recap ben-recap--under-name" id="benInfoRecap">${renderBenefitInfoRecap()}</div>
+                                            </div>
+                                            <label class="ben-field ben-field--full">
                                                 <span class="ben-field__label">Créé par</span>
                                                 <input type="text" class="ben-input" id="benCreatedBy" placeholder="Nom opérateur" autocomplete="off" value="${escapeHtml(benefitConfigState.createdBy || '')}">
                                             </label>
@@ -2060,10 +2151,28 @@
                                                 <span class="ben-field__label">Commentaire</span>
                                                 <textarea class="ben-textarea" id="benComment" placeholder="Contexte, consignes, notes...">${escapeHtml(benefitConfigState.comment || '')}</textarea>
                                             </label>
-                                            <label class="ben-check ben-field--full">
-                                                <input type="checkbox" id="benScheduleEnabled" ${benefitConfigState.scheduleEnabled ? 'checked' : ''}>
-                                                <span>Activer un scheduling</span>
-                                            </label>
+                                            <div class="ben-toggle-row ben-field--full">
+                                                <span class="ben-toggle-row__label">Zone activée</span>
+                                                <label class="ben-toggle ben-toggle--success">
+                                                    <input type="checkbox" class="ben-toggle__input" id="benZoneEnabled" ${benefitConfigState.enabled !== false ? 'checked' : ''}>
+                                                    <span class="ben-toggle__track">
+                                                        <span class="ben-toggle__dot ben-toggle__dot--left"></span>
+                                                        <span class="ben-toggle__dot ben-toggle__dot--right"></span>
+                                                        <span class="ben-toggle__drop"></span>
+                                                    </span>
+                                                </label>
+                                            </div>
+                                            <div class="ben-toggle-row ben-field--full">
+                                                <span class="ben-toggle-row__label">Scheduling</span>
+                                                <label class="ben-toggle">
+                                                    <input type="checkbox" class="ben-toggle__input" id="benScheduleEnabled" ${benefitConfigState.scheduleEnabled ? 'checked' : ''}>
+                                                    <span class="ben-toggle__track">
+                                                        <span class="ben-toggle__dot ben-toggle__dot--left"></span>
+                                                        <span class="ben-toggle__dot ben-toggle__dot--right"></span>
+                                                        <span class="ben-toggle__drop"></span>
+                                                    </span>
+                                                </label>
+                                            </div>
                                             <div class="ben-schedule-grid ben-field--full${benefitConfigState.scheduleEnabled ? '' : ' hidden'}" id="benScheduleFields">
                                                 <label class="ben-field">
                                                     <span class="ben-field__label">Début</span>
@@ -2082,13 +2191,23 @@
                             <div class="ben-step-actions">
                                 <button type="button" class="tool-btn ben-step-btn" id="benPrevStepBtn">Retour</button>
                                 <button type="button" class="tool-btn ben-step-btn ben-step-btn--next" id="benNextStepBtn">Suivant</button>
+                                <button type="button" class="tool-btn save ben-step-btn hidden" id="benSaveBtnEdit">SAUVEGARDER</button>
                             </div>
                         </section>
                     </div>
-
-                    <div class="hidden">
-                        <button class="tool-btn save" id="benSaveBtn">VALIDER</button>
+                    <div class="ben-watermark" aria-hidden="true">
+                        <img src="/static/assets_youn/YrysUIPackage/ArcyWhitelogo.svg" alt="">
                     </div>
+                    <svg class="ben-goo-filter" aria-hidden="true" focusable="false">
+                        <defs>
+                            <filter id="ben-goo">
+                                <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"></feGaussianBlur>
+                                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="goo"></feColorMatrix>
+                                <feComposite in="SourceGraphic" in2="goo" operator="atop"></feComposite>
+                            </filter>
+                        </defs>
+                    </svg>
+                    <div class="hidden"><button class="tool-btn save" id="benSaveBtn">VALIDER</button></div>
                 </div>
             `;
         }
@@ -2109,10 +2228,11 @@
                 return groups.map(g => {
                     const openMap = benefitCategoryTreeOpen;
                     const open = !!openMap[g.key];
+                    const isGroupActive = (benefitConfigState.selectedCategories || []).some((k) => k.startsWith(`${g.key}::`));
                     const attrGroup = `data-bcat-group="${g.key}"`;
-                    return `<div class="ben-tree-group${open ? ' is-open' : ''}">
-                        <button type="button" class="ben-tree-toggle" ${attrGroup}>
-                            <img class="ben-tree-ico" src="${g.icon}" alt="">
+                    return `<div class="ben-tree-group${open ? ' is-open' : ''}${isGroupActive ? ' is-active' : ''}">
+                        <button type="button" class="ben-tree-toggle${isGroupActive ? ' active' : ''}" ${attrGroup}>
+                            <img class="ben-tree-ico" src="${g.icon}" alt="" onerror="this.onerror=null;this.src='/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg'">
                             <span class="ben-tree-label">${escapeHtml(g.label)}</span>
                             <svg class="ben-tree-chev" width="10" height="10" viewBox="0 0 10 10"><path d="M3 2l4 3-4 3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         </button>
@@ -2121,7 +2241,7 @@
                                 const isActive = (benefitConfigState.selectedCategories || []).includes(`${g.key}::${it.id}`);
                                 const attrLeaf = `data-bcat="${g.key}" data-bsub="${it.id}"`;
                                 return `<button type="button" class="ben-tree-leaf${isActive ? ' active' : ''}" ${attrLeaf}>
-                                    <img class="ben-tree-ico" src="${it.icon}" alt="">
+                                    <img class="ben-tree-ico" src="${it.icon}" alt="" onerror="this.onerror=null;this.src='/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg'">
                                     <span>${escapeHtml(it.label)}</span>
                                 </button>`;
                             }).join('')}
@@ -2133,11 +2253,12 @@
             const skillCardsEl = panel.querySelector('#benSkillCards');
             const skillSubEl = panel.querySelector('#benSkillSubList');
             const catEl = panel.querySelector('#benCategoryTree');
+            const infoRecapEl = panel.querySelector('#benInfoRecap');
             if (skillCardsEl) {
                 skillCardsEl.innerHTML = SKILL_GROUPS.map((g) => {
                     const isActive = benefitConfigState.skill === g.key;
                     return `<button type="button" class="ben-skill-card${isActive ? ' active' : ''}" data-bskill-card="${g.key}">
-                        <img class="ben-skill-card__ico" src="${g.icon}" alt="">
+                        <img class="ben-skill-card__ico" src="${g.icon}" alt="" onerror="this.onerror=null;this.src='/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg'">
                         <span class="ben-skill-card__label">${escapeHtml(g.label)}</span>
                     </button>`;
                 }).join('');
@@ -2146,12 +2267,13 @@
                 skillSubEl.innerHTML = activeSkillItems.map((it) => {
                     const isActive = activeSkillSub === it.id;
                     return `<button type="button" class="ben-tree-leaf${isActive ? ' active' : ''}" data-bskill-sub="${it.id}">
-                        <img class="ben-tree-ico" src="${it.icon}" alt="">
+                        <img class="ben-tree-ico" src="${it.icon}" alt="" onerror="this.onerror=null;this.src='/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg'">
                         <span>${escapeHtml(it.label)}</span>
                     </button>`;
                 }).join('');
             }
             if (catEl) catEl.innerHTML = renderCategoryTree(CAT_GROUPS);
+            if (infoRecapEl) infoRecapEl.innerHTML = renderBenefitInfoRecap();
             renderBenefitTopbarMeta();
         }
 
@@ -2164,14 +2286,21 @@
                 const stepCategoryDone = (benefitConfigState.selectedCategories || []).length > 0;
                 const name = String(benefitConfigState.name || '').trim();
                 const createdBy = String(benefitConfigState.createdBy || '').trim();
-                const stepInfoDone = name.length > 0 && createdBy.length > 0;
+                const stepInfoDone = name.length > 0;
                 return { stepSkillDone, stepCategoryDone, stepInfoDone };
             };
             const refreshFinalizeButtonState = () => {
+                syncGeneralFields();
                 const { stepSkillDone, stepCategoryDone, stepInfoDone } = getStepsCompletion();
-                const canFinalize = stepSkillDone && stepCategoryDone && stepInfoDone && (benefitConfigState.step === 'info');
-                if (benFinalizeBtn) benFinalizeBtn.disabled = !canFinalize;
+                const hasShape = benefitDraftShapeCount() > 0;
+                const canFinalize = stepSkillDone && stepCategoryDone && stepInfoDone && hasShape && (benefitConfigState.step === 'info');
+                const nextBtn = panel.querySelector('#benNextStepBtn');
+                if (nextBtn) {
+                    const isInfoStep = (benefitConfigState.step || 'skill') === 'info';
+                    nextBtn.disabled = isInfoStep ? !canFinalize : false;
+                }
             };
+            _benefitRefreshFinalizeState = refreshFinalizeButtonState;
 
             const setStep = (step) => {
                 benefitConfigState.step = orderedSteps.includes(step) ? step : 'skill';
@@ -2195,7 +2324,7 @@
                 applyBenefitToolbarForSkill();
                 refreshFinalizeButtonState();
             };
-
+            window._benefitSetStep = setStep;
             const refreshStepStatus = () => {
                 const statuses = {
                     nom: getStepsCompletion().stepInfoDone,
@@ -2217,6 +2346,7 @@
                 benefitConfigState.scheduleEnabled = !!panel.querySelector('#benScheduleEnabled')?.checked;
                 benefitConfigState.scheduleStart = panel.querySelector('#benScheduleStart')?.value || '';
                 benefitConfigState.scheduleEnd = panel.querySelector('#benScheduleEnd')?.value || '';
+                benefitConfigState.enabled = panel.querySelector('#benZoneEnabled')?.checked !== false;
                 renderBenefitTopbarMeta();
             };
 
@@ -2226,6 +2356,7 @@
             panel.querySelector('#benComment')?.addEventListener('input', syncGeneralFields);
             panel.querySelector('#benScheduleStart')?.addEventListener('input', syncGeneralFields);
             panel.querySelector('#benScheduleEnd')?.addEventListener('input', syncGeneralFields);
+            panel.querySelector('#benZoneEnabled')?.addEventListener('change', syncGeneralFields);
             panel.querySelector('#benScheduleEnabled')?.addEventListener('change', (e) => {
                 const checked = !!e.target?.checked;
                 const fields = panel.querySelector('#benScheduleFields');
@@ -2236,7 +2367,14 @@
             panel.addEventListener('click', (e) => {
                 const stepBtn = e.target?.closest?.('[data-ben-step-go]');
                 if (stepBtn) {
-                    setStep(stepBtn.dataset.benStepGo || 'skill');
+                    const goTo = stepBtn.dataset.benStepGo || 'skill';
+                    if (benefitConfigState.editingBenefitId && goTo === 'skill') return;
+                    setStep(goTo);
+                    return;
+                }
+                const saveEditBtn = e.target?.closest?.('#benSaveBtnEdit');
+                if (saveEditBtn) {
+                    doBenefitSave();
                     return;
                 }
                 const skillCard = e.target?.closest?.('[data-bskill-card]');
@@ -2295,7 +2433,11 @@
                         return;
                     }
                     if (idx >= orderedSteps.length - 1) {
-                        benFinalizeBtn?.click();
+                        if (benefitDraftShapeCount() <= 0) {
+                            uiAlert('Dessinez au moins une forme avant de terminer.', 'Bénéfice');
+                            return;
+                        }
+                        doBenefitSave();
                         return;
                     }
                     setStep(orderedSteps[Math.min(orderedSteps.length - 1, idx + 1)]);
@@ -2303,21 +2445,25 @@
                 }
             });
 
-            // Save
-            panel.querySelector('#benSaveBtn')?.addEventListener('click', async () => {
+            async function doBenefitSave() {
                 syncGeneralFields();
                 const nameInput = panel.querySelector('#benName');
                 const name = (nameInput?.value || '').trim() || 'Nouveau bénéfice';
                 const cam = getCameraById(benefitConfigState.editingCamId);
                 if (!cam || !currentSite) return;
 
-                const benId = `ben-${cam.id}-${Date.now()}`.replace(/\s/g, '_');
-                const zoneName = name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_àâäéèêëïîôùûüç-]/gi, '') || 'zone';
+                const existingIdx = (cam.benefits || []).findIndex((b) => String(b?.id || '') === String(benefitConfigState.editingBenefitId || ''));
+                const existingBenefit = existingIdx >= 0 ? cam.benefits[existingIdx] : null;
+                const benId = existingBenefit?.id || `ben-${cam.id}-${Date.now()}`.replace(/\s/g, '_');
                         // Check if user has a draft shape in progress
 
                 let polygons = [];
                 if ((benefitConfigState.selectedCategories || []).length === 0) {
                     uiAlert('Sélectionnez au moins une catégorie.', 'Bénéfice');
+                    return;
+                }
+                if (benefitDraftShapeCount() <= 0) {
+                    uiAlert('Dessinez au moins une forme avant de valider.', 'Bénéfice');
                     return;
                 }
                 if (benefitConfigState.forme === 'full_screen') {
@@ -2339,7 +2485,7 @@
                 }
 
                 const benefit = {
-                    id: benId, name, zoneName,
+                    id: benId, name,
                     skill: benefitConfigState.skill,
                     skillSub: benefitConfigState.skillSub || benefitConfigState.skill,
                     category: benefitConfigState.category,
@@ -2359,35 +2505,23 @@
                     createdBy: benefitConfigState.createdBy || 'Opérateur',
                     createdAt: benefitConfigState.createdAt || toLocalInputDateTime(),
                     comment: benefitConfigState.comment || '',
-                    enabled: true, polygons
+                    enabled: benefitConfigState.enabled !== false, polygons
                 };
                 if (!cam.benefits) cam.benefits = [];
-                cam.benefits.push(benefit);
+                if (existingIdx >= 0) cam.benefits.splice(existingIdx, 1, benefit);
+                else cam.benefits.push(benefit);
                 saveCurrentSiteCameras(currentSite.cameras);
 
-                // Clean up temp zone from server if autosave created it
-                const tempZone = editorState._benefitTempZone;
-                if (tempZone && currentVideo) {
-                    try { await fetch(`/api/zones/${encodeURIComponent(currentVideo)}/${encodeURIComponent(tempZone)}`, { method: 'DELETE' }); } catch {}
-                }
-
-                try {
-                    const zoneRes = await fetch('/api/zones', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name: zoneName, polygons: benefit.polygons || [], video: currentVideo })
-                    });
-                    if (!zoneRes.ok) throw new Error('Erreur création zone');
-                } catch (e) {
-                    uiAlert(e.message, 'Bénéfice');
-                    return;
-                }
-
                 editorState._benefitTempZone = null;
+                const camId = benefitConfigState.editingCamId;
+                if (camId) sidebarCamerasCollapsed[camId] = false;
                 closeBenefitConfig();
                 await loadZones();
                 renderSidebarForTracker();
-            });
+                if (trackerRightTab === 'overview') renderTrackerBenefitsOverview();
+            }
+            window.doBenefitSave = doBenefitSave;
+            panel.querySelector('#benSaveBtn')?.addEventListener('click', () => doBenefitSave());
 
             refreshStepStatus();
             setStep(benefitConfigState.step || 'skill');
@@ -2402,7 +2536,7 @@
             benefitConfigState = {
                 name: getDefaultBenefitName(cam),
                 skill: 'detection',
-                skillSub: 'detection_person',
+                skillSub: 'detection_presence',
                 step: 'skill',
                 selectedCategories: ['human::silhouette'],
                 category: 'human',
@@ -2415,10 +2549,17 @@
                 scheduleEnabled: false,
                 scheduleStart: '',
                 scheduleEnd: '',
-                editingCamId: camId
+                enabled: true,
+                editingCamId: camId,
+                editingBenefitId: null
             };
 
-            await editorOpen();
+            allowEditorOpenForBenefit = true;
+            try {
+                await editorOpen();
+            } finally {
+                allowEditorOpenForBenefit = false;
+            }
             editorBenefitMode = true;
 
             editorTitle.textContent = 'Nouveau bénéfice';
@@ -2430,31 +2571,95 @@
             editorRight.classList.add('benefit-mode');
             editorOverlay?.classList.add('benefit-mode-open');
             editorModalEl?.classList.add('benefit-mode-open');
+
+            // Force safe initial state: step 1 (Skill) starts with drawing tools locked.
+            benefitConfigState.step = 'skill';
+            if (editorCanvas) editorCanvas.style.pointerEvents = 'none';
+            editorToolbarButtons.forEach((b) => { try { b.disabled = true; } catch {} });
+            toolCountLineBtn?.classList.add('hidden');
+            toolIncludeBtn?.classList.add('hidden');
+            toolExcludeBtn?.classList.add('hidden');
+
             bindBenefitEditorEvents();
 
-            // Create temp zone locally for drawing
+            // Canvas vierge : bénéfice = formes stockées dans benefit.polygons, pas de zones vidéo
             const autoZoneName = `_ben_draft_${Date.now()}`;
-            editorState.zones[autoZoneName] = { polygons: [] };
+            editorState.zones = { [autoZoneName]: { polygons: [] } };
             editorState.zone = autoZoneName;
             editorState._benefitTempZone = autoZoneName;
-            editorUpdateToolbarEnabled();
             applyBenefitToolbarForSkill();
             editorRender();
 
-            benFinalizeBtn?.classList.remove('hidden');
             editorPreviewPlayPauseBtn?.classList.remove('hidden');
             setEditorPreviewPlaying(false);
             renderBenefitTopbarMeta();
         }
 
+        async function openBenefitConfigForEdit(camId, benefitId) {
+            const cam = getCameraById(camId);
+            const benefit = (cam?.benefits || []).find((b) => String(b.id || '') === String(benefitId || ''));
+            if (!cam || !benefit) {
+                if (camId) await openBenefitConfig(camId);
+                return;
+            }
+            await openBenefitConfig(camId);
+            benefitConfigState.editingBenefitId = benefit.id || null;
+            benefitConfigState.name = String(benefit.name || '');
+            benefitConfigState.skill = benefit.skill || 'detection';
+            benefitConfigState.skillSub = benefit.skillSub || benefit.skill || 'detection_presence';
+            benefitConfigState.createdBy = benefit.createdBy || 'Opérateur';
+            benefitConfigState.createdAt = benefit.createdAt || toLocalInputDateTime();
+            benefitConfigState.comment = benefit.comment || '';
+            benefitConfigState.scheduleEnabled = !!benefit?.schedule?.enabled;
+            benefitConfigState.scheduleStart = benefit?.schedule?.start || '';
+            benefitConfigState.scheduleEnd = benefit?.schedule?.end || '';
+            benefitConfigState.enabled = benefit.enabled !== false;
+            const cats = Array.isArray(benefit.categories)
+                ? benefit.categories.map((c) => `${c?.category || ''}::${c?.subcategory || ''}`).filter(Boolean)
+                : [];
+            if (cats.length) benefitConfigState.selectedCategories = cats;
+            normalizeBenefitSkillSubSelection();
+            normalizeBenefitCategorySelection();
+            refreshBenefitEditorTrees();
+            const panel = editorOverlay?.querySelector('#benPanel');
+            if (panel) {
+                const n = panel.querySelector('#benName'); if (n) n.value = benefitConfigState.name;
+                const by = panel.querySelector('#benCreatedBy'); if (by) by.value = benefitConfigState.createdBy;
+                const at = panel.querySelector('#benCreatedAt'); if (at) at.value = benefitConfigState.createdAt;
+                const cm = panel.querySelector('#benComment'); if (cm) cm.value = benefitConfigState.comment;
+                const se = panel.querySelector('#benScheduleEnabled'); if (se) se.checked = !!benefitConfigState.scheduleEnabled;
+                const ss = panel.querySelector('#benScheduleStart'); if (ss) ss.value = benefitConfigState.scheduleStart;
+                const se2 = panel.querySelector('#benScheduleEnd'); if (se2) se2.value = benefitConfigState.scheduleEnd;
+                const ze = panel.querySelector('#benZoneEnabled'); if (ze) ze.checked = benefitConfigState.enabled !== false;
+                panel.querySelector('#benScheduleFields')?.classList.toggle('hidden', !benefitConfigState.scheduleEnabled);
+            }
+            const tempZone = editorState._benefitTempZone;
+            if (tempZone) editorState.zones[tempZone].polygons = clonePointsArray(benefit.polygons || []);
+            editorState.dirty = false;
+            editorSetTool('select');
+            editorState.polygonIdx = (editorState.zones?.[tempZone]?.polygons?.length || 0) > 0 ? 0 : null;
+            editorRender();
+            updateToolSaveButtonState();
+
+            try {
+                benefitConfigState.step = 'info';
+                const p = editorOverlay?.querySelector('#benPanel');
+                if (p && typeof window._benefitSetStep === 'function') {
+                    window._benefitSetStep('info');
+                    p.querySelector('[data-ben-step-go="skill"]')?.classList.add('is-locked');
+                    p.querySelector('#benSaveBtnEdit')?.classList.remove('hidden');
+                    p.querySelector('#benNextStepBtn')?.classList.add('hidden');
+                }
+                editorTitle.textContent = 'Modifier le bénéfice';
+            } catch (err) {
+                console.warn('Benefit edit init:', err);
+            }
+        }
+
         function closeBenefitConfig() {
             if (!editorBenefitMode) return;
-            // Clean up temp zone
             const tempZone = editorState._benefitTempZone;
-            if (tempZone && currentVideo) {
-                try { fetch(`/api/zones/${encodeURIComponent(currentVideo)}/${encodeURIComponent(tempZone)}`, { method: 'DELETE' }); } catch {}
-                delete editorState.zones[tempZone];
-            }
+            if (tempZone) delete editorState.zones[tempZone];
             editorState._benefitTempZone = null;
 
             const editorRight = editorOverlay?.querySelector('.editor-right');
@@ -2468,11 +2673,15 @@
             toolCountLineBtn?.classList.remove('hidden');
             toolIncludeBtn?.classList.remove('hidden');
             toolExcludeBtn?.classList.remove('hidden');
-            benFinalizeBtn?.classList.add('hidden');
             editorPreviewPlayPauseBtn?.classList.add('hidden');
             setEditorPreviewPlaying(false);
             editorBenefitMode = false;
             benefitConfigState.editingCamId = null;
+            window.doBenefitSave = null;
+            window._benefitSetStep = null;
+            editorOverlay?.querySelector('[data-ben-step-go="skill"]')?.classList.remove('is-locked');
+            editorOverlay?.querySelector('#benSaveBtnEdit')?.classList.add('hidden');
+            editorOverlay?.querySelector('#benNextStepBtn')?.classList.remove('hidden');
             editorClose();
         }
 
@@ -2664,6 +2873,7 @@
             /* Invalidate sidebar HTML caches so next render always updates DOM */
             _lastSitesSidebarHTML = '';
             _lastAssetTreeHTML = '';
+            explorerSidebarV2?.invalidate?.();
 
             // Hide all views
             homeView.classList.add('hidden');
@@ -2685,6 +2895,7 @@
             const headerTrackerActions = document.getElementById('headerTrackerActions');
             if (headerTrackerActions) headerTrackerActions.classList.toggle('hidden', view !== 'tracker');
             if (pageHeaderTextBlock) pageHeaderTextBlock.style.display = '';
+            pageSubtitleEl?.classList.remove('hidden');
             if (view !== 'tracker') setSiteOverviewMode(false);
 
             switch (view) {
@@ -2698,9 +2909,9 @@
                 case 'tracker':
                     trackerView.classList.remove('hidden');
                     navTracker.classList.add('active');
-                    const siteLabel = currentSite?.name ? ` — ${currentSite.name}` : '';
-                    pageTitleEl.textContent = `Zone Presence Tracker${siteLabel}`;
-                    pageSubtitleEl.textContent = 'Surveillance et analyse du temps de présence';
+                    pageTitleEl.textContent = currentSite?.name || 'Zone Tracker';
+                    pageSubtitleEl.textContent = '';
+                    pageSubtitleEl?.classList.add('hidden');
                     ensureTrackerRightTabs();
                     updateTrackerBreadcrumb();
                     renderSidebarForTracker();
@@ -2735,12 +2946,54 @@
         }
 
         function setTrackerRightTab(tab) {
-            trackerRightTab = (tab === 'sources' || tab === 'params' || tab === 'benefits') ? tab : 'benefits';
+            trackerRightTab = (tab === 'overview' || tab === 'details' || tab === 'settings') ? tab : 'overview';
             const tabs = document.querySelectorAll('[data-tracker-tab]');
             tabs.forEach((btn) => btn.classList.toggle('active', btn.getAttribute('data-tracker-tab') === trackerRightTab));
-            sourcesPanel?.classList.toggle('hidden', trackerRightTab !== 'sources');
-            benefitsPanel?.classList.toggle('hidden', trackerRightTab !== 'benefits');
-            trackerParamsPanel?.classList.toggle('hidden', trackerRightTab !== 'params');
+            sourcesPanel?.classList.toggle('hidden', trackerRightTab !== 'details');
+            benefitsPanel?.classList.toggle('hidden', trackerRightTab !== 'overview');
+            /* ROI Measurement reste visible quel que soit l'onglet */
+            trackerParamsPanel?.classList.toggle('hidden', trackerRightTab !== 'settings');
+            const resetBtn = document.getElementById('deleteAllZonesBtn');
+            const addBenefitBtn = document.getElementById('addBenefitBtn');
+            const recap = document.getElementById('recapGrid');
+            if (trackerRightTab === 'overview') {
+                resetBtn?.classList.add('hidden');
+                recap?.classList.add('hidden');
+                addBenefitBtn?.classList.remove('hidden');
+            } else {
+                resetBtn?.classList.remove('hidden');
+                recap?.classList.remove('hidden');
+                addBenefitBtn?.classList.add('hidden');
+            }
+            if (trackerRightTab === 'overview') {
+                renderTrackerBenefitsOverview();
+            } else {
+                /* Rafraîchir ROI même hors Overview pour garder les données à jour */
+                const cam = getCameraById(currentCameraId) || getCameraByVideo(currentVideo);
+                renderRoiMeasurementsOverview(cam, cam ? getCameraBenefits(cam) : []);
+            }
+            if (trackerRightTab === 'settings') {
+                updateSettingsStats();
+            }
+        }
+
+        function updateSettingsStats() {
+            const el = document.getElementById('settingsStats');
+            if (!el) return;
+            const site = currentSite;
+            if (!site) {
+                el.textContent = 'Aucun site sélectionné';
+                return;
+            }
+            const cams = site.cameras || [];
+            let totalBenefits = 0;
+            cams.forEach((cam) => {
+                totalBenefits += (cam.benefits || []).length;
+            });
+            const parts = [];
+            if (cams.length > 0) parts.push(`${cams.length} caméra${cams.length > 1 ? 's' : ''}`);
+            if (totalBenefits > 0) parts.push(`${totalBenefits} bénéfice${totalBenefits > 1 ? 's' : ''}`);
+            el.textContent = parts.length ? parts.join(' · ') : 'Aucune caméra';
         }
 
         function ensureTrackerRightTabs() {
@@ -2755,6 +3008,11 @@
             if (trackerParamsPanel && trackerParamsPanel.parentElement !== trackerBelowVideo) {
                 trackerBelowVideo.appendChild(trackerParamsPanel);
             }
+            if (roiMeasurementsPanel && trackerVideoSection && roiMeasurementsPanel.parentElement !== trackerVideoSection) {
+                trackerVideoSection.appendChild(roiMeasurementsPanel);
+            }
+            roiMeasurementsPanel?.classList.add('roi-measurements-full');
+            roiMeasurementsPanel?.classList.remove('hidden');
 
             if (zonesSection) {
                 zonesSection.classList.add('hidden');
@@ -2766,19 +3024,345 @@
                 tabsHost.id = 'trackerRightTabs';
                 tabsHost.className = 'tracker-right-tabs';
                 tabsHost.innerHTML = `
-                    <button type="button" class="tracker-right-tab" data-tracker-tab="benefits">Bénéfices</button>
-                    <button type="button" class="tracker-right-tab" data-tracker-tab="sources">Sources</button>
-                    <button type="button" class="tracker-right-tab" data-tracker-tab="params">Paramètres</button>
+                    <button type="button" class="tracker-right-tab" data-tracker-tab="overview">Overview</button>
+                    <button type="button" class="tracker-right-tab" data-tracker-tab="details">Source</button>
+                    <button type="button" class="tracker-right-tab" data-tracker-tab="settings">Settings</button>
                 `;
                 trackerBelowVideo.insertBefore(tabsHost, sourcesPanel);
                 tabsHost.addEventListener('click', (e) => {
                     const tabBtn = e.target?.closest?.('[data-tracker-tab]');
                     if (!tabBtn) return;
-                    setTrackerRightTab(tabBtn.getAttribute('data-tracker-tab') || 'benefits');
+                    setTrackerRightTab(tabBtn.getAttribute('data-tracker-tab') || 'overview');
                 });
             }
 
             setTrackerRightTab(trackerRightTab);
+        }
+
+        function buildBenefitBadgesHtml(benefit) {
+            const skills = getBenefitSkillGroups();
+            const skill = skills.find((g) => g.key === benefit.skill);
+            const categories = getBenefitCategoryGroupsBySkill(benefit.skill);
+            const byKey = {};
+            categories.forEach((g) => (g.items || []).forEach((it) => {
+                const catKey = `${g.key}::${it.id}`;
+                byKey[catKey] = { key: catKey, icon: it.icon || g.icon, label: it.label || g.label || '' };
+            }));
+            const selectedKeys = (benefit.categories || []).map((c) => `${c.category || ''}::${c.subcategory || ''}`).filter(Boolean);
+            const accentPalette = ['mint', 'sky', 'violet', 'peach', 'rose', 'sand', 'teal', 'slate', 'lime', 'coral', 'azure', 'amber'];
+            const accentFromKey = (value) => {
+                const src = String(value || '');
+                let h = 0;
+                for (let i = 0; i < src.length; i += 1) h = ((h << 5) - h) + src.charCodeAt(i);
+                return accentPalette[Math.abs(h) % accentPalette.length];
+            };
+            const selected = selectedKeys.map((k) => byKey[k]).filter(Boolean);
+            const skillSub = (skill?.items || []).find((it) => it.id === benefit.skillSub) || null;
+            const toWord = (txt) => String(txt || '').trim().split(/\s+/)[0] || '';
+            const SKILL_ICONS_BADGE = { detection: '/static/assets_youn/SvIcons/SVGnew/Yclassify.svg', counting: '/static/assets_youn/SvIcons/SVGnew/Ycounting.svg' };
+            const chips = [];
+            if (skill) {
+                chips.push({ icon: skill.icon, label: toWord(skill.label), appearance: 'solid', iconOnly: false });
+            } else if (benefit.skill === 'counting') {
+                chips.push({ icon: '/static/assets_youn/SvIcons/SVGnew/Ycounting.svg', label: 'Comptage', appearance: 'solid', iconOnly: false });
+            } else if (benefit.skill && SKILL_ICONS_BADGE[benefit.skill]) {
+                chips.push({
+                    icon: SKILL_ICONS_BADGE[benefit.skill],
+                    label: toWord(benefit.skillSub || benefit.skill),
+                    appearance: 'solid',
+                    iconOnly: false
+                });
+            }
+            if (selected.length) {
+                selected.forEach((c) => chips.push({
+                    icon: c.icon,
+                    label: '',
+                    appearance: 'ghost',
+                    accent: accentFromKey(c.key),
+                    iconOnly: true
+                }));
+            } else if (skillSub) {
+                chips.push({
+                    icon: skillSub.icon || skill?.icon,
+                    label: '',
+                    appearance: 'ghost',
+                    accent: accentFromKey(benefit.skillSub || skillSub.label),
+                    iconOnly: true
+                });
+            }
+            if (!chips.length) return '';
+            const fallbackIcon = (benefit.skill && SKILL_ICONS_BADGE[benefit.skill]) ? SKILL_ICONS_BADGE[benefit.skill] : '/static/assets_youn/SvIcons/SVGnew/Yclassify.svg';
+            return chips.map((c) => `
+                <span class="benefit-tile-badge ben-recap-chip ben-recap-chip--${c.appearance || 'ghost'}${c.accent ? ` ben-recap-chip--accent-${c.accent}` : ''}${c.iconOnly ? ' ben-recap-chip--icon-only' : ''}">
+                    ${c.icon ? `<img class="ben-tree-ico" src="${c.icon}" alt="" onerror="this.onerror=null;this.src='${fallbackIcon}'">` : ''}
+                    ${c.iconOnly ? '' : `<span>${escapeHtml(c.label || '')}</span>`}
+                </span>
+            `).join('');
+        }
+
+        const SKILL_ICONS = { detection: '/static/assets_youn/SvIcons/SVGnew/Yclassify.svg', counting: '/static/assets_youn/SvIcons/SVGnew/Ycounting.svg' };
+        function buildBenefitRowContent(benefit) {
+            const skills = getBenefitSkillGroups();
+            const skill = skills.find((g) => g.key === benefit.skill);
+            const categories = getBenefitCategoryGroupsBySkill(benefit.skill);
+            const byKey = {};
+            categories.forEach((g) => (g.items || []).forEach((it) => {
+                const catKey = `${g.key}::${it.id}`;
+                byKey[catKey] = { key: catKey, icon: it.icon || g.icon, label: it.label || g.label || '' };
+            }));
+            const selectedKeys = (benefit.categories || []).map((c) => `${c.category || ''}::${c.subcategory || ''}`).filter(Boolean);
+            const accentPalette = ['mint', 'sky', 'violet', 'peach', 'rose', 'sand', 'teal', 'slate', 'lime', 'coral', 'azure', 'amber'];
+            const accentFromKey = (value) => {
+                const src = String(value || '');
+                let h = 0;
+                for (let i = 0; i < src.length; i += 1) h = ((h << 5) - h) + src.charCodeAt(i);
+                return accentPalette[Math.abs(h) % accentPalette.length];
+            };
+            const selected = selectedKeys.map((k) => byKey[k]).filter(Boolean);
+            const skillSub = (skill?.items || []).find((it) => it.id === benefit.skillSub) || null;
+            const skillIcon = skill?.icon || SKILL_ICONS[benefit.skill] || '/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg';
+            const categoryItems = selected.length > 0
+                ? selected
+                : skillSub ? [{ icon: skillSub.icon || skill?.icon, key: benefit.skillSub || skillSub.label }] : [];
+            const categoryIconsHtml = categoryItems.map((c) => {
+                const icon = c.icon || skill?.icon || SKILL_ICONS[benefit.skill] || '/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg';
+                const accent = accentFromKey(c.key);
+                const catFallback = SKILL_ICONS[benefit.skill] || '/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg';
+                return `<span class="benefit-row-class-ico ben-recap-chip ben-recap-chip--ghost ben-recap-chip--accent-${accent} ben-recap-chip--icon-only">
+                    <img class="ben-tree-ico" src="${icon}" alt="" onerror="this.onerror=null;this.src='${catFallback}'">
+                </span>`;
+            }).join('');
+            const fallbackIcon = SKILL_ICONS[benefit.skill] || '/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg';
+            return { skillIcon, categoryIconsHtml, fallbackIcon };
+        }
+
+        function renderTrackerBenefitsOverview() {
+            if (!zonesGrid) return;
+            const cam = getCameraById(currentCameraId) || getCameraByVideo(currentVideo);
+            const resetBtn = document.getElementById('deleteAllZonesBtn');
+            const addBenefitBtn = document.getElementById('addBenefitBtn');
+            const recap = document.getElementById('recapGrid');
+            resetBtn?.classList.add('hidden');
+            recap?.classList.add('hidden');
+            addBenefitBtn?.classList.remove('hidden');
+            if (addBenefitBtn) {
+                addBenefitBtn.setAttribute('data-create-benefit', cam ? cam.id : '');
+                addBenefitBtn.classList.toggle('hidden', !cam);
+            }
+            if (!cam) {
+                zonesGrid.innerHTML = '<div class="tracker-benefits-empty">Sélectionnez une caméra pour voir les bénéfices.</div>';
+                if (roiMeasurementsGrid) roiMeasurementsGrid.innerHTML = '<div class="tracker-benefits-empty">Aucune carte ROI disponible.</div>';
+                return;
+            }
+            const benefits = getCameraBenefits(cam);
+            const presence = (currentVideo && lastPresenceByVideo?.[currentVideo]) || {};
+            const liveTimers = (currentVideo && zoneLiveTimersByVideo?.[currentVideo]?.zones) || {};
+            const formatSecToTime = (sec) => (window.appUtils && window.appUtils.formatHMS) ? window.appUtils.formatHMS(sec) : '00:00:00';
+            const rows = benefits.map((b, idx) => {
+                const { skillIcon, categoryIconsHtml, fallbackIcon } = buildBenefitRowContent(b);
+                const benColor = getBenefitColor(b);
+                const benTitle = String(b.name || 'Bénéfice').slice(0, 60);
+                const isBenefitSelected = selectedBenefitId === (b.id || `idx-${idx}`) && selectedBenefitCamId === cam.id;
+                const zoneName = b.zoneName || b.id || `idx-${idx}`;
+                const presenceInfo = presence[zoneName] || {};
+                const live = liveTimers[zoneName] || { occ: 0, abs: 0 };
+                const totalSec = Number(live.occ || 0) + Number(live.abs || 0);
+                const timerText = presenceInfo.formatted_time || (totalSec > 0 ? formatSecToTime(totalSec) : '00:00:00');
+                const benEnabled = b.enabled !== false;
+                return `
+                    <article class="benefit-row ${isBenefitSelected ? 'benefit-row--selected' : ''}" data-benefit-id="${escapeHtml(b.id || `idx-${idx}`)}">
+                        <div class="benefit-row-skill">
+                            <img class="benefit-row-skill-ico" src="${skillIcon}" alt="" onerror="this.onerror=null;this.src='${fallbackIcon}'">
+                        </div>
+                        <div class="benefit-row-main">
+                            <div class="benefit-row-header">
+                                <span class="benefit-row-dot" style="background:${benColor};" title="${escapeHtml(benTitle)}"></span>
+                                <span class="benefit-row-title" title="${escapeHtml(benTitle)}">${escapeHtml(benTitle).toUpperCase()}</span>
+                            </div>
+                            <div class="benefit-row-chips">${categoryIconsHtml}</div>
+                            <div class="benefit-row-footer">
+                                <span class="benefit-row-timer">${escapeHtml(timerText)}</span>
+                                <label class="ben-toggle ben-toggle--success benefit-row-toggle" data-toggle-benefit="${escapeHtml(cam.id)}" data-benefit-id="${escapeHtml(b.id || `idx-${idx}`)}" title="${benEnabled ? 'Désactiver' : 'Activer'}">
+                                    <input type="checkbox" class="ben-toggle__input" ${benEnabled ? 'checked' : ''}>
+                                    <span class="ben-toggle__track">
+                                        <span class="ben-toggle__dot ben-toggle__dot--left"></span>
+                                        <span class="ben-toggle__dot ben-toggle__dot--right"></span>
+                                        <span class="ben-toggle__drop"></span>
+                                    </span>
+                                </label>
+                                <button type="button" class="benefit-row-edit" data-edit-benefit="${escapeHtml(b.id || '')}" data-cam-id="${escapeHtml(cam.id)}">Modifier</button>
+                            </div>
+                        </div>
+                    </article>
+                `;
+            }).join('');
+            zonesGrid.innerHTML = rows ? `<div class="tracker-benefits-list">${rows}</div>` : '<div class="tracker-benefits-empty">Aucun bénéfice pour cette caméra.</div>';
+            renderRoiMeasurementsOverview(cam, benefits);
+        }
+
+        function buildRoiCardMenuHtml(card, cam) {
+            const wrap = '<div class="roi-card-menu-wrap"><button type="button" class="roi-card-menu-btn" aria-label="Menu" aria-haspopup="true"><span class="roi-card-menu-dots">⋮</span></button><div class="roi-card-menu-dropdown" role="menu">';
+            if (card.benefit) {
+                const opts = [
+                    `<button type="button" class="roi-card-menu-item" data-edit-benefit="${escapeHtml(card.benefit.id || '')}" data-cam-id="${escapeHtml(cam.id)}">Modifier</button>`,
+                    `<button type="button" class="roi-card-menu-item" data-duplicate-benefit="${escapeHtml(card.benefit.id || '')}" data-cam-id="${escapeHtml(cam.id)}">Dupliquer</button>`,
+                    `<button type="button" class="roi-card-menu-item" data-delete-benefit="${escapeHtml(card.benefit.id || '')}" data-cam-id="${escapeHtml(cam.id)}">Supprimer</button>`
+                ];
+                return wrap + opts.join('') + '</div></div>';
+            }
+            const opts = [
+                `<button type="button" class="roi-card-menu-item" data-create-benefit="${escapeHtml(cam.id)}">Créer</button>`,
+                `<button type="button" class="roi-card-menu-item" data-params-benefit="${escapeHtml(cam.id)}">Paramètres</button>`
+            ];
+            return wrap + opts.join('') + '</div></div>';
+        }
+
+        function renderRoiMeasurementsOverview(cam, benefits) {
+            if (!roiMeasurementsGrid) return;
+            if (!cam) {
+                roiMeasurementsGrid.innerHTML = '<div class="tracker-benefits-empty">Aucune carte ROI disponible.</div>';
+                return;
+            }
+            const list = Array.isArray(benefits) ? benefits : [];
+            const detection = list.find((b) => String(b?.skill || '').toLowerCase() === 'detection')
+                || list.find((b) => /d[ée]tection|pr[ée]sence/i.test(String(b?.name || '')));
+            const counting = list.find((b) => String(b?.skill || '').toLowerCase() === 'counting')
+                || list.find((b) => /count|comptage/i.test(String(b?.name || '')));
+            const live = zoneLiveTimersByVideo?.[currentVideo]?.zones || {};
+            let occSec = 0;
+            let absSec = 0;
+            for (const z of Object.values(live)) {
+                occSec += Number(z?.occ || 0);
+                absSec += Number(z?.abs || 0);
+            }
+            const totalSec = occSec + absSec;
+            const presencePct = totalSec > 0 ? Math.round((occSec / totalSec) * 100) : 0;
+            const countingState = countingStateByVideo?.[currentVideo] || {};
+            const countValue = Number(countingState.count || 0);
+            const countMode = (() => {
+                const zn = countingState.zone_name || '';
+                const zSettings = countingState.zone_settings || {};
+                return zSettings[zn]?.mode || countingState.mode || 'simple';
+            })();
+            const detectionBadges = detection ? buildBenefitBadgesHtml(detection) : '';
+            const countingBadges = counting ? buildBenefitBadgesHtml(counting) : '';
+            const presenceDemo = presenceDemoByCategory?.[currentVideo] || {};
+            const countingDemo = countingDemoByType?.[currentVideo] || {};
+            const CAT_ICONS = { human: '/static/assets_youn/SvIcons/SVGnew/Yhumancat.svg', voiture: '/static/assets_youn/SvIcons/SVGnew/Ycar.svg', velo: '/static/assets_youn/SvIcons/SVGnew/Ybike.svg' };
+
+            const getPresenceBars = (ben) => {
+                const cats = ben?.categories || [];
+                if (cats.length >= 2) {
+                    const humanCat = cats.find((c) => c.category === 'human');
+                    const transportCat = cats.find((c) => c.category === 'transport');
+                    const bars = [];
+                    if (humanCat) bars.push({ label: 'Humain', key: 'human', icon: CAT_ICONS.human, pct: presenceDemo.human ?? presencePct });
+                    if (transportCat?.subcategory === 'voiture') bars.push({ label: 'Voiture', key: 'car', icon: CAT_ICONS.voiture, pct: presenceDemo.car ?? Math.round(presencePct * 0.7) });
+                    if (transportCat?.subcategory === 'velo') bars.push({ label: 'Vélo', key: 'bike', icon: CAT_ICONS.velo, pct: presenceDemo.bike ?? Math.round(presencePct * 0.5) });
+                    if (bars.length >= 2) return bars;
+                }
+                return [{ label: 'Présence', key: 'presence', icon: CAT_ICONS.human, pct: presencePct }];
+            };
+            const getCountingItems = (ben) => {
+                const cats = ben?.categories || [];
+                if (cats.length >= 2) {
+                    const humanCat = cats.find((c) => c.category === 'human');
+                    const transportCat = cats.find((c) => c.category === 'transport');
+                    const items = [];
+                    if (humanCat) items.push({ label: 'Personnes', key: 'human', icon: CAT_ICONS.human, count: countingDemo.human ?? countValue });
+                    if (transportCat?.subcategory === 'velo') items.push({ label: 'Vélos', key: 'bike', icon: CAT_ICONS.velo, count: countingDemo.bike ?? Math.floor(countValue * 0.4) });
+                    if (transportCat?.subcategory === 'voiture') items.push({ label: 'Voitures', key: 'car', icon: CAT_ICONS.voiture, count: countingDemo.car ?? Math.floor(countValue * 0.3) });
+                    if (items.length >= 2) return items;
+                }
+                return [{ label: 'Nombre', key: 'count', icon: '/static/assets_youn/SvIcons/SVGnew/Ycountingppl.svg', count: countValue }];
+            };
+
+            const SKILL_ICONS = { detection: '/static/assets_youn/SvIcons/SVGnew/Yclassify.svg', counting: '/static/assets_youn/SvIcons/SVGnew/Ycounting.svg' };
+            const METRIC_TITLES = { detection: 'Détection présence', counting: 'Comptage' };
+            const cards = [
+                {
+                    key: 'detection',
+                    metricTitle: METRIC_TITLES.detection,
+                    chip: detectionBadges || '<span class="roi-chip"><img class="ben-tree-ico" src="' + SKILL_ICONS.detection + '" alt=""> Détection</span>',
+                    presenceBars: getPresenceBars(detection),
+                    benefit: detection || null,
+                    btnLabel: detection ? 'Modifier' : 'Créer'
+                },
+                {
+                    key: 'counting',
+                    metricTitle: METRIC_TITLES.counting,
+                    chip: countingBadges || '<span class="roi-chip"><img class="ben-tree-ico" src="' + SKILL_ICONS.counting + '" alt=""> Comptage</span>',
+                    countingItems: getCountingItems(counting),
+                    countMode: countMode === 'complex' ? 'MOG2' : 'Gradient',
+                    benefit: counting || null,
+                    btnLabel: counting ? 'Modifier' : 'Créer'
+                }
+            ];
+
+            roiMeasurementsGrid.innerHTML = cards.map((card) => {
+                        const isRoiCardSelected = card.benefit && selectedBenefitId === (card.benefit.id || '') && selectedBenefitCamId === cam.id;
+                        const roiSelectedCls = isRoiCardSelected ? ' roi-measure-card--selected' : '';
+                        if (card.key === 'detection') {
+                            const bars = card.presenceBars || [{ label: 'Présence', icon: CAT_ICONS.human, pct: 0 }];
+                            const metricTitle = card.metricTitle || 'Détection présence';
+                            const dotColor = card.benefit ? getBenefitColor(card.benefit) : 'rgba(15, 23, 42, 0.25)';
+                            const menuHtml = buildRoiCardMenuHtml(card, cam);
+                            return `
+                                <article class="roi-measure-card roi-measure-card--benefit roi-measure-card--presence${roiSelectedCls}" data-roi-kind="${card.key}"${card.benefit ? ` data-select-benefit="${escapeHtml(card.benefit.id || '')}" data-select-cam="${escapeHtml(cam.id || '')}"` : ''} style="cursor:${card.benefit ? 'pointer' : 'default'};">
+                                    <div class="roi-card-main">
+                                        <div class="roi-card-top">
+                                            <div class="roi-card-title-wrap">
+                                                <span class="roi-card-dot" style="background:${dotColor};"></span>
+                                                <span class="roi-card-title" title="${escapeHtml(metricTitle)}">${escapeHtml(metricTitle).toUpperCase()}</span>
+                                            </div>
+                                            ${menuHtml}
+                                        </div>
+                                        <div class="roi-card-chips-wrap"><div class="roi-card-chips">${card.chip}</div></div>
+                                        <div class="roi-presence-bars">
+                                            ${bars.map((b) => `
+                                                <div class="roi-presence-bar-wrap">
+                                                    <div class="roi-presence-label"><img class="roi-presence-ico" src="${b.icon}" alt=""> ${escapeHtml(b.label)}</div>
+                                                    <div class="roi-presence-bar"><div class="roi-presence-fill" style="width:${b.pct}%"></div></div>
+                                                    <div class="roi-presence-value">${b.pct}%</div>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                </article>
+                            `;
+                        }
+                        if (card.key === 'counting') {
+                            const items = card.countingItems || [{ label: 'Nombre', icon: '/static/assets_youn/SvIcons/SVGnew/Ycountingppl.svg', count: 0 }];
+                            const metricTitle = card.metricTitle || 'Comptage';
+                            const dotColor = card.benefit ? getBenefitColor(card.benefit) : 'rgba(15, 23, 42, 0.25)';
+                            const menuHtml = buildRoiCardMenuHtml(card, cam);
+                            return `
+                                <article class="roi-measure-card roi-measure-card--benefit roi-measure-card--counter${roiSelectedCls}" data-roi-kind="${card.key}"${card.benefit ? ` data-select-benefit="${escapeHtml(card.benefit.id || '')}" data-select-cam="${escapeHtml(cam.id || '')}"` : ''} style="cursor:${card.benefit ? 'pointer' : 'default'};">
+                                    <div class="roi-card-main">
+                                        <div class="roi-card-top">
+                                            <div class="roi-card-title-wrap">
+                                                <span class="roi-card-dot" style="background:${dotColor};"></span>
+                                                <span class="roi-card-title" title="${escapeHtml(metricTitle)}">${escapeHtml(metricTitle).toUpperCase()}</span>
+                                            </div>
+                                            ${menuHtml}
+                                        </div>
+                                        <div class="roi-card-chips-wrap"><div class="roi-card-chips">${card.chip}</div></div>
+                                        <div class="roi-counters">
+                                            ${items.map((it) => `
+                                                <div class="roi-counter-wrap">
+                                                    <img class="roi-counter-icon" src="${it.icon}" alt="">
+                                                    <span class="roi-counter-value">${it.count}</span>
+                                                    <span class="roi-counter-label">${escapeHtml(it.label)}</span>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                        <div class="roi-counter-sub">${card.countMode}</div>
+                                    </div>
+                                </article>
+                            `;
+                        }
+                        return '';
+                    }).join('');
         }
 
         function renderSiteOverview() {
@@ -2837,25 +3421,6 @@
             sel.innerHTML = html;
             if (prev && locs.includes(prev)) sel.value = prev; else sel.selectedIndex = 0;
             if (typeof LovDropdown !== 'undefined') LovDropdown.refresh();
-        }
-
-        function escapeHtml(text) {
-            return String(text ?? '')
-                .replaceAll('&', '&amp;')
-                .replaceAll('<', '&lt;')
-                .replaceAll('>', '&gt;')
-                .replaceAll('"', '&quot;')
-                .replaceAll("'", '&#39;');
-        }
-
-        // Helper to truncate filename for display
-        function truncateFilename(name, maxLen = 20) {
-            if (!name || name.length <= maxLen) return name;
-            const ext = name.lastIndexOf('.') > 0 ? name.slice(name.lastIndexOf('.')) : '';
-            const base = name.slice(0, name.length - ext.length);
-            const availableLen = maxLen - ext.length - 3; // 3 for "..."
-            if (availableLen <= 0) return name.slice(0, maxLen - 3) + '...';
-            return base.slice(0, availableLen) + '...' + ext;
         }
 
         let _sitesViewMode = 'grid'; // 'grid' | 'list'
@@ -3117,8 +3682,14 @@
             return _locColorMap[loc];
         }
 
-        /* Zone colors (rotate a softer palette) */
-        const ZONE_PALETTE = ['#60a5fa','#f97316','#4ade80','#c084fc','#fb7185','#2dd4bf','#facc15','#818cf8'];
+        /* Zone colors — cohérent avec la palette sidebar (désaturés, harmonieux sur fond #111825) */
+        const ZONE_PALETTE = ['#5a8fb8','#4d9d8a','#8b7fb5','#c47b5a','#6b9b7a','#c4a055','#b07b8b','#6b8fb5'];
+        function getBenefitColor(benefit) {
+            const id = String(benefit?.id || benefit?.zoneName || '');
+            let h = 0;
+            for (let i = 0; i < id.length; i += 1) h = ((h << 5) - h) + id.charCodeAt(i);
+            return ZONE_PALETTE[Math.abs(h) % ZONE_PALETTE.length];
+        }
 
         /* ---- Tracker breadcrumb helper (LOV: Lieu > Site > Caméra) ---- */
         function _setSelectOptions(selectEl, items, selectedValue, placeholder) {
@@ -3178,9 +3749,9 @@
                     if (siteName) await selectSiteByName(siteName);
                 });
 
-                camSel?.addEventListener('change', () => {
+                camSel?.addEventListener('change', async () => {
                     const camId = camSel.value;
-                    if (camId) selectCamera(camId);
+                    if (camId) await navigateToCameraFromSidebar(camId);
                 });
 
                 _trackerLovInit = true;
@@ -3213,13 +3784,17 @@
             }
 
             const selectedSite = allSites.find(s => s.name === selectedSiteName);
-            const cams = (selectedSite?.cameras || []).map(c => ({ value: c.id, label: c.name || c.id }));
+            const cams = (selectedSite?.cameras || []).map((cam) => ({
+                value: cam.id,
+                label: `${cam.name || cam.id}`
+            }));
             _setSelectOptions(camSel, cams, currentCameraId || '', 'Caméra…');
         }
 
         /* Anti-flicker for sites sidebar */
         let _lastSitesSidebarHTML = '';
-        const TREE_ANIM_MS = 200;
+        const TREE_ANIM_MS = 260;
+        const TREE_ANIM_EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
 
         function animateTreeChildren(el, expand) {
             if (!el) return;
@@ -3227,18 +3802,18 @@
             el.style.willChange = 'height, opacity';
 
             if (expand) {
-                el.classList.remove('sb-children--collapsed');
                 el.style.height = '0px';
                 el.style.opacity = '0';
-                void el.offsetHeight; // force reflow
+                el.classList.remove('sb-children--collapsed');
+                void el.offsetHeight;
 
-                const target = el.scrollHeight;
-                el.style.transition = `height ${TREE_ANIM_MS}ms ease, opacity ${TREE_ANIM_MS}ms ease`;
+                const target = Math.max(el.scrollHeight, 8);
+                el.style.transition = `height ${TREE_ANIM_MS}ms ${TREE_ANIM_EASE}, opacity ${TREE_ANIM_MS}ms ${TREE_ANIM_EASE}`;
                 el.style.height = `${target}px`;
                 el.style.opacity = '1';
 
                 const onEnd = () => {
-                    el.style.height = 'auto';
+                    el.style.height = '';
                     el.style.transition = '';
                     el.style.willChange = '';
                     el.removeEventListener('transitionend', onEnd);
@@ -3247,9 +3822,9 @@
             } else {
                 el.style.height = `${el.scrollHeight}px`;
                 el.style.opacity = '1';
-                void el.offsetHeight; // force reflow
+                void el.offsetHeight;
 
-                el.style.transition = `height ${TREE_ANIM_MS}ms ease, opacity ${TREE_ANIM_MS}ms ease`;
+                el.style.transition = `height ${TREE_ANIM_MS}ms ${TREE_ANIM_EASE}, opacity ${TREE_ANIM_MS}ms ${TREE_ANIM_EASE}`;
                 el.style.height = '0px';
                 el.style.opacity = '0';
 
@@ -3265,7 +3840,65 @@
             }
         }
 
+        const USE_EXPLORER_V2 = true; // fallback legacy conservé
+        let explorerSidebarV2 = null;
+        function ensureExplorerSidebarV2() {
+            if (explorerSidebarV2 || typeof window.createExplorerSidebar !== 'function' || !zoneListSidebar) return explorerSidebarV2;
+            explorerSidebarV2 = window.createExplorerSidebar({
+                container: zoneListSidebar,
+                labelEl: _sidebarLabel(),
+                treeAnimMs: 200,
+                icons: { lieu: ICON_LIEU, site: ICON_SITE, camera: ICON_CAM },
+                zonePalette: ZONE_PALETTE,
+                escapeHtml,
+                getLocColor,
+                getCameraBenefits,
+                getData: () => ({
+                    sites: sitesCache || [],
+                    currentView,
+                    currentSiteName: currentSite?.name || '',
+                    currentCameraId,
+                    lastPresenceByVideo,
+                    sidebarLocationFilter,
+                    sidebarLocationsCollapsed,
+                    sidebarSitesCollapsed,
+                    sidebarCamerasCollapsed
+                }),
+                onToggleBenefit: async (camId, benId) => {
+                    const found = getCameraAndSiteById(camId);
+                    if (!found?.cam || !Array.isArray(found.cam.benefits)) return;
+                    const ben = found.cam.benefits.find(b => b.id === benId);
+                    if (!ben) return;
+                    ben.enabled = ben.enabled === false;
+                    const idx = (sitesCache || []).findIndex(s => s.name === found.site.name);
+                    if (idx >= 0) sitesCache[idx].cameras = found.site.cameras;
+                    renderSitesSidebar();
+                    drawExistingZones();
+                },
+                onAddBenefit: async (camId) => {
+                    await navigateToCameraFromSidebar(camId);
+                    await openBenefitConfig(camId);
+                },
+                onSelectZone: (zoneName) => { if (zoneName) window.selectZone?.(zoneName); },
+                onNavigateSite: async (siteName) => {
+                    await selectSiteByName(siteName, { autoSelectFirstCamera: false });
+                    if (currentView !== 'tracker') setView('tracker');
+                },
+                onNavigateCamera: async (camId) => { await navigateToCameraFromSidebar(camId); }
+            });
+            return explorerSidebarV2;
+        }
+
+        function renderBenefitFilterPill() { /* Pill supprimée — effet selected suffit */ }
+
         function renderSitesSidebar() {
+            if (USE_EXPLORER_V2) {
+                const comp = ensureExplorerSidebarV2();
+                if (comp) {
+                    comp.render();
+                    return;
+                }
+            }
             if (!zoneListSidebar) return;
             const lbl = _sidebarLabel();
             if (lbl) lbl.textContent = 'Explorer';
@@ -3348,27 +3981,26 @@
                             </div>
                             <div class="sb-children sb-children--cam sb-tree-children${camCollapsed ? ' sb-children--collapsed' : ''}">`;
 
-                        let zi = 0;
-                        for (const ben of benefits) {
+                        benefits.forEach((ben, idx) => {
                             const zoneName = ben.zoneName || ben.id;
                             const info = presence?.[zoneName] || { formatted_time: '00:00:00', is_occupied: false };
-                            const zColor = ZONE_PALETTE[zi % ZONE_PALETTE.length];
+                            const zColor = getBenefitColor(ben);
                             const dotCls = info.is_occupied ? ' occupied' : '';
-                            const benLabel = ben.name || ben.zoneName || ben.id || 'Bénéfice';
-                            const typeLabel = (ben.skill || 'detection') + ' / ' + (ben.category || 'human') + (ben.subcategory ? ' / ' + ben.subcategory : '') + ' / ' + (ben.forme || 'zone');
+                            const benFullName = String(ben.name || ben.zoneName || ben.id || 'Bénéfice').trim();
+                            const benLabel = (benFullName.length > 10 ? benFullName.slice(0, 10) + '…' : benFullName).toUpperCase();
                             const benEnabled = ben.enabled !== false;
-                            zi++;
+                            const benId = ben.id || `idx-${idx}`;
+                            const isBenefitSelected = selectedBenefitId === benId && selectedBenefitCamId === cam.id;
                             html += `
-                                <div class="sb-item sb-item--benefit${isCamActive ? '' : ' sb-item--dim'}" data-select-zone="${escapeHtml(zoneName)}" data-select-camera="${escapeHtml(cam.id)}" data-select-benefit="${escapeHtml(ben.id || '')}" style="--sb-loc-color:${locColor};">
+                                <div class="sb-item sb-item--benefit${isCamActive ? '' : ' sb-item--dim'}${isBenefitSelected ? ' sb-item--selected' : ''}" data-select-zone="${escapeHtml(zoneName)}" data-select-camera="${escapeHtml(cam.id)}" data-select-benefit="${escapeHtml(benId)}" style="--sb-loc-color:${locColor}; --sb-benefit-dot:${zColor};" title="${escapeHtml(benFullName)}">
                                     <span class="sb-zone-sq${dotCls}" style="background:${zColor};"></span>
                                     <span class="sb-item__name">${escapeHtml(benLabel)}</span>
-                                    <span class="sb-benefit-type">${escapeHtml(typeLabel)}</span>
                                     <span class="sb-item__time">${info.formatted_time}</span>
-                                    <button type="button" class="sb-benefit-toggle${benEnabled ? ' is-on' : ''}" data-toggle-benefit="${escapeHtml(cam.id)}" data-benefit-id="${escapeHtml(ben.id || '')}" title="${benEnabled ? 'Désactiver' : 'Activer'}">
+                                    <button type="button" class="sb-benefit-toggle${benEnabled ? ' is-on' : ''}" data-toggle-benefit="${escapeHtml(cam.id)}" data-benefit-id="${escapeHtml(benId)}" title="${benEnabled ? 'Désactiver' : 'Activer'}">
                                         <span class="sb-toggle-track"><span class="sb-toggle-thumb"></span></span>
                                     </button>
                                 </div>`;
-                        }
+                        });
                         if (isCamActive || currentView === 'home') {
                             html += `
                             <div class="sb-add-benefit" data-add-benefit-cam="${escapeHtml(cam.id)}" style="--sb-loc-color:${locColor};">
@@ -3468,7 +4100,7 @@
                     }
                     return;
                 }
-                /* Toggle Bénéfice */
+                /* Toggle Bénéfice (sidebar = bouton sb-benefit-toggle) */
                 const toggleBenBtn = e.target?.closest?.('[data-toggle-benefit]');
                 if (toggleBenBtn) {
                     e.preventDefault();
@@ -3476,12 +4108,13 @@
                     const camId = toggleBenBtn.getAttribute('data-toggle-benefit') || '';
                     const benId = toggleBenBtn.getAttribute('data-benefit-id') || '';
                     const found = getCameraAndSiteById(camId);
-                    if (found && found.cam && Array.isArray(found.cam.benefits)) {
-                        const ben = found.cam.benefits.find(b => b.id === benId);
+                    if (found?.cam && Array.isArray(found.cam.benefits)) {
+                        const ben = found.cam.benefits.find((b, i) => (b.id || `idx-${i}`) === benId);
                         if (ben) {
-                            ben.enabled = ben.enabled === false;
-                            const idx = (sitesCache || []).findIndex(s => s.name === found.site.name);
+                            ben.enabled = !ben.enabled;
+                            const idx = (sitesCache || []).findIndex((s) => s.name === found.site.name);
                             if (idx >= 0) sitesCache[idx].cameras = found.site.cameras;
+                            renderTrackerBenefitsOverview();
                             renderSitesSidebar();
                             drawExistingZones();
                         }
@@ -3495,13 +4128,8 @@
                     e.stopPropagation();
                     const camId = addBenEl.getAttribute('data-add-benefit-cam') || '';
                     if (camId) {
-                        const found = getCameraAndSiteById(camId);
-                        if (found) {
-                            await selectSiteByName(found.site.name);
-                            selectCamera(camId);
-                            setView('tracker');
-                            await openBenefitConfig(camId);
-                        }
+                        await navigateToCameraFromSidebar(camId);
+                        await openBenefitConfig(camId);
                     }
                     return;
                 }
@@ -3512,8 +4140,10 @@
                     e.stopPropagation();
                     const zoneName = zoneEl.getAttribute('data-select-zone') || '';
                     const cameraId = zoneEl.getAttribute('data-select-camera') || '';
-                    if (cameraId && cameraId !== currentCameraId) selectCamera(cameraId);
-                    if (zoneName) window.selectZone?.(zoneName);
+                    const benefitId = zoneEl.getAttribute('data-select-benefit') || '';
+                    if (cameraId) await navigateToCameraFromSidebar(cameraId);
+                    if (benefitId && cameraId) selectBenefit(benefitId, cameraId);
+                    else if (zoneName) window.selectZone?.(zoneName);
                     return;
                 }
                 /* Camera click */
@@ -3526,19 +4156,22 @@
                         const row = camEl.closest('.sb-item--cam');
                         const children = row?.nextElementSibling;
                         const currentlyCollapsed = sidebarCamerasCollapsed[camId] !== false;
-                        // Au 1er clic: ouvre la caméra et déplie ses bénéfices.
-                            // 1er clic: on déplie la caméra
-                        } else {
-                            // Caméra déjà ouverte: on ouvre la vue caméra (Tracker)
-                            selectCamera(camId);
-                            if (currentView !== 'tracker') setView('tracker');
-                        if (currentlyCollapsed) {
+                        const isSelected = camId === currentCameraId;
+                        if (isSelected && !currentlyCollapsed) {
+                            // Re-clic sur la caméra sélectionnée déjà dépliée => replier
+                            sidebarCamerasCollapsed[camId] = true;
+                            animateTreeChildren(children, false);
+                            row?.classList.remove('is-open');
+                        } else if (currentlyCollapsed) {
+                            // Déplier puis naviguer
                             sidebarCamerasCollapsed[camId] = false;
                             animateTreeChildren(children, true);
                             row?.classList.add('is-open');
+                            await navigateToCameraFromSidebar(camId);
+                        } else {
+                            // Déjà dépliée, pas sélectionnée => naviguer
+                            await navigateToCameraFromSidebar(camId);
                         }
-                        selectCamera(camId);
-                        if (currentView !== 'tracker') setView('tracker');
                     }
                     return;
                 }
@@ -3551,12 +4184,32 @@
                     if (name) {
                         const row = siteEl.closest('.sb-item--site');
                         const children = row?.nextElementSibling;
-                        // Site = uniquement déplier/replier son contenu
                         const currentlyCollapsed = sidebarSitesCollapsed[name] !== false;
-                        const nextCollapsed = !currentlyCollapsed;
-                        sidebarSitesCollapsed[name] = nextCollapsed;
-                        animateTreeChildren(children, !nextCollapsed);
-                        row?.classList.toggle('is-open', !nextCollapsed);
+                        const isSelected = currentSite?.name === name;
+                        if (isSelected && !currentlyCollapsed) {
+                            // Re-clic sur le site sélectionné déjà déplié => replier
+                            sidebarSitesCollapsed[name] = true;
+                            if (row?.parentElement) {
+                                const cams = (sitesCache || []).find(s => s.name === name)?.cameras || [];
+                                for (const cam of cams) sidebarCamerasCollapsed[cam.id] = true;
+                            }
+                            animateTreeChildren(children, false);
+                            row?.classList.remove('is-open');
+                        } else if (currentlyCollapsed) {
+                            // Déplier le site
+                            sidebarSitesCollapsed[name] = false;
+                            const site = (sitesCache || []).find(s => s.name === name);
+                            const cams = site?.cameras || [];
+                            for (const cam of cams) sidebarCamerasCollapsed[cam.id] = true;
+                            currentCameraId = cams.length === 1 ? cams[0].id : null;
+                            animateTreeChildren(children, true);
+                            row?.classList.add('is-open');
+                            setTimeout(() => renderSitesSidebar(), TREE_ANIM_MS + 20);
+                        } else {
+                            // Site déjà ouvert (sélectionné ou non) => naviguer (sauf si on vient de replier)
+                            await selectSiteByName(name, { autoSelectFirstCamera: false });
+                            if (currentView !== 'tracker') setView('tracker');
+                        }
                     }
                     return;
                 }
@@ -3639,6 +4292,24 @@
             }
             await loadZones();
             updateSteps();
+        }
+
+        async function navigateToCameraFromSidebar(camId, siteName = '') {
+            if (!camId) return;
+            const targetSiteName = String(siteName || '').trim();
+            let found = null;
+            if (targetSiteName) {
+                const site = (sitesCache || []).find(s => s.name === targetSiteName);
+                const cam = (site?.cameras || []).find(c => c.id === camId);
+                if (site && cam) found = { site, cam };
+            }
+            if (!found) found = getCameraAndSiteById(camId);
+            if (!found?.site) return;
+            if (currentSite?.name !== found.site.name) {
+                await selectSiteByName(found.site.name, { autoSelectFirstCamera: false });
+            }
+            selectCamera(camId);
+            if (currentView !== 'tracker') setView('tracker');
         }
 
         // ==================== Performance Monitor Chart ====================
@@ -3789,14 +4460,6 @@
         let _logCurrentFilter = '';
         let _logLastHash = '';  // avoid DOM thrashing on unchanged data
 
-        function formatLogTimestamp(isoStr) {
-            try {
-                const d = new Date(isoStr);
-                const pad = (n) => String(n).padStart(2, '0');
-                return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-            } catch { return isoStr; }
-        }
-
         async function loadLogs() {
             const consoleInner = document.getElementById('logConsoleInner');
             const logCount = document.getElementById('logCount');
@@ -3880,6 +4543,8 @@
         init();
 
         async function init() {
+            // Charger skills/catégories depuis le back (fallback config par défaut si indispo)
+            if (window.skillsAdapter) await window.skillsAdapter.load();
             // Important: récupérer d'abord les streams, puis construire l'UI (évite les resets)
             ensureBenefitsOnCameras();
             await updateActiveStreams();
@@ -3988,22 +4653,14 @@
             // Add camera (site)
             function switchCamSourceTab(sourceType) {
                 currentCamSourceType = sourceType;
-                // Update tabs
+                stopAddCamPreview();
                 camSourceTabs.forEach(tab => {
-                    if (tab.dataset.source === sourceType) {
-                        tab.classList.add('active');
-                    } else {
-                        tab.classList.remove('active');
-                    }
+                    tab.classList.toggle('active', tab.dataset.source === sourceType);
                 });
-                // Update panels
                 camSourcePanels.forEach(panel => {
-                    if (panel.dataset.source === sourceType) {
-                        panel.classList.remove('hidden');
-                    } else {
-                        panel.classList.add('hidden');
-                    }
+                    panel.classList.toggle('hidden', panel.dataset.source !== sourceType);
                 });
+                updateAddCamPreview();
             }
 
             async function detectWebcams() {
@@ -4048,7 +4705,7 @@
                     uiAlert(`Erreur: ${e.message}`, 'Test RTSP');
                     if (testRtspBtn) testRtspBtn.textContent = '\u2717';
                 }
-                setTimeout(() => { if (testRtspBtn) testRtspBtn.textContent = '\u2713'; }, 2000);
+                setTimeout(() => { if (testRtspBtn) testRtspBtn.textContent = 'Test'; }, 2000);
             }
 
             async function scanOnvifCameras() {
@@ -4074,12 +4731,51 @@
                 }
             }
 
-            function openAddCameraForm() {
-                if (!addCameraForm) return;
-                addCameraForm.classList.remove('hidden');
-                // Reset to video tab
+            const addCamPreviewImg = document.getElementById('addCamPreviewImg');
+            const addCamPreviewVideo = document.getElementById('addCamPreviewVideo');
+            const addCamPreviewPlaceholder = document.getElementById('addCamPreviewPlaceholder');
+            let addCamPreviewStream = null;
+
+            function updateAddCamPreview() {
+                if (!addCamPreviewImg || !addCamPreviewVideo || !addCamPreviewPlaceholder) return;
+                addCamPreviewImg.style.display = 'none';
+                addCamPreviewVideo.style.display = 'none';
+                addCamPreviewPlaceholder.style.display = 'flex';
+                if (currentCamSourceType === 'video') {
+                    const video = (newCamVideo?.value || '').trim();
+                    if (video && !video.startsWith('camera:')) {
+                        addCamPreviewImg.src = `/api/videos/${encodeURIComponent(video)}/frame?t=${Date.now()}`;
+                        addCamPreviewImg.style.display = 'block';
+                        addCamPreviewPlaceholder.style.display = 'none';
+                    }
+                } else if (currentCamSourceType === 'webcam') {
+                    const deviceId = newCamWebcam?.value;
+                    if (deviceId) {
+                        navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: deviceId } } })
+                            .then((stream) => {
+                                if (addCamPreviewStream) addCamPreviewStream.getTracks().forEach((t) => t.stop());
+                                addCamPreviewStream = stream;
+                                addCamPreviewVideo.srcObject = stream;
+                                addCamPreviewVideo.style.display = 'block';
+                                addCamPreviewPlaceholder.style.display = 'none';
+                            })
+                            .catch(() => {});
+                    }
+                }
+            }
+
+            function stopAddCamPreview() {
+                if (addCamPreviewStream) {
+                    addCamPreviewStream.getTracks().forEach((t) => t.stop());
+                    addCamPreviewStream = null;
+                }
+                if (addCamPreviewVideo) addCamPreviewVideo.srcObject = null;
+            }
+
+            function openAddCameraModal() {
+                if (!addCameraModal) return;
+                addCameraModal.classList.remove('hidden');
                 switchCamSourceTab('video');
-                // populate videos
                 if (newCamVideo) {
                     newCamVideo.innerHTML = '';
                     (availableVideosList || []).forEach((v) => {
@@ -4087,18 +4783,18 @@
                         newCamVideo.innerHTML += `<option value="${escapeHtml(v)}" title="${escapeHtml(v)}">${escapeHtml(displayName)}</option>`;
                     });
                 }
-                // Auto-detect webcams when opening form
                 detectWebcams();
+                updateAddCamPreview();
                 newCamName?.focus();
             }
-            function closeAddCameraForm() {
-                addCameraForm?.classList.add('hidden');
+            function closeAddCameraModal() {
+                addCameraModal?.classList.add('hidden');
+                stopAddCamPreview();
                 if (newCamName) newCamName.value = '';
                 if (newCamHint) newCamHint.value = '';
                 if (newCamRtspUrl) newCamRtspUrl.value = '';
-                // Reset upload state - use form.reset() which properly clears file inputs
                 if (uploadVideoForm) uploadVideoForm.reset();
-                if (uploadVideoLabelText) uploadVideoLabelText.textContent = 'Choisir un fichier';
+                if (uploadVideoLabelText) uploadVideoLabelText.textContent = 'Upload';
                 if (uploadProgress) uploadProgress.textContent = '';
                 if (onvifScanStatus) onvifScanStatus.textContent = '';
             }
@@ -4216,13 +4912,20 @@
             addCameraBtn?.addEventListener('click', () => {
                 if (currentView !== 'tracker') return;
                 // Toggle: if already open, close it
-                if (addCameraForm && !addCameraForm.classList.contains('hidden')) {
-                    closeAddCameraForm();
+                if (addCameraModal && !addCameraModal.classList.contains('hidden')) {
+                    closeAddCameraModal();
                 } else {
-                    openAddCameraForm();
+                    openAddCameraModal();
                 }
             });
-            cancelCamBtn?.addEventListener('click', closeAddCameraForm);
+            cancelCamBtn?.addEventListener('click', closeAddCameraModal);
+            document.getElementById('addCameraModalClose')?.addEventListener('click', closeAddCameraModal);
+            addCameraModal?.addEventListener('click', (e) => {
+                if (e.target === addCameraModal) closeAddCameraModal();
+            });
+
+            newCamVideo?.addEventListener('change', updateAddCamPreview);
+            newCamWebcam?.addEventListener('change', updateAddCamPreview);
 
             // Camera source tab switching
             camSourceTabs.forEach(tab => {
@@ -4293,7 +4996,7 @@
                     cams.push(camData);
                     saveCurrentSiteCameras(cams);
                     loadSites();
-                    closeAddCameraForm();
+                    closeAddCameraModal();
                     await loadVideos();
                     if (!currentVideo && !currentCameraId) selectCamera(id);
                     await loadZones();
@@ -4366,7 +5069,7 @@
                 const name = decodeURIComponent(key);
                 selectSiteByName(name);
             });
-            zoneListSidebar?.addEventListener('click', (e) => {
+            zoneListSidebar?.addEventListener('click', async (e) => {
                 // Le tree "Explorer" est piloté par zoneListSidebar.onclick dans renderSitesSidebar.
                 // Si ce handler principal existe, on évite les doubles traitements ici.
                 if (typeof zoneListSidebar?.onclick === 'function') return;
@@ -4388,7 +5091,7 @@
                     e.stopPropagation();
                     const zoneName = zoneEl.getAttribute('data-select-zone') || '';
                     const cameraId = zoneEl.getAttribute('data-select-camera') || '';
-                    if (cameraId && cameraId !== currentCameraId) selectCamera(cameraId);
+                    if (cameraId) await navigateToCameraFromSidebar(cameraId);
                     if (zoneName) window.selectZone(zoneName);
                     return;
                 }
@@ -4410,33 +5113,60 @@
                     e.preventDefault();
                     e.stopPropagation();
                     const cameraId = cameraEl.getAttribute('data-select-camera') || '';
-                    if (cameraId) selectCamera(cameraId);
+                    if (cameraId) await navigateToCameraFromSidebar(cameraId);
                     return;
                 }
             });
             
-            // Gestionnaire pour les caméras dans le panneau caméras
+            // Gestionnaire pour les caméras dans le panneau Source
             if (cameraGrid) {
                 cameraGrid.addEventListener('click', (e) => {
+                    const menuBtn = e.target?.closest?.('.source-tile-menu-btn');
+                    if (menuBtn) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const wrap = menuBtn.closest('.source-tile-menu-wrap');
+                        const wasOpen = wrap?.classList.contains('is-open');
+                        document.querySelectorAll('.source-tile-menu-wrap.is-open').forEach(w => w.classList.remove('is-open'));
+                        if (!wasOpen && wrap) wrap.classList.add('is-open');
+                        return;
+                    }
+
+                    const editBtn = e.target?.closest?.('[data-edit-camera]');
+                    if (editBtn) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const cameraId = editBtn.getAttribute('data-edit-camera') || '';
+                        editBtn.closest('.source-tile-menu-wrap')?.classList.remove('is-open');
+                        if (cameraId) editCamera(cameraId);
+                        return;
+                    }
+
                     const deleteBtn = e.target?.closest?.('[data-delete-camera]');
                     if (deleteBtn) {
                         e.preventDefault();
                         e.stopPropagation();
                         const cameraId = deleteBtn.getAttribute('data-delete-camera') || '';
+                        deleteBtn.closest('.source-tile-menu-wrap')?.classList.remove('is-open');
                         if (cameraId) deleteCamera(cameraId);
                         return;
                     }
 
-                    const selectEl = e.target?.closest?.('[data-select-camera]');
-                    if (selectEl) {
+                    const tile = e.target?.closest?.('.source-tile');
+                    if (tile && !e.target.closest('.source-tile-menu-wrap')) {
                         e.preventDefault();
                         e.stopPropagation();
-                        const cameraId = selectEl.getAttribute('data-select-camera') || '';
+                        document.querySelectorAll('.source-tile-menu-wrap.is-open').forEach(w => w.classList.remove('is-open'));
+                        const cameraId = tile.getAttribute('data-select-camera') || '';
                         if (cameraId) selectCamera(cameraId);
-                        return;
                     }
                 });
             }
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.source-tile-menu-wrap')) {
+                    document.querySelectorAll('.source-tile-menu-wrap.is-open').forEach(w => w.classList.remove('is-open'));
+                }
+            });
 
             // DEMO: always start on home; refresh resets sites to DEMO_SITES
             setView('home');
@@ -4545,6 +5275,49 @@
             return Array.isArray(cam.benefits) ? cam.benefits : [];
         }
 
+        /** Retourne les polygones d'un bénéfice (benefit.polygons ou zone backend si zoneName) */
+        function getBenefitPolygons(benefit, cachedZones) {
+            if (!benefit) return [];
+            const zoneName = benefit.zoneName || benefit.id;
+            if (zoneName && cachedZones && cachedZones[zoneName]?.polygons?.length) {
+                return cachedZones[zoneName].polygons;
+            }
+            return Array.isArray(benefit.polygons) ? benefit.polygons : [];
+        }
+
+        /** Bénéfice actuellement sélectionné pour filtrage canvas, ou null */
+        function getSelectedBenefit() {
+            if (!selectedBenefitId || !selectedBenefitCamId) return null;
+            const cam = getCameraById(selectedBenefitCamId);
+            if (!cam) return null;
+            const ben = (cam.benefits || []).find(b => String(b?.id || '') === String(selectedBenefitId));
+            return ben ? { benefit: ben, cam } : null;
+        }
+
+        function selectBenefit(benefitId, camId) {
+            if (selectedBenefitId === benefitId && selectedBenefitCamId === camId) {
+                clearSelectedBenefit();
+                return;
+            }
+            selectedBenefitId = benefitId || null;
+            selectedBenefitCamId = camId || null;
+            renderBenefitFilterPill();
+            drawExistingZones(true).then(() => {}).catch(() => {});
+            renderSitesSidebar();
+            renderTrackerBenefitsOverview?.();
+            renderRoiMeasurementsOverview?.(getCameraByVideo(currentVideo), getCameraBenefits(getCameraByVideo(currentVideo)));
+        }
+
+        function clearSelectedBenefit() {
+            selectedBenefitId = null;
+            selectedBenefitCamId = null;
+            renderBenefitFilterPill();
+            drawExistingZonesSync();
+            renderSitesSidebar();
+            renderTrackerBenefitsOverview?.();
+            renderRoiMeasurementsOverview?.(getCameraByVideo(currentVideo), getCameraBenefits(getCameraByVideo(currentVideo)));
+        }
+
         const BENEFIT_SUBCATEGORIES = {
             human: [
                 { id: 'silhouette', label: 'Silhouette', icon: '/static/assets_youn/SvIcons/SVGnew/Ysilhouette.svg' },
@@ -4555,13 +5328,16 @@
                 { id: 'voiture', label: 'Voiture', icon: '/static/assets_youn/SvIcons/SVGnew/Ycar.svg' },
                 { id: 'moto', label: 'Moto', icon: '/static/assets_youn/SvIcons/SVGnew/motorcycle.svg' },
                 { id: 'velo', label: 'Vélo', icon: '/static/assets_youn/SvIcons/SVGnew/Ybike.svg' },
-                { id: 'public_transport', label: 'Public transport', icon: '/static/assets_youn/SvIcons/SVGnew/public%20transport.svg' },
+                { id: 'public_transport', label: 'Public transport', icon: '/static/assets_youn/SvIcons/SVGnew/Ypublic%20transport.svg' },
                 { id: 'avion', label: 'Avion', icon: '/static/assets_youn/SvIcons/SVGnew/plane-svgrepo-com.svg' }
             ],
             defaut: [
-                { id: 'fissure', label: 'Fissure', icon: '/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg' },
+                { id: 'fissure', label: 'Fissure', icon: '/static/assets_youn/SvIcons/SVGnew/Yfissure.svg' },
                 { id: 'defaut', label: 'Défaut', icon: '/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg' },
-                { id: 'tache', label: 'Tache', icon: '/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg' }
+                { id: 'humidity', label: 'Humidity', icon: '/static/assets_youn/SvIcons/SVGnew/Yhumidity.svg' }
+            ],
+            encombrement: [
+                { id: 'zone_encombrée', label: 'Zone encombrée', icon: '/static/assets_youn/SvIcons/SVGnew/Yobstruction.svg' }
             ]
         };
 
@@ -4602,58 +5378,54 @@
 
             if (selected && available.has(selected)) videoSelect.value = selected;
 
-            // UI: 2 caméras fixes (simple & fiable)
+            // UI: tuiles sources (style cohérent avec Overview)
             cameraGrid.innerHTML = '';
             if (!cams || cams.length === 0) {
                 cameraGrid.innerHTML = `
-                    <div class="no-zones" style="grid-column: 1 / -1; text-align:left;">
+                    <div class="tracker-sources-empty">
                         Aucune caméra sur ce site. Cliquez sur <b>+</b> pour en ajouter une.
                     </div>
                 `;
                 return;
             }
-            cams.forEach((cam) => {
-                // Support both video files and backend cameras (webcam/rtsp)
+            const rows = cams.map((cam) => {
                 const isBackendCamera = cam.sourceType === 'webcam' || cam.sourceType === 'rtsp';
                 const sourceKey = isBackendCamera ? `camera:${cam.backendCameraId}` : cam.video;
-
                 const videoExists = isBackendCamera ? !!cam.backendCameraId : available.has(cam.video);
                 const isActive = activeVideoStreams.has(sourceKey);
                 const isCurrent = sourceKey === currentVideo;
 
                 let statusText = 'Prête';
+                let statusDot = 'ready';
                 if (!videoExists) {
                     statusText = 'Manquante';
+                    statusDot = 'missing';
                 } else if (isActive) {
                     statusText = 'En ligne';
+                    statusDot = 'online';
                 }
 
-                const sourceDisplayName = isBackendCamera
-                    ? `${cam.sourceType.toUpperCase()}`
-                    : truncateFilename(cam.video || '', 12);
+                const sourceTypeLabel = isBackendCamera ? cam.sourceType.toUpperCase() : 'VIDÉO';
+                const sourceDisplayName = isBackendCamera ? '' : truncateFilename(cam.video || '', 14);
 
-                cameraGrid.innerHTML += `
-                    <div class="camera-item ${isCurrent ? 'active' : ''}" data-camera="${cam.id}">
-                        <div class="camera-item-header">
-                            <div data-select-camera="${cam.id}" style="flex:1;cursor:pointer;">
-                                <div class="camera-item-name">${cam.name}</div>
-                                <div class="camera-item-status ${videoExists ? (isActive ? 'online' : 'offline') : 'offline'}">
-                                    <span class="camera-status-dot" style="width:6px;height:6px;border-radius:50%;background:currentColor;"></span>
-                                    <span class="camera-status-text">${statusText}</span>
-                                </div>
-                                <div style="margin-top: var(--space-2); font-size: var(--text-xs); color: var(--color-text-muted);">
-                                    ${(cam.hint || '')} • <span style="font-family: 'Courier New', monospace;" title="${escapeHtml(sourceKey || '')}">${escapeHtml(sourceDisplayName)}</span>
-                                </div>
-                            </div>
-                            <button class="camera-item-delete" data-delete-camera="${cam.id}" title="Supprimer cette caméra">
-                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                            </button>
+                return `
+                    <article class="source-tile ${isCurrent ? 'source-tile--selected' : ''}" data-camera="${escapeHtml(cam.id)}" data-select-camera="${escapeHtml(cam.id)}">
+                        <span class="source-tile-dot source-tile-dot--${statusDot}" title="${escapeHtml(statusText)}"></span>
+                        <div class="source-tile-body">
+                            <span class="source-tile-name" title="${escapeHtml(cam.name || cam.id)}">${escapeHtml((cam.name || cam.id).toUpperCase())}</span>
+                            <span class="source-tile-meta">${escapeHtml(sourceTypeLabel)}${sourceDisplayName ? ` · ${escapeHtml(sourceDisplayName)}` : ''}</span>
                         </div>
-                    </div>
+                        <div class="source-tile-menu-wrap">
+                            <button type="button" class="source-tile-menu-btn" title="Options">⋮</button>
+                            <div class="source-tile-menu-panel">
+                                <button type="button" class="source-tile-menu-item" data-edit-camera="${escapeHtml(cam.id)}">Modifier</button>
+                                <button type="button" class="source-tile-menu-item source-tile-menu-item--danger" data-delete-camera="${escapeHtml(cam.id)}">Supprimer</button>
+                            </div>
+                        </div>
+                    </article>
                 `;
-            });
+            }).join('');
+            cameraGrid.innerHTML = `<div class="tracker-sources-list">${rows}</div>`;
 
             ensureTrackerRightTabs();
             if (trackerSiteOverviewMode) renderSiteOverview();
@@ -4738,6 +5510,19 @@
 
             await loadVideos(); // This calls renderCameraGrid internally
             await loadZones();
+        }
+
+        function editCamera(cameraId) {
+            const cam = getCameraById(cameraId);
+            if (!cam) return;
+            const newName = prompt('Nouveau nom de la caméra', cam.name || cam.id || '');
+            if (newName === null) return;
+            const trimmed = String(newName || '').trim();
+            if (trimmed) {
+                cam.name = trimmed;
+                saveCurrentSiteCameras(currentSite?.cameras || []);
+                renderCameraGrid();
+            }
         }
 
         async function openDrawZones() {
@@ -4828,6 +5613,9 @@
             if (!currentVideo) {
                 const cams = getActiveCameras();
                 zonesGrid.innerHTML = '<div class="no-zones">Sélectionnez une vidéo</div>';
+                if (roiMeasurementsGrid) {
+                    roiMeasurementsGrid.innerHTML = '<div class="tracker-benefits-empty">Aucune carte ROI disponible.</div>';
+                }
                 // Important: garder l'arbre Explorer visible même sans caméra/vidéo sélectionnée.
                 renderSitesSidebar();
                 recapCameras.textContent = `${cams.length}`;
@@ -4906,6 +5694,12 @@
             recapActive.textContent = `${activeCount}`;
             recapActiveSub.textContent = isDetecting ? (stale ? 'Sync…' : 'Zones occupées') : (videoHasRunByVideo[currentVideo] ? 'Détection en pause' : 'Lancez la détection');
 
+            if (trackerRightTab === 'overview') {
+                renderTrackerBenefitsOverview();
+                renderSitesSidebar();
+                return;
+            }
+
             if (Object.keys(zonesWithPolygons).length === 0) {
                 zonesGrid.innerHTML = '<div class="no-zones">Aucune zone définie pour cette vidéo</div>';
                 updateDrawPanelZones(zonesWithPolygons);
@@ -4961,9 +5755,12 @@
                 const zoneMode = zoneSettings[name]?.mode || 'simple';
                 const isCountingZone = cs.zone_name === name && cs.enabled;
                 const countVal = isCountingZone ? (cs.count || 0) : null;
+                const camForBenefit = getCameraByVideo(currentVideo);
+                const linkedBenefit = camForBenefit?.benefits?.find(b => (b.zoneName || b.id) === name);
+                const benefitAttrs = linkedBenefit && camForBenefit ? ` data-select-benefit="${escapeHtml(linkedBenefit.id || '')}" data-select-cam="${escapeHtml(camForBenefit.id || '')}"` : '';
 
                 zonesGrid.innerHTML += `
-                    <div class="zone-card ${isSelected ? 'selected' : ''} ${isPreviewsCollapsed ? 'is-previews-collapsed' : ''}" data-zone="${encodeURIComponent(String(name))}">
+                    <div class="zone-card ${isSelected ? 'selected' : ''} ${isPreviewsCollapsed ? 'is-previews-collapsed' : ''}" data-zone="${encodeURIComponent(String(name))}"${benefitAttrs}>
                         <div class="zone-card-header">
                             <div>
                                 <div class="zone-name-pill">${name}${isCountingZone ? ' <span style="color:var(--color-accent);font-size:0.75em;">&#x25B6; Comptage</span>' : ''}</div>
@@ -5198,10 +5995,79 @@
             } catch {}
         }
 
+        // Délégation sur benefitsPanel pour [data-create-benefit] (bouton + dans le header ou inline)
+        benefitsPanel?.addEventListener('click', (e) => {
+            const createBenefitBtn = e.target?.closest?.('[data-create-benefit]');
+            if (createBenefitBtn && createBenefitBtn.getAttribute('data-create-benefit')) {
+                e.preventDefault();
+                e.stopPropagation();
+                openBenefitConfig(createBenefitBtn.getAttribute('data-create-benefit') || '');
+                return;
+            }
+        });
+
+        // Change sur le toggle bénéfice : mise à jour de l'état sans re-render (pour garder l'animation)
+        zonesGrid?.addEventListener('change', (e) => {
+            const cb = e.target;
+            if (!(cb instanceof HTMLInputElement) || !cb.classList.contains('ben-toggle__input')) return;
+            const toggleBenBtn = cb.closest('[data-toggle-benefit]');
+            if (!toggleBenBtn || !toggleBenBtn.closest('.benefit-row')) return;
+            const camId = toggleBenBtn.getAttribute('data-toggle-benefit') || '';
+            const benId = toggleBenBtn.getAttribute('data-benefit-id') || '';
+            const found = getCameraAndSiteById(camId);
+            if (found?.cam && Array.isArray(found.cam.benefits)) {
+                const ben = found.cam.benefits.find((b, i) => (b.id || `idx-${i}`) === benId);
+                if (ben) {
+                    ben.enabled = cb.checked;
+                    const idx = (sitesCache || []).findIndex((s) => s.name === found.site.name);
+                    if (idx >= 0) sitesCache[idx].cameras = found.site.cameras;
+                    renderSitesSidebar();
+                    drawExistingZones();
+                }
+            }
+        });
+
         // Click sur les cartes de la section "Présences" => surbrillance / sélection (reuse des mêmes fonctions que la sidebar)
         zonesGrid?.addEventListener('click', (e) => {
             const t = e.target;
             if (!(t instanceof Element)) return;
+
+            const createBenefitBtn = t.closest('[data-create-benefit]');
+            if (createBenefitBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                const camId = createBenefitBtn.getAttribute('data-create-benefit') || '';
+                if (camId) openBenefitConfig(camId);
+                return;
+            }
+            const editBenefitBtn = t.closest('[data-edit-benefit]');
+            if (editBenefitBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                const camId = editBenefitBtn.getAttribute('data-cam-id') || currentCameraId || '';
+                const benefitId = editBenefitBtn.getAttribute('data-edit-benefit') || '';
+                if (camId) openBenefitConfigForEdit(camId, benefitId);
+                return;
+            }
+            const toggleBenBtn = t.closest('[data-toggle-benefit]');
+            if (toggleBenBtn && t.closest('.benefit-row')) {
+                e.stopPropagation(); // empêche la sélection du benefit tile, mais pas preventDefault pour garder l'animation
+                return;
+            }
+
+            const benefitTile = t.closest('.benefit-row[data-benefit-id]');
+            if (benefitTile) {
+                e.preventDefault();
+                e.stopPropagation();
+                const benefitId = benefitTile.getAttribute('data-benefit-id') || '';
+                const camId = currentCameraId || getCameraByVideo(currentVideo)?.id || '';
+                if (t.closest('[data-edit-benefit]')) {
+                    if (camId && benefitId) openBenefitConfigForEdit(camId, benefitId);
+                } else {
+                    if (camId && benefitId) selectBenefit(benefitId, camId);
+                }
+                return;
+            }
             
             // Gestion des boutons reset (priorité haute)
             const resetBtn = t.closest('[data-reset-zone]');
@@ -5256,10 +6122,112 @@
             if (card) {
                 e.preventDefault();
                 e.stopPropagation();
+                const benefitId = card.getAttribute('data-select-benefit') || '';
+                const camId = card.getAttribute('data-select-cam') || '';
                 const z = decodeURIComponent(card.getAttribute('data-zone') || '');
-                if (z) window.selectZone(z);
+                if (benefitId && camId) selectBenefit(benefitId, camId);
+                else if (z) window.selectZone(z);
                 return;
             }
+        });
+
+        function closeAllRoiCardMenus() {
+            document.querySelectorAll('.roi-card-menu-wrap.is-open').forEach((w) => w.classList.remove('is-open'));
+        }
+        roiMeasurementsPanel?.addEventListener('click', async (e) => {
+            const t = e.target;
+            if (!(t instanceof Element)) return;
+            const roiCard = t.closest('.roi-measure-card[data-select-benefit]');
+            if (roiCard && !t.closest('.roi-card-menu-wrap')) {
+                e.preventDefault();
+                e.stopPropagation();
+                const benefitId = roiCard.getAttribute('data-select-benefit') || '';
+                const camId = roiCard.getAttribute('data-select-cam') || '';
+                if (benefitId && camId) {
+                    await navigateToCameraFromSidebar(camId);
+                    selectBenefit(benefitId, camId);
+                }
+                return;
+            }
+            const menuBtn = t.closest('.roi-card-menu-btn');
+            if (menuBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                const wrap = menuBtn.closest('.roi-card-menu-wrap');
+                if (wrap) {
+                    closeAllRoiCardMenus();
+                    wrap.classList.toggle('is-open');
+                }
+                return;
+            }
+            const createBenefitBtn = t.closest('[data-create-benefit]');
+            if (createBenefitBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeAllRoiCardMenus();
+                const camId = createBenefitBtn.getAttribute('data-create-benefit') || '';
+                if (camId) openBenefitConfig(camId);
+                return;
+            }
+            const editBenefitBtn = t.closest('[data-edit-benefit]');
+            if (editBenefitBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeAllRoiCardMenus();
+                const camId = editBenefitBtn.getAttribute('data-cam-id') || currentCameraId || '';
+                const benefitId = editBenefitBtn.getAttribute('data-edit-benefit') || '';
+                if (camId) openBenefitConfigForEdit(camId, benefitId);
+                return;
+            }
+            const deleteBenefitBtn = t.closest('[data-delete-benefit]');
+            if (deleteBenefitBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeAllRoiCardMenus();
+                const camId = deleteBenefitBtn.getAttribute('data-cam-id') || currentCameraId || '';
+                const benefitId = deleteBenefitBtn.getAttribute('data-delete-benefit') || '';
+                const cam = getCameraById(camId);
+                if (cam && currentSite && benefitId) {
+                    const idx = (cam.benefits || []).findIndex((b) => String(b.id || '') === String(benefitId));
+                    if (idx >= 0) {
+                        cam.benefits.splice(idx, 1);
+                        saveCurrentSiteCameras(currentSite.cameras);
+                        renderTrackerBenefitsOverview();
+                    }
+                }
+                return;
+            }
+            const duplicateBenefitBtn = t.closest('[data-duplicate-benefit]');
+            if (duplicateBenefitBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeAllRoiCardMenus();
+                const camId = duplicateBenefitBtn.getAttribute('data-cam-id') || currentCameraId || '';
+                const benefitId = duplicateBenefitBtn.getAttribute('data-duplicate-benefit') || '';
+                const cam = getCameraById(camId);
+                if (cam && currentSite) {
+                    const src = (cam.benefits || []).find((b) => String(b.id || '') === String(benefitId));
+                    if (src) {
+                        const copy = JSON.parse(JSON.stringify(src));
+                        copy.id = 'ben-' + Date.now();
+                        copy.name = (src.name || 'Bénéfice') + ' (copie)';
+                        if (!cam.benefits) cam.benefits = [];
+                        cam.benefits.push(copy);
+                        saveCurrentSiteCameras(currentSite.cameras);
+                        openBenefitConfigForEdit(camId, copy.id);
+                    }
+                }
+                return;
+            }
+            const paramsBenefitBtn = t.closest('[data-params-benefit]');
+            if (paramsBenefitBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeAllRoiCardMenus();
+            }
+        });
+        document.addEventListener('click', (e) => {
+            if (!e.target?.closest?.('.roi-card-menu-wrap')) closeAllRoiCardMenus();
         });
 
         function updateSteps() {
@@ -5844,6 +6812,61 @@
         function drawExistingZonesSync() {
             ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
 
+            const selBenefit = getSelectedBenefit();
+            const drawFromBenefit = selBenefit && selBenefit.cam?.video === currentVideo;
+
+            if (selectedBenefitId === null) {
+                return;
+            }
+            if (drawFromBenefit) {
+                const polygons = getBenefitPolygons(selBenefit.benefit, cachedZones);
+                const benName = String(selBenefit.benefit.name || selBenefit.benefit.id || 'Bénéfice');
+                const benColor = getBenefitColor(selBenefit.benefit);
+                let fillColor = benColor;
+                if (benColor.startsWith('#')) {
+                    const r = parseInt(benColor.slice(1, 3), 16), g = parseInt(benColor.slice(3, 5), 16), b = parseInt(benColor.slice(5, 7), 16);
+                    fillColor = `rgba(${r},${g},${b},0.25)`;
+                } else if (benColor.startsWith('rgb(')) {
+                    fillColor = benColor.replace('rgb', 'rgba').replace(')', ', 0.25)');
+                }
+                const c = { fill: fillColor, stroke: benColor };
+                for (let idx = 0; idx < polygons.length; idx++) {
+                    const polygon = polygons[idx];
+                    if (!polygon || polygon.length < 3) continue;
+                    const isLine = polygon.length === 4 && benefitFormeFromSkill?.(selBenefit.benefit.skill) === 'ligne';
+                    if (isLine) {
+                        const a = [(polygon[0][0] + polygon[1][0]) / 2, (polygon[0][1] + polygon[1][1]) / 2];
+                        const b = [(polygon[2][0] + polygon[3][0]) / 2, (polygon[2][1] + polygon[3][1]) / 2];
+                        ctx.beginPath();
+                        ctx.moveTo(polygon[0][0], polygon[0][1]);
+                        for (let i = 1; i < polygon.length; i++) ctx.lineTo(polygon[i][0], polygon[i][1]);
+                        ctx.closePath();
+                        ctx.fillStyle = fillColor.replace(/[\d.]+\)$/, '0.08)');
+                        ctx.fill();
+                        ctx.strokeStyle = c.stroke;
+                        ctx.lineWidth = 2.5;
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(a[0], a[1]);
+                        ctx.lineTo(b[0], b[1]);
+                        ctx.strokeStyle = c.stroke;
+                        ctx.lineWidth = 3.5;
+                        ctx.stroke();
+                    } else {
+                        ctx.beginPath();
+                        ctx.moveTo(polygon[0][0], polygon[0][1]);
+                        for (let i = 1; i < polygon.length; i++) ctx.lineTo(polygon[i][0], polygon[i][1]);
+                        ctx.closePath();
+                        ctx.fillStyle = c.fill;
+                        ctx.fill();
+                        ctx.strokeStyle = c.stroke;
+                        ctx.lineWidth = 4;
+                        ctx.stroke();
+                    }
+                }
+                return;
+            }
+
             for (const [name, zone] of Object.entries(cachedZones)) {
                 if (isBenefitZoneDisabled(name)) continue;
                 const polygons = zone.polygons || [];
@@ -5865,18 +6888,24 @@
                     const type = getDrawType(currentVideo, name, idx);
                     const c = colorsForType(type, (isSelectedDrawing || isSelectedZone));
                     if (type === 'line' && polygon.length === 4) {
-                        // Le backend stocke une ligne comme un quadrilatère fin: on la rend comme une vraie ligne + flèche
                         const a = [(polygon[0][0] + polygon[1][0]) / 2, (polygon[0][1] + polygon[1][1]) / 2];
                         const b = [(polygon[2][0] + polygon[3][0]) / 2, (polygon[2][1] + polygon[3][1]) / 2];
+                        ctx.beginPath();
+                        ctx.moveTo(polygon[0][0], polygon[0][1]);
+                        for (let i = 1; i < polygon.length; i++) ctx.lineTo(polygon[i][0], polygon[i][1]);
+                        ctx.closePath();
+                        ctx.fillStyle = c.fill.replace(/[\d.]+\)$/, '0.06)');
+                        ctx.fill();
+                        ctx.strokeStyle = c.stroke;
+                        ctx.lineWidth = 2.5;
+                        ctx.stroke();
                         ctx.beginPath();
                         ctx.moveTo(a[0], a[1]);
                         ctx.lineTo(b[0], b[1]);
                         ctx.strokeStyle = c.stroke;
-                        ctx.lineWidth = isSelectedDrawing ? 4 : (isSelectedZone ? 3 : 2);
+                        ctx.lineWidth = isSelectedDrawing ? 4 : (isSelectedZone ? 3.5 : 3);
                         ctx.setLineDash([]);
                         ctx.stroke();
-
-                        // Flèche de sens (UI normale): visible, sans poignée
                         const meta = getLineMeta(currentVideo, name, idx);
                         const arrow = computeLineArrowFromMeta(meta, polygon);
                         if (arrow?.mid && arrow?.end) {
@@ -5893,14 +6922,9 @@
                         ctx.fillStyle = c.fill;
                         ctx.fill();
                         ctx.strokeStyle = c.stroke;
-                        ctx.lineWidth = isSelectedDrawing ? 4 : (isSelectedZone ? 3 : 2);
+                        ctx.lineWidth = isSelectedDrawing ? 5 : (isSelectedZone ? 4 : 3);
                         ctx.stroke();
                     }
-
-                    ctx.fillStyle = '#fff';
-                    ctx.font = 'bold 14px Manrope, system-ui';
-                    const label = isSelectedDrawing ? `${name} • ${type.toUpperCase()} ${idx + 1}` : name;
-                    ctx.fillText(label, polygon[0][0] + 5, polygon[0][1] - 8);
                 }
             }
         }
@@ -5947,6 +6971,34 @@
 
                 // backend: appels explicites (plus fiable que dépendre du GET /api/stream/*)
                 if (desiredOn) {
+                    // Sync zones des benefits detection vers le backend avant start
+                    const cam = getCameraByVideo(currentVideo);
+                    if (!zonesCacheByVideo[currentVideo]) zonesCacheByVideo[currentVideo] = {};
+                    const cached = zonesCacheByVideo[currentVideo];
+                    if (cam && Array.isArray(cam.benefits)) {
+                        for (const b of cam.benefits) {
+                            if (b.skill !== 'detection') continue;
+                            const zoneName = b.zoneName || b.id;
+                            if (!zoneName) continue;
+                            const polys = getBenefitPolygons(b, cached);
+                            if (!polys || !polys.length) continue;
+                            try {
+                                const exists = !!cached[zoneName];
+                                if (exists) {
+                                    await fetch(`/api/zones/${encodeURIComponent(currentVideo)}/${encodeURIComponent(zoneName)}`, {
+                                        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ polygons: polys })
+                                    });
+                                } else {
+                                    await fetch('/api/zones', {
+                                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ name: zoneName, polygons: polys, video: currentVideo })
+                                    });
+                                    cached[zoneName] = { polygons: polys };
+                                }
+                            } catch (_) {}
+                        }
+                    }
                     await fetch(`/api/stream/${encodeURIComponent(currentVideo)}/start`, { method: 'POST' });
                     presenceOkTsByVideo[currentVideo] = 0;
                     markVideoRunStart(currentVideo);
@@ -6047,23 +7099,49 @@
             }
         }
 
+        const settingsBlurToggle = document.getElementById('settingsBlurToggle');
         async function updateBlurButton() {
-            if (!toggleBlurBtn) return;
             const res = await fetch('/api/blur');
             const data = await res.json();
-            if (data.enabled) {
-                toggleBlurBtn.classList.add('is-on', 'btn-blur-on');
-                toggleBlurBtn.title = 'Floutage: ON';
-            } else {
-                toggleBlurBtn.classList.remove('is-on', 'btn-blur-on');
-                toggleBlurBtn.title = 'Floutage';
+            const enabled = !!data.enabled;
+            if (toggleBlurBtn) {
+                if (enabled) {
+                    toggleBlurBtn.classList.add('is-on', 'btn-blur-on');
+                    toggleBlurBtn.title = 'Floutage: ON';
+                } else {
+                    toggleBlurBtn.classList.remove('is-on', 'btn-blur-on');
+                    toggleBlurBtn.title = 'Floutage';
+                }
+            }
+            if (settingsBlurToggle && settingsBlurToggle instanceof HTMLInputElement) {
+                settingsBlurToggle.checked = enabled;
+                settingsBlurToggle.title = enabled ? 'Floutage: ON' : 'Floutage: OFF';
             }
         }
 
-        toggleBlurBtn.addEventListener('click', async () => {
+        toggleBlurBtn?.addEventListener('click', async () => {
             await fetch('/api/blur/toggle', { method: 'POST' });
             await updateBlurButton();
         });
+        settingsBlurToggle?.addEventListener('change', async () => {
+            await fetch('/api/blur/toggle', { method: 'POST' });
+            await updateBlurButton();
+        });
+
+        const settingsAnonymizeToggle = document.getElementById('settingsAnonymizeToggle');
+        function updateAnonymizeToggle() {
+            const enabled = localStorage.getItem('trackerAnonymizeSite') === '1';
+            if (settingsAnonymizeToggle && settingsAnonymizeToggle instanceof HTMLInputElement) {
+                settingsAnonymizeToggle.checked = enabled;
+                settingsAnonymizeToggle.title = enabled ? 'Anonymisation: ON' : 'Anonymisation: OFF';
+            }
+        }
+        settingsAnonymizeToggle?.addEventListener('change', () => {
+            const next = localStorage.getItem('trackerAnonymizeSite') !== '1';
+            localStorage.setItem('trackerAnonymizeSite', next ? '1' : '0');
+            updateAnonymizeToggle();
+        });
+        updateAnonymizeToggle();
 
         updateBlurButton();
 

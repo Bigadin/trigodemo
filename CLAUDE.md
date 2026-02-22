@@ -116,6 +116,31 @@ YOLO_CONFIDENCE = 0.45         # Detection confidence threshold
 5. **Wall-clock Timing:** Presence accumulation based on real elapsed time, not frame counts.
 6. **MOG2 Background Learning:** Counting module learns background for N frames, then freezes the model (`learningRate=0`).
 
+## Icônes SVG (synchronisation systématique)
+
+**Dossier source des icônes :** `static/assets_youn/SvIcons/SVGnew/`
+
+Toutes les références d’icônes dans `index.js` doivent pointer vers des fichiers présents dans ce dossier. Lors de l’ajout ou du renommage d’icônes :
+
+1. **Vérifier la présence des fichiers** dans `static/assets_youn/SvIcons/SVGnew/`
+2. **Mettre à jour les chemins** dans `getBenefitSkillGroups()`, `getBenefitCategoryGroupsBySkill()` et `BENEFIT_SUBCATEGORIES`
+3. **Fichiers avec espaces** : utiliser l’encodage URL (`Ypublic%20transport.svg`)
+4. **Incrémenter le cache** : `index.js?v=X` dans `static/index.html`
+
+**Références actuelles des sous-skills :**
+- Counting : `Ycountingppl.svg`, `polygon-line-check-svgrepo-com.svg`, `polygon-svgrepo-com.svg`
+- Heatmap : `Yheatmapdense.svg`, `Ytraj.svg`
+- Quality : `Yqualitydefect.svg`, `Yobstruction.svg`, `Yfissure.svg`, `Yhumidity.svg`
+- Transport (catégorie) : `Ytransport2.svg` (ou `Ycar.svg` si absent)
+- Public transport : `Ypublic%20transport.svg`
+
+**Important :** Si le projet utilise des worktrees Git, s’assurer que les modifications sont bien appliquées dans le dossier depuis lequel le serveur est lancé (`python main.py`).
+
+**Script de synchronisation :** `scripts/sync-assets.ps1` — exécuter après modifications pour garder Documents et worktree vpi alignés :
+```powershell
+.\scripts\sync-assets.ps1 both
+```
+
 ## UI Design System (YRYS Brand)
 
 See `static/assets_youn/YrysUIPackage/YRYS_UI_Best_Practices.md` for full details. Key rules:

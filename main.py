@@ -196,6 +196,83 @@ def get_source_identifier(source_name: str):
 load_data()
 
 
+def _is_valid_zone_data(zone_data) -> bool:
+    """Vérifie qu'une entrée zone a la structure attendue: { polygons: [[...]] }."""
+    return isinstance(zone_data, dict) and "polygons" in zone_data and isinstance(zone_data.get("polygons"), list)
+
+
+def _is_valid_video_zones(video_zones) -> bool:
+    """Vérifie qu'une entrée video est un dict de zones valides (zone_name -> { polygons })."""
+    if not isinstance(video_zones, dict):
+        return False
+    for zone_name, zone_data in video_zones.items():
+        if not isinstance(zone_name, str) or not _is_valid_zone_data(zone_data):
+            return False
+    return True
+
+
+def cleanup_zones_data():
+    """
+    Purge les reliquats : zones malformées, zone_timers orphelins,
+    counting_config et counting_bg_models pour zones inexistantes.
+    """
+    global zones_by_video, zone_timers, counting_config, counting_bg_models
+    with data_lock:
+        # 1. Supprimer les entrées video malformées (ex: T1, T2 avec structure zone directe)
+        to_remove = []
+        for video_name, video_zones in zones_by_video.items():
+            if not _is_valid_video_zones(video_zones):
+                to_remove.append(video_name)
+        for v in to_remove:
+            del zones_by_video[v]
+
+        # 2. Construire l'ensemble des zones valides (video -> zone_name)
+        valid_zones = set()
+        for video_zones in zones_by_video.values():
+            for zone_name in video_zones:
+                valid_zones.add(zone_name)
+
+        # 3. Purger zone_timers des zones orphelines
+        orphan_timers = [zn for zn in zone_timers if zn not in valid_zones]
+        for zn in orphan_timers:
+            del zone_timers[zn]
+
+        # 4. Purger counting_config : zone_settings et zone_name invalides
+        with counting_lock:
+            for video_name in list(counting_config.keys()):
+                cfg = counting_config[video_name]
+                video_zones = zones_by_video.get(video_name, {})
+                zone_settings = cfg.get("zone_settings", {})
+                # Retirer les zone_settings pour zones inexistantes
+                for zn in list(zone_settings.keys()):
+                    if zn not in video_zones:
+                        del zone_settings[zn]
+                # Si zone_name active n'existe plus, la vider
+                active_zn = cfg.get("zone_name")
+                if active_zn and active_zn not in video_zones:
+                    cfg["zone_name"] = ""
+                    if zone_settings:
+                        cfg["zone_name"] = next(iter(zone_settings.keys()), "")
+                # Supprimer config video si plus de zones
+                if not video_zones and video_name in counting_config:
+                    del counting_config[video_name]
+
+            # 5. Purger counting_bg_models pour (video, zone) inexistants
+            for video_name in list(counting_bg_models.keys()):
+                video_zones = zones_by_video.get(video_name, {})
+                for zn in list(counting_bg_models.get(video_name, {}).keys()):
+                    if zn not in video_zones:
+                        del counting_bg_models[video_name][zn]
+                if not counting_bg_models.get(video_name):
+                    del counting_bg_models[video_name]
+
+    if to_remove or orphan_timers:
+        save_zones()
+        save_presence()
+        save_counting_config()
+        print(f"[CLEANUP] Zones purgées: {len(to_remove)} vidéos malformées, {len(orphan_timers)} timers orphelins")
+
+
 def load_counting_config():
     global counting_config
     if COUNTING_FILE.exists():
@@ -235,6 +312,7 @@ def get_active_zone_mode(video_name: str) -> str:
 
 
 load_counting_config()
+cleanup_zones_data()
 
 
 def compute_polygon_direction(all_points):
@@ -911,6 +989,32 @@ def _generate_demo_metrics(points: int = 200) -> dict:
     return series
 
 
+# Skills/categories supportés par le backend (YOLO human.pt = détection présence humain)
+SKILLS_CONFIG = {
+    "skills": [
+        {
+            "key": "detection",
+            "label": "Détection",
+            "icon": "/static/assets_youn/SvIcons/SVGnew/Yclassify.svg",
+            "items": [
+                {"id": "detection_presence", "label": "Détection présence absence", "icon": "/static/assets_youn/SvIcons/SVGnew/Ysilhouette.svg"}
+            ]
+        }
+    ],
+    "categories_by_skill": {
+        "detection": [
+            {"key": "human", "label": "Humain", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumancat.svg", "items": [{"id": "silhouette", "label": "Silhouette", "icon": "/static/assets_youn/SvIcons/SVGnew/Ysilhouette.svg"}]}
+        ]
+    }
+}
+
+
+@app.get("/api/skills")
+async def get_skills():
+    """Retourne les skills et catégories supportés par le backend (détection présence humain)."""
+    return SKILLS_CONFIG
+
+
 @app.get("/api/metrics")
 async def get_metrics(points: int = 120):
     """Return demo performance metrics for the monitoring chart."""
@@ -1227,6 +1331,21 @@ async def delete_zone(video_name: str, zone_name: str):
         if not zone_exists_elsewhere and zone_name in zone_timers:
             del zone_timers[zone_name]
 
+        # Nettoyer counting_config et counting_bg_models pour cette vidéo/zone
+        with counting_lock:
+            if video_name in counting_config:
+                cfg = counting_config[video_name]
+                zs = cfg.get("zone_settings", {})
+                if zone_name in zs:
+                    del zs[zone_name]
+                if cfg.get("zone_name") == zone_name:
+                    cfg["zone_name"] = next((zn for zn in zs if zn), "")
+                save_counting_config()
+            if video_name in counting_bg_models and zone_name in counting_bg_models[video_name]:
+                del counting_bg_models[video_name][zone_name]
+                if not counting_bg_models[video_name]:
+                    del counting_bg_models[video_name]
+
     save_zones()
     save_presence()
     audit_event("zone", "deleted", f"Zone « {zone_name} » supprimée de {video_name}", "warn",
@@ -1249,11 +1368,26 @@ async def delete_all_zones_for_video(video_name: str):
                 if not zone_exists_elsewhere and zone_name in zone_timers:
                     del zone_timers[zone_name]
 
+            # Nettoyer counting_config et counting_bg_models pour cette vidéo
+            with counting_lock:
+                if video_name in counting_config:
+                    del counting_config[video_name]
+                    save_counting_config()
+                if video_name in counting_bg_models:
+                    del counting_bg_models[video_name]
+
     save_zones()
     save_presence()
     audit_event("zone", "deleted_all", f"Toutes les zones supprimées pour {video_name}", "warn",
                 {"video": video_name})
     return {"message": "All zones deleted for video"}
+
+
+@app.post("/api/zones/cleanup")
+async def cleanup_zones_api():
+    """Purge manuelle des reliquats (zones malformées, timers orphelins, counting)."""
+    cleanup_zones_data()
+    return {"message": "Zones cleanup completed"}
 
 
 @app.post("/api/zones/reset")
@@ -2213,8 +2347,9 @@ def apply_smooth_blur(frame: np.ndarray, x1: int, y1: int, x2: int, y2: int) -> 
     return frame
 
 
-def generate_frames(video_name: str):
-    """Generate frames for streaming - reads from shared_frames written by processor"""
+def generate_frames(video_name: str, draw_overlay: bool = True):
+    """Generate frames for streaming - reads from shared_frames written by processor.
+    draw_overlay=False: raw video only (no detections/zones drawing)."""
     last_frame_num = -1
 
     # Get the frame event for this stream
@@ -2253,112 +2388,113 @@ def generate_frames(video_name: str):
         with streams_lock:
             detections = active_streams[video_name]["detections"].copy() if video_name in active_streams else []
 
-        # Apply blur if enabled (before drawing boxes)
-        with blur_lock:
-            should_blur = blur_enabled
+        if draw_overlay:
+            # Apply blur if enabled (before drawing boxes)
+            with blur_lock:
+                should_blur = blur_enabled
 
-        if should_blur:
+            if should_blur:
+                for det in detections:
+                    x1, y1, x2, y2 = int(det["x1"]), int(det["y1"]), int(det["x2"]), int(det["y2"])
+                    frame = apply_smooth_blur(frame, x1, y1, x2, y2)
+
+            # Draw detections
             for det in detections:
                 x1, y1, x2, y2 = int(det["x1"]), int(det["y1"]), int(det["x2"]), int(det["y2"])
-                frame = apply_smooth_blur(frame, x1, y1, x2, y2)
+                conf = det["conf"]
+                track_id = det.get("track_id")
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                # Display track ID and confidence
+                label = f"#{track_id} {conf:.0%}" if track_id is not None else f"{conf:.0%}"
+                cv2.putText(frame, label, (x1, y1 - 5),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-        # Draw detections
-        for det in detections:
-            x1, y1, x2, y2 = int(det["x1"]), int(det["y1"]), int(det["x2"]), int(det["y2"])
-            conf = det["conf"]
-            track_id = det.get("track_id")
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            # Display track ID and confidence
-            label = f"#{track_id} {conf:.0%}" if track_id is not None else f"{conf:.0%}"
-            cv2.putText(frame, label, (x1, y1 - 5),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            # Draw zones
+            video_zones = zones_by_video.get(video_name, {})
+            for zone_name, zone_data in video_zones.items():
+                timer = zone_timers.get(zone_name, {})
+                is_occupied = timer.get("occupy_start") is not None
+                color = (0, 0, 255) if is_occupied else (255, 165, 0)
 
-        # Draw zones
-        video_zones = zones_by_video.get(video_name, {})
-        for zone_name, zone_data in video_zones.items():
-            timer = zone_timers.get(zone_name, {})
-            is_occupied = timer.get("occupy_start") is not None
-            color = (0, 0, 255) if is_occupied else (255, 165, 0)
+                for polygon_points in zone_data["polygons"]:
+                    if len(polygon_points) >= 3:
+                        pts = np.array(polygon_points, np.int32).reshape((-1, 1, 2))
 
-            for polygon_points in zone_data["polygons"]:
-                if len(polygon_points) >= 3:
-                    pts = np.array(polygon_points, np.int32).reshape((-1, 1, 2))
+                        zone_overlay = frame.copy()
+                        cv2.fillPoly(zone_overlay, [pts], color)
+                        cv2.addWeighted(zone_overlay, 0.3, frame, 0.7, 0, frame)
+                        cv2.polylines(frame, [pts], True, color, 3)
 
-                    overlay = frame.copy()
-                    cv2.fillPoly(overlay, [pts], color)
-                    cv2.addWeighted(overlay, 0.3, frame, 0.7, 0, frame)
-                    cv2.polylines(frame, [pts], True, color, 3)
+                if zone_data["polygons"] and len(zone_data["polygons"][0]) > 0:
+                    first_point = zone_data["polygons"][0][0]
+                    display_time = get_zone_display_time(zone_name)
+                    time_str = format_time(display_time)
+                    label = f"{zone_name}: {time_str}"
 
-            if zone_data["polygons"] and len(zone_data["polygons"][0]) > 0:
-                first_point = zone_data["polygons"][0][0]
-                display_time = get_zone_display_time(zone_name)
-                time_str = format_time(display_time)
-                label = f"{zone_name}: {time_str}"
+                    (w, _), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
+                    cv2.rectangle(frame,
+                                  (int(first_point[0]) - 5, int(first_point[1]) - 25),
+                                  (int(first_point[0]) + w + 5, int(first_point[1]) + 5),
+                                  (0, 0, 0), -1)
+                    cv2.putText(frame, label, (int(first_point[0]), int(first_point[1])),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
-                (w, _), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
-                cv2.rectangle(frame,
-                              (int(first_point[0]) - 5, int(first_point[1]) - 25),
-                              (int(first_point[0]) + w + 5, int(first_point[1]) + 5),
-                              (0, 0, 0), -1)
-                cv2.putText(frame, label, (int(first_point[0]), int(first_point[1])),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+            # Draw counting line, overlay, and counter
+            active_mode = get_active_zone_mode(video_name)
+            line_info = get_counting_line(video_name)
+            if line_info:
+                ls = line_info["line_start"]
+                le = line_info["line_end"]
+                dx = line_info["dir_x"]
+                dy = line_info["dir_y"]
+                angle_deg = line_info["angle"]
+                r_left, r_top, r_right, r_bottom = line_info["roi_bounds"]
+                line_color = (0, 200, 255) if active_mode == "complex" else (0, 150, 255)
 
-        # Draw counting line, overlay, and counter
-        active_mode = get_active_zone_mode(video_name)
-        line_info = get_counting_line(video_name)
-        if line_info:
-            ls = line_info["line_start"]
-            le = line_info["line_end"]
-            dx = line_info["dir_x"]
-            dy = line_info["dir_y"]
-            angle_deg = line_info["angle"]
-            r_left, r_top, r_right, r_bottom = line_info["roi_bounds"]
-            line_color = (0, 200, 255) if active_mode == "complex" else (0, 150, 255)
-
-            # --- Complex mode: foreground mask overlay ---
-            if active_mode == "complex":
-                debug_mask = counting_debug_masks.get(video_name)
-                if debug_mask is not None:
-                    mask_colored = np.zeros_like(frame)
-                    mask_colored[:, :, 1] = debug_mask
-                    mask_bool = debug_mask > 0
-                    frame[mask_bool] = cv2.addWeighted(frame, 0.6, mask_colored, 0.4, 0)[mask_bool]
-
-            # --- Get counting data based on mode ---
-            with counting_lock:
+                # --- Complex mode: foreground mask overlay ---
                 if active_mode == "complex":
-                    cs = counting_state.get(video_name, {})
-                    count_val = cs.get("count", 0)
-                    debug_objs = cs.get("debug_objects", {}).copy()
-                    debug_contours = list(cs.get("debug_contours", []))
-                    recent_cross = list(cs.get("recent_crossings", []))
-                else:
-                    ss = simple_counting_state.get(video_name, {})
-                    count_val = ss.get("count", 0)
-                    debug_objs = {}
-                    debug_contours = []
-                    recent_cross = []
+                    debug_mask = counting_debug_masks.get(video_name)
+                    if debug_mask is not None:
+                        mask_colored = np.zeros_like(frame)
+                        mask_colored[:, :, 1] = debug_mask
+                        mask_bool = debug_mask > 0
+                        frame[mask_bool] = cv2.addWeighted(frame, 0.6, mask_colored, 0.4, 0)[mask_bool]
 
-            # Draw contours in bright cyan
-            if debug_contours:
-                cv2.drawContours(frame, debug_contours, -1, (255, 255, 0), 2, cv2.LINE_AA)
+                # --- Get counting data based on mode ---
+                with counting_lock:
+                    if active_mode == "complex":
+                        cs = counting_state.get(video_name, {})
+                        count_val = cs.get("count", 0)
+                        debug_objs = cs.get("debug_objects", {}).copy()
+                        debug_contours = list(cs.get("debug_contours", []))
+                        recent_cross = list(cs.get("recent_crossings", []))
+                    else:
+                        ss = simple_counting_state.get(video_name, {})
+                        count_val = ss.get("count", 0)
+                        debug_objs = {}
+                        debug_contours = []
+                        recent_cross = []
 
-            # Draw the counting line
-            cv2.line(frame, (int(ls[0]), int(ls[1])), (int(le[0]), int(le[1])), line_color, 2, cv2.LINE_AA)
+                # Draw contours in bright cyan
+                if debug_contours:
+                    cv2.drawContours(frame, debug_contours, -1, (255, 255, 0), 2, cv2.LINE_AA)
 
-            # Draw direction arrow at center of the line
-            mid_x = (ls[0] + le[0]) / 2
-            mid_y = (ls[1] + le[1]) / 2
-            arrow_len = 30
-            arr_start = (int(mid_x - dx * arrow_len), int(mid_y - dy * arrow_len))
-            arr_end = (int(mid_x + dx * arrow_len), int(mid_y + dy * arrow_len))
-            cv2.arrowedLine(frame, arr_start, arr_end, line_color, 2, cv2.LINE_AA, tipLength=0.4)
+                # Draw the counting line
+                cv2.line(frame, (int(ls[0]), int(ls[1])), (int(le[0]), int(le[1])), line_color, 2, cv2.LINE_AA)
 
-            # === Visual Debug Logs ===
-            now = time.time()
+                # Draw direction arrow at center of the line
+                mid_x = (ls[0] + le[0]) / 2
+                mid_y = (ls[1] + le[1]) / 2
+                arrow_len = 30
+                arr_start = (int(mid_x - dx * arrow_len), int(mid_y - dy * arrow_len))
+                arr_end = (int(mid_x + dx * arrow_len), int(mid_y + dy * arrow_len))
+                cv2.arrowedLine(frame, arr_start, arr_end, line_color, 2, cv2.LINE_AA, tipLength=0.4)
 
-            # Draw tracked blob centers + IDs + movement arrows
-            for tid, dobj in debug_objs.items():
+                # === Visual Debug Logs ===
+                now = time.time()
+
+                # Draw tracked blob centers + IDs + movement arrows
+                for tid, dobj in debug_objs.items():
                 cx_d, cy_d = int(dobj["cx"]), int(dobj["cy"])
                 counted = dobj["counted"]
 
@@ -2488,8 +2624,9 @@ async def start_video_processing(video_name: str):
 
 
 @app.get("/api/stream/{video_name:path}")
-async def video_stream(video_name: str):
-    """Get video stream with detections overlay"""
+async def video_stream(video_name: str, overlay: bool = True):
+    """Get video stream. overlay=True: with detections/zones overlay; overlay=False: raw video only"""
+    draw_overlay = overlay
     # Support both video files and camera sources (camera:xxx)
     if is_camera_source(video_name):
         camera_id = video_name.replace("camera:", "")
@@ -2516,7 +2653,7 @@ async def video_stream(video_name: str):
             processor_thread.start()
 
     return StreamingResponse(
-        generate_frames(video_name),
+        generate_frames(video_name, draw_overlay=draw_overlay),
         media_type="multipart/x-mixed-replace; boundary=frame"
     )
 
@@ -2527,6 +2664,7 @@ def format_time(seconds: float) -> str:
     return f"{hours:02d}:{mins:02d}:{secs:02d}"
 
 
+app.mount("/videos", StaticFiles(directory=str(VIDEOS_DIR)), name="videos")
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
