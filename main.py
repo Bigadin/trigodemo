@@ -21,6 +21,19 @@ from typing import Optional
 
 app = FastAPI(title="Zone Presence Tracker")
 
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+
+class Utf8JsonMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: StarletteRequest, call_next):
+        response = await call_next(request)
+        ct = response.headers.get("content-type", "")
+        if ct.startswith("application/json") and "charset" not in ct:
+            response.headers["content-type"] = "application/json; charset=utf-8"
+        return response
+
+app.add_middleware(Utf8JsonMiddleware)
+
 # Paths
 BASE_DIR = Path(__file__).parent
 VIDEOS_DIR = BASE_DIR / "videos"

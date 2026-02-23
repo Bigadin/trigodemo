@@ -1,0 +1,139 @@
+.tree {
+  font-size: 13px;
+}
+
+.empty {
+  padding: var(--space-4);
+  color: var(--text-tertiary);
+  font-size: 12px;
+  text-align: center;
+}
+
+.node {
+  /* nothing — structural wrapper */
+}
+
+.nodeHeader {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 3px 4px;
+  border-radius: var(--radius-sm);
+  gap: 2px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.nodeHeader:hover {
+  background: var(--bg-hover);
+}
+
+.selected {
+  background: var(--bg-active) !important;
+  color: var(--brand-01);
+}
+
+.chevronBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.chevron {
+  display: inline-block;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  transition: transform 0.15s;
+  width: 12px;
+  text-align: center;
+}
+
+.chevron[data-open="true"] {
+  transform: rotate(90deg);
+}
+
+.nodeLabel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.icon {
+  font-size: 12px;
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+}
+
+.label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.count {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  background: var(--bg-hover);
+  padding: 0 5px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.children {
+  padding-left: 14px;
+  border-left: 1px solid var(--border-subtle);
+  margin-left: 9px;
+}
+
+.leaf {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: default;
+}
+
+.leaf:hover {
+  background: var(--bg-hover);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gray-06);
+  flex-shrink: 0;
+}
+
+.dotActive {
+  background: var(--color-success);
+}

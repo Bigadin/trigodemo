@@ -1,0 +1,83 @@
+/* ========================================
+   YRYS Design System Tokens
+   Extrait de static/css/index.css pour la migration React
+   ======================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* Typography */
+  --font-sans: "Manrope", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+
+  /* Brand accents */
+  --brand-01: #F08321;
+  --brand-02: #1d5bff;
+  --brand-03: #062DB6;
+  --brand-04: #BD44D5;
+
+  /* Grays */
+  --gray-01: #EDEFF7;
+  --gray-02: #D3D6E0;
+  --gray-03: #BCBFCC;
+  --gray-04: #9DA2B3;
+  --gray-05: #6E7180;
+  --gray-06: #40424D;
+  --gray-07: #1E1E24;
+  --gray-08: #000000;
+
+  /* Type scale */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-md: 16px;
+  --text-lg: 18px;
+  --text-xl: 24px;
+  --text-2xl: 32px;
+  --ui-control-height: 40px;
+
+  /* Semantic aliases (dark default) */
+  --bg-app: #0B0F14;
+  --bg-surface: #111825;
+  --bg-surface-2: #0E141F;
+  --bg-surface-3: #1a2332;
+  --bg-sidebar: #0B0F14;
+  --bg-hover: rgba(255, 255, 255, 0.08);
+  --bg-active: rgba(255, 255, 255, 0.12);
+
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.15);
+
+  --text-primary: #F5F7FF;
+  --text-secondary: rgba(245, 247, 255, 0.65);
+  --text-tertiary: rgba(245, 247, 255, 0.45);
+
+  --color-primary: var(--brand-02);
+  --color-primary-hover: #3a6fff;
+  --color-success: #22c55e;
+  --color-danger: #ef4444;
+  --color-warning: var(--brand-01);
+
+  /* Zone dots */
+  --zone-dot-1: #5a8fb8;
+  --zone-dot-2: #4d9d8a;
+  --zone-dot-3: #8b7fb5;
+  --zone-dot-4: #c47b5a;
+  --zone-dot-5: #6b9b7a;
+  --zone-dot-6: #c4a055;
+  --zone-dot-7: #b07b8b;
+  --zone-dot-8: #6b8fb5;
+}
