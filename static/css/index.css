@@ -1981,10 +1981,15 @@
             padding: 0 2px;
         }
         .roi-measure-card--benefit .roi-card-chips .benefit-tile-badge,
-        .roi-measure-card--benefit .roi-card-chips .ben-recap-chip {
+        .roi-measure-card--benefit .roi-card-chips .ben-recap-chip,
+        .roi-measure-card--benefit .roi-card-chips .roi-chip {
             background: rgba(15, 23, 42, 0.06) !important;
             color: #0F172A !important;
-            border-color: rgba(15, 23, 42, 0.1) !important;
+            border: 1px solid rgba(15, 23, 42, 0.1) !important;
+            border-radius: 0 !important;
+            padding: 2px 6px !important;
+            font-size: 10px !important;
+            font-weight: 600 !important;
         }
         .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-mint .ben-tree-ico,
         .roi-measure-card--benefit .roi-card-chips .ben-recap-chip--accent-sky .ben-tree-ico,
@@ -2076,24 +2081,32 @@
             align-items: center;
         }
         .roi-chip {
-            background: rgba(34,197,94,0.14);
-            color: #15803d;
-            border-radius: 6px;
-            padding: 8px 10px;
-            font-size: 11px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(15, 23, 42, 0.06);
+            color: #0F172A;
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            border-radius: 0;
+            padding: 2px 6px;
+            font-size: 10px;
             font-weight: 600;
         }
-        .roi-chip--success { background: rgba(34,197,94,0.14); color: #15803d; }
-        .roi-chip--primary { background: rgba(59,130,246,0.14); color: #1d4ed8; }
-        .roi-chip--info { background: rgba(167,139,250,0.14); color: #6d28d9; }
-        .roi-chip--warning { background: rgba(250,204,21,0.14); color: #a16207; }
-        .roi-chip .ben-tree-ico { width: 14px; height: 14px; }
+        .roi-chip--success { background: rgba(34,197,94,0.10); color: #15803d; border-color: rgba(34,197,94,0.18); }
+        .roi-chip--primary { background: rgba(59,130,246,0.10); color: #1d4ed8; border-color: rgba(59,130,246,0.18); }
+        .roi-chip--info { background: rgba(167,139,250,0.10); color: #6d28d9; border-color: rgba(167,139,250,0.18); }
+        .roi-chip--warning { background: rgba(250,204,21,0.10); color: #a16207; border-color: rgba(250,204,21,0.18); }
+        .roi-chip .ben-tree-ico { width: 14px; height: 14px; vertical-align: middle; }
         .roi-measure-card--benefit .roi-chip .ben-tree-ico { filter: brightness(0) opacity(0.6); }
         .roi-card-chips .benefit-tile-badge,
-        .roi-card-chips .ben-recap-chip {
-            background: rgba(15,23,42,0.08) !important;
-            color: var(--color-text) !important;
-            border-color: rgba(15,23,42,0.12) !important;
+        .roi-card-chips .ben-recap-chip,
+        .roi-card-chips .roi-chip {
+            background: rgba(15, 23, 42, 0.06) !important;
+            color: #0F172A !important;
+            border: 1px solid rgba(15, 23, 42, 0.12) !important;
+            border-radius: 0 !important;
+            padding: 2px 6px !important;
+            font-size: 10px !important;
         }
         .roi-card-chips .ben-recap-chip--success { background: rgba(34,197,94,0.14) !important; color: #15803d !important; }
         .roi-card-chips .ben-recap-chip--primary { background: rgba(59,130,246,0.14) !important; color: #1d4ed8 !important; }

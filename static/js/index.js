@@ -7,32 +7,132 @@
         let currentVideo = null;
         let currentCameraId = null;
         let currentView = 'home'; // 'home' | 'tracker'
-        // DEMO mode: sites live only in memory (refresh => reset)
+
+        // ==================== Backend Persistence API ====================
+        const _api = {
+            async get(url) { const r = await fetch(url); if (!r.ok) throw new Error(`GET ${url}: ${r.status}`); return r.json(); },
+            async post(url, body) { const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.detail || `POST ${url}: ${r.status}`); } return r.json(); },
+            async put(url, body) { const r = await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.detail || `PUT ${url}: ${r.status}`); } return r.json(); },
+            async del(url) { const r = await fetch(url, { method: 'DELETE' }); if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.detail || `DELETE ${url}: ${r.status}`); } return r.json(); },
+        };
+
+        function _toSnakeId(name) {
+            return String(name || '').trim().toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') || `id_${Date.now()}`;
+        }
+
+        async function _syncSitesToBackend(sitesArr) {
+            try {
+                const { lieux: existingLieux } = await _api.get('/api/lieux');
+                const { sites: existingSites } = await _api.get('/api/sites');
+                const { benefits: existingBenefits } = await _api.get('/api/benefits');
+
+                const locations = [...new Set(sitesArr.map(s => s.location || 'default').filter(Boolean))];
+                for (const loc of locations) {
+                    const lieuId = _toSnakeId(loc);
+                    if (!existingLieux[lieuId]) {
+                        await _api.post('/api/lieux', { lieu_id: lieuId, name: loc });
+                    }
+                }
+
+                for (const site of sitesArr) {
+                    const siteId = site._backend_id || _toSnakeId(site.name);
+                    const lieuId = _toSnakeId(site.location || 'default');
+                    if (!existingSites[siteId]) {
+                        await _api.post('/api/sites', { site_id: siteId, name: site.name, lieu_id: lieuId });
+                    }
+                    site._backend_id = siteId;
+
+                    for (const cam of (site.cameras || [])) {
+                        for (const ben of (cam.benefits || [])) {
+                            const benId = ben._backend_id || ben.id || _toSnakeId(ben.name);
+                            const camId = cam.backendCameraId || cam.id;
+                            if (!existingBenefits[benId]) {
+                                try {
+                                    await _api.post('/api/benefits', {
+                                        benefit_id: benId, name: ben.name,
+                                        skill: ben.skill || '', skill_item: ben.skillSub || '',
+                                        categories: (ben.categories || []).map(c => `${c.category}::${c.subcategory}`),
+                                        camera_id: camId, zone_polygons: ben.polygons || [],
+                                        active: ben.enabled !== false,
+                                    });
+                                    ben._backend_id = benId;
+                                } catch (e) { console.warn(`Benefit sync skip ${benId}:`, e.message); }
+                            }
+                        }
+                    }
+                }
+            } catch (e) { console.warn('Backend sync failed (non-blocking):', e.message); }
+        }
+
+        async function _loadHierarchyFromBackend() {
+            try {
+                const { hierarchy } = await _api.get('/api/hierarchy');
+                if (!hierarchy || Object.keys(hierarchy).length === 0) return null;
+                const result = [];
+                for (const [lieuId, lieu] of Object.entries(hierarchy)) {
+                    for (const [siteId, site] of Object.entries(lieu.sites || {})) {
+                        const cams = [];
+                        for (const [camId, cam] of Object.entries(site.cameras || {})) {
+                            const bens = [];
+                            for (const [benId, ben] of Object.entries(cam.benefits || {})) {
+                                bens.push({
+                                    id: benId, _backend_id: benId, name: ben.name || benId,
+                                    skill: ben.skill || '', skillSub: ben.skill_item || ben.skill || '',
+                                    category: '', subcategory: '',
+                                    categories: (ben.categories || []).map(c => {
+                                        if (typeof c === 'string') { const [cat, sub] = c.split('::'); return { category: cat || '', subcategory: sub || '' }; }
+                                        return c;
+                                    }),
+                                    forme: 'zone', polygons: ben.zone_polygons || [],
+                                    enabled: ben.active !== false,
+                                    createdBy: '', createdAt: ben.created_at || '', comment: '',
+                                });
+                            }
+                            cams.push({
+                                id: camId, name: cam.name || camId, hint: cam.type || '',
+                                video: cam.type === 'video' ? (cam.path || '') : '',
+                                sourceType: cam.type, backendCameraId: camId,
+                                benefits: bens,
+                            });
+                        }
+                        result.push({
+                            name: site.name || siteId, _backend_id: siteId,
+                            location: lieu.name || lieuId,
+                            cameras: cams,
+                        });
+                    }
+                }
+                return result.length > 0 ? result : null;
+            } catch (e) {
+                console.warn('Hierarchy load failed:', e.message);
+                return null;
+            }
+        }
+
+        // Fallback DEMO data (used only if backend hierarchy is empty)
         const DEMO_SITES = [
             {
-                name: 'Entrepôt Central',
+                name: 'Entrepôt Central', _backend_id: 'entrepot_central',
                 location: 'Lyon',
                 cameras: [
-                    { id: 'cam1', name: 'Entrepôt', hint: 'Déchargement & présence', video: 'entr1.mp4', benefits: [
-                        { id: 'ben-cam1-1', name: 'Détection voiture humain', skill: 'detection', skillSub: 'detection_presence', category: 'human', subcategory: 'silhouette', categories: [{ category: 'human', subcategory: 'silhouette' }, { category: 'transport', subcategory: 'voiture' }], forme: 'zone', createdBy: 'Opérateur', createdAt: '', comment: '', enabled: true, polygons: [[[120, 180], [520, 180], [520, 480], [120, 480]]] },
-                        { id: 'ben-cam1-2', name: 'Comptage personne et vélo', skill: 'counting', skillSub: 'counting_people', category: 'human', subcategory: 'silhouette', categories: [{ category: 'human', subcategory: 'silhouette' }, { category: 'transport', subcategory: 'velo' }], forme: 'zone', createdBy: 'Opérateur', createdAt: '', comment: '', enabled: true, polygons: [[[200, 200], [400, 200], [400, 400], [200, 400]]] }
+                    { id: 'cam_entrepot', name: 'Entrepôt', hint: 'Déchargement & présence', video: 'entr1.mp4', benefits: [
+                        { id: 'ben_detection_entrepot', _backend_id: 'ben_detection_entrepot', name: 'Détection présence entrepôt', skill: 'detection', skillSub: 'detection_presence', category: 'human', subcategory: 'silhouette', categories: [{ category: 'human', subcategory: 'silhouette' }], forme: 'zone', createdBy: 'Opérateur', createdAt: '', comment: '', enabled: true, polygons: [[[120, 180], [520, 180], [520, 480], [120, 480]]] }
                     ] },
-                    { id: 'cam2', name: 'Convoyeur', hint: 'Tapis roulant & contrôle', video: 'video_01.mp4', benefits: [] }
+                    { id: 'cam_convoyeur', name: 'Convoyeur', hint: 'Tapis roulant & contrôle', video: 'video_01.mp4', benefits: [
+                        { id: 'ben_counting_convoyeur', _backend_id: 'ben_counting_convoyeur', name: 'Comptage convoyeur', skill: 'counting', skillSub: 'counting_people', category: 'human', subcategory: 'silhouette', categories: [{ category: 'human', subcategory: 'silhouette' }], forme: 'zone', createdBy: 'Opérateur', createdAt: '', comment: '', enabled: true, polygons: [[[200, 200], [400, 200], [400, 400], [200, 400]]] },
+                        { id: 'ben_detection_convoyeur', _backend_id: 'ben_detection_convoyeur', name: 'Détection présence convoyeur', skill: 'detection', skillSub: 'detection_presence', category: 'human', subcategory: 'silhouette', categories: [{ category: 'human', subcategory: 'silhouette' }, { category: 'transport', subcategory: 'voiture' }], forme: 'zone', createdBy: 'Opérateur', createdAt: '', comment: '', enabled: true, polygons: [[[50, 50], [600, 50], [600, 500], [50, 500]]] }
+                    ] }
                 ]
             },
             {
-                name: 'Entrée',
-                location: 'Lyon',
-                cameras: [
-                    { id: 'cam5', name: 'Accueil', hint: 'Contrôle d\'accès', video: 'video_04.mp4' }
-                ]
-            },
-            {
-                name: 'Gallerie Voltaire',
+                name: 'Galerie Voltaire', _backend_id: 'galerie_voltaire',
                 location: 'Paris',
                 cameras: [
-                    { id: 'cam3', name: 'Hall Principal', hint: 'Surveillance flux visiteurs', video: 'Mall1.mp4', benefits: [] },
-                    { id: 'cam4', name: 'Galerie Est', hint: 'Comptage & présence', video: 'Mall2.mp4', benefits: [] }
+                    { id: 'cam_hall', name: 'Hall Principal', hint: 'Surveillance flux visiteurs', video: 'Mall1.mp4', benefits: [
+                        { id: 'ben_counting_hall', _backend_id: 'ben_counting_hall', name: 'Comptage visiteurs hall', skill: 'counting', skillSub: 'counting_people', category: 'human', subcategory: 'silhouette', categories: [{ category: 'human', subcategory: 'silhouette' }], forme: 'zone', createdBy: 'Opérateur', createdAt: '', comment: '', enabled: true, polygons: [[[100, 100], [500, 100], [500, 400], [100, 400]]] }
+                    ] }
                 ]
             }
         ];
@@ -2512,6 +2612,28 @@
                 else cam.benefits.push(benefit);
                 saveCurrentSiteCameras(currentSite.cameras);
 
+                // Persist to backend
+                const backendCamId = cam.backendCameraId || cam.id;
+                const categoriesFlat = (benefit.categories || []).map(c => `${c.category}::${c.subcategory}`);
+                try {
+                    if (existingBenefit?._backend_id) {
+                        await _api.put(`/api/benefits/${existingBenefit._backend_id}`, {
+                            name: benefit.name, skill: benefit.skill,
+                            skill_item: benefit.skillSub || '', categories: categoriesFlat,
+                            zone_polygons: benefit.polygons || [], active: benefit.enabled !== false,
+                        });
+                        benefit._backend_id = existingBenefit._backend_id;
+                    } else {
+                        await _api.post('/api/benefits', {
+                            benefit_id: benId, name: benefit.name, skill: benefit.skill,
+                            skill_item: benefit.skillSub || '', categories: categoriesFlat,
+                            camera_id: backendCamId, zone_polygons: benefit.polygons || [],
+                            active: benefit.enabled !== false,
+                        });
+                        benefit._backend_id = benId;
+                    }
+                } catch (e) { console.warn('Benefit backend persist:', e.message); }
+
                 editorState._benefitTempZone = null;
                 const camId = benefitConfigState.editingCamId;
                 if (camId) sidebarCamerasCollapsed[camId] = false;
@@ -2531,6 +2653,8 @@
         async function openBenefitConfig(camId) {
             const cam = getCameraById(camId);
             if (!cam || !currentVideo) return;
+            // S'assurer que les skills/catégories sont chargés (4 skills + toutes catégories pour la création)
+            if (window.skillsAdapter) await window.skillsAdapter.load();
 
             selectCamera(camId);
             benefitConfigState = {
@@ -3403,10 +3527,17 @@
         }
 
         async function loadSites() {
+            const backendSites = await _loadHierarchyFromBackend();
+            if (backendSites && backendSites.length > 0) {
+                sitesCache = backendSites;
+                ensureBenefitsOnCameras();
+            } else if (!sitesCache._seeded) {
+                sitesCache._seeded = true;
+                _syncSitesToBackend(sitesCache);
+            }
             await refreshZonesCacheForSites();
             renderSitesHome();
             renderSitesSidebar();
-            /* Keep location LOV in sync */
             _syncLocationLov();
         }
 
@@ -4219,12 +4350,21 @@
         function renderSidebarForHome() { renderSitesSidebar(); }
         function renderSidebarForTracker() { renderSitesSidebar(); }
 
-        function createSite(name, location) {
+        async function createSite(name, location) {
             const n = String(name || '').trim();
             if (!n) throw new Error('Nom de site requis');
             if ((sitesCache || []).some(s => s.name === n)) throw new Error('Site déjà existant');
-            const site = { name: n, cameras: [] };
             const loc = String(location || '').trim();
+            const lieuId = _toSnakeId(loc || 'default');
+            const siteId = _toSnakeId(n);
+            try {
+                const { lieux: existingLieux } = await _api.get('/api/lieux');
+                if (!existingLieux[lieuId]) {
+                    await _api.post('/api/lieux', { lieu_id: lieuId, name: loc || 'Default' });
+                }
+                await _api.post('/api/sites', { site_id: siteId, name: n, lieu_id: lieuId });
+            } catch (e) { console.warn('Backend createSite:', e.message); }
+            const site = { name: n, _backend_id: siteId, cameras: [] };
             if (loc) site.location = loc;
             sitesCache.push(site);
         }
@@ -4257,12 +4397,17 @@
             currentSite = sitesCache[idx];
         }
 
-        function deleteSiteByName(name) {
+        async function deleteSiteByName(name) {
             const n = String(name || '').trim();
             const demoName = DEMO_SITES?.[0]?.name;
             if (n && demoName && n === demoName) throw new Error('Impossible de supprimer le site démo');
             const idx = (sitesCache || []).findIndex(s => s.name === n);
-            if (idx >= 0) sitesCache.splice(idx, 1);
+            if (idx >= 0) {
+                const site = sitesCache[idx];
+                const siteId = site._backend_id || _toSnakeId(n);
+                try { await _api.del(`/api/sites/${siteId}`); } catch (e) { console.warn('Backend deleteSite:', e.message); }
+                sitesCache.splice(idx, 1);
+            }
             if (currentSite?.name === n) {
                 currentSite = null;
                 currentVideo = null;
@@ -4633,7 +4778,7 @@
                     return;
                 }
                 try {
-                    createSite(name, location);
+                    await createSite(name, location);
                     newSiteNameInput.value = '';
                     newSiteLocationSelect.selectedIndex = 0;
                     if (typeof LovDropdown !== 'undefined') LovDropdown.refresh();
@@ -5039,7 +5184,7 @@
                     if (action === 'delete') {
                         const ok = await uiConfirm(`Supprimer le site "${name}" ?`, 'Suppression');
                         if (ok) {
-                            try { deleteSiteByName(name); loadSites(); } catch (err) { uiAlert(err?.message || String(err), 'Suppression'); }
+                            try { await deleteSiteByName(name); await loadSites(); } catch (err) { uiAlert(err?.message || String(err), 'Suppression'); }
                         }
                     } else if (action === 'open') {
                         selectSiteByName(name);
@@ -5333,8 +5478,8 @@
             ],
             defaut: [
                 { id: 'fissure', label: 'Fissure', icon: '/static/assets_youn/SvIcons/SVGnew/Yfissure.svg' },
-                { id: 'defaut', label: 'Défaut', icon: '/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg' },
-                { id: 'humidity', label: 'Humidity', icon: '/static/assets_youn/SvIcons/SVGnew/Yhumidity.svg' }
+                { id: 'qualitycheck', label: 'Qualité générale', icon: '/static/assets_youn/SvIcons/SVGnew/Yqualitycheck.svg' },
+                { id: 'humidity', label: 'Humidité', icon: '/static/assets_youn/SvIcons/SVGnew/Yhumidity.svg' }
             ],
             encombrement: [
                 { id: 'zone_encombrée', label: 'Zone encombrée', icon: '/static/assets_youn/SvIcons/SVGnew/Yobstruction.svg' }
@@ -5459,16 +5604,13 @@
 
             // Handle different source types
             if (cam.sourceType === 'webcam' || cam.sourceType === 'rtsp') {
-                // Use backend camera - treat it like a video with name "camera:xxx"
                 if (cam.backendCameraId) {
                     selectVideo(`camera:${cam.backendCameraId}`);
                 }
-            } else if (cam.backendCameraId) {
-                // Fallback: if backendCameraId is set, use it even without sourceType
-                selectVideo(`camera:${cam.backendCameraId}`);
             } else if (cam.video) {
-                // Default: video file
                 selectVideo(cam.video);
+            } else if (cam.backendCameraId) {
+                selectVideo(`camera:${cam.backendCameraId}`);
             }
         }
 
@@ -6190,8 +6332,11 @@
                 if (cam && currentSite && benefitId) {
                     const idx = (cam.benefits || []).findIndex((b) => String(b.id || '') === String(benefitId));
                     if (idx >= 0) {
+                        const removed = cam.benefits[idx];
                         cam.benefits.splice(idx, 1);
                         saveCurrentSiteCameras(currentSite.cameras);
+                        const backendId = removed._backend_id || removed.id;
+                        if (backendId) { _api.del(`/api/benefits/${backendId}`).catch(e => console.warn('Delete benefit backend:', e.message)); }
                         renderTrackerBenefitsOverview();
                     }
                 }
@@ -8305,3 +8450,6 @@
                 if (g) _redrawAllAwCards(g);
             }
         });
+
+
+

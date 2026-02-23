@@ -1,0 +1,2107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YRYS · Spec Système</title>
+  <style>
+    :root {
+      --bg:     #0d1117;
+      --surface:#161b22;
+      --surface2:#1c2333;
+      --border: #30363d;
+      --text:   #e6edf3;
+      --muted:  #8b949e;
+      --dim:    #484f58;
+      --acc:    #d2a8ff;   /* violet clair */
+      --green:  #3fb950;
+      --yellow: #d29922;
+      --red:    #f85149;
+      --blue:   #79c0ff;
+      --cyan:   #39d353;
+      --mono:   'Consolas','SF Mono','Fira Mono',monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--mono); background: var(--bg); color: var(--text); font-size: 13px; line-height: 1.5; }
+
+    /* ─── TOPBAR ─── */
+    #topbar {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    #topbar::-webkit-scrollbar { display: none; }
+    #topbar .logo { color: var(--acc); font-weight: 700; font-size: 13px; letter-spacing: 0.04em; white-space: nowrap; flex-shrink: 0; }
+    #topbar .sep { color: var(--border); padding: 0; flex-shrink: 0; font-size: 11px; }
+    .topbar-label { font-size: 8px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); padding: 0.1rem 0.3rem; border: 1px solid var(--border); border-radius: 3px; white-space: nowrap; flex-shrink: 0; }
+    .tab-btn {
+      padding: 0.25rem 0.6rem;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      background: none;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: color .1s, border-color .1s, background .1s;
+    }
+    .tab-btn:hover { color: var(--text); border-color: var(--border); }
+    .tab-btn.active { color: var(--acc); border-color: var(--acc); background: rgba(210,168,255,0.07); }
+    .tab-btn.active-ddd { color: #1a7f37; border-color: #1a7f37; background: rgba(26,127,55,0.08); }
+    .tab-btn.active-archi { color: #cf5820; border-color: #cf5820; background: rgba(207,88,32,0.08); }
+    .tab-btn.active-live { color: #f0883e; border-color: #f0883e; background: rgba(240,136,62,0.08); animation: live-pulse 2s ease-in-out infinite; }
+    @keyframes live-pulse { 0%,100% { box-shadow: none; } 50% { box-shadow: 0 0 8px rgba(240,136,62,0.3); } }
+
+    /* ─── LAYOUT ─── */
+    .tab-pane { display: none; padding: 1.5rem; }
+    .tab-pane.active { display: block; }
+
+    /* ─── SECTION HEADER ─── */
+    .sh {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.3rem;
+      margin-bottom: 1rem;
+      margin-top: 2rem;
+    }
+    .sh:first-child { margin-top: 0; }
+
+    /* ─── PANELS ─── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .panel-head {
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      padding: 0.4rem 0.85rem;
+      font-size: 11px;
+      color: var(--muted);
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .panel-head .obj-tag {
+      font-size: 10px; font-weight: 700;
+      padding: 0.1rem 0.4rem; border-radius: 3px;
+      letter-spacing: 0.05em;
+    }
+    .tag-site     { background:rgba(121,192,255,0.12); color:#79c0ff; border:1px solid rgba(121,192,255,0.25); }
+    .tag-lieu     { background:rgba(63,185,80,0.10); color:#3fb950; border:1px solid rgba(63,185,80,0.2); }
+    .tag-cam      { background:rgba(210,153,34,0.12); color:#d29922; border:1px solid rgba(210,153,34,0.25); }
+    .tag-benef    { background:rgba(210,168,255,0.12); color:#d2a8ff; border:1px solid rgba(210,168,255,0.25); }
+    .tag-canvas   { background:rgba(57,211,83,0.08); color:#39d353; border:1px solid rgba(57,211,83,0.15); }
+    .tag-info     { background:rgba(139,148,158,0.1); color:#8b949e; border:1px solid rgba(139,148,158,0.2); }
+
+    /* ─── FIELD TABLE ─── */
+    .ftable { width: 100%; border-collapse: collapse; }
+    .ftable th {
+      text-align: left; font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: #c9d1d9; padding: 0.35rem 0.85rem;
+      background: var(--surface2); border-bottom: 1px solid var(--border);
+    }
+    .ftable td { padding: 0.32rem 0.85rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .ftable tr:last-child td { border-bottom: none; }
+    .ftable tr:hover td { background: rgba(255,255,255,0.02); }
+    .fname { color: var(--blue); }
+    .ftype { color: var(--yellow); }
+    .freq  { color: var(--red); font-weight: 700; }
+    .fopt  { color: var(--dim); }
+    .fdesc { color: var(--muted); }
+    code  { font-family: var(--mono); color: var(--acc); background: rgba(210,168,255,0.08); padding: 0.05em 0.3em; border-radius: 3px; font-size: 11px; }
+
+    /* ─── CODE BLOCK ─── */
+    .codeblock {
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      padding: 0.85rem;
+      font-size: 12px;
+      color: var(--cyan);
+      white-space: pre;
+      overflow-x: auto;
+      line-height: 1.6;
+    }
+    .codeblock .k  { color: var(--blue); }      /* key */
+    .codeblock .v  { color: #a5d6ff; }           /* string value */
+    .codeblock .n  { color: #ffa657; }           /* number */
+    .codeblock .b  { color: var(--red); }        /* bool */
+    .codeblock .c  { color: var(--dim); }        /* comment */
+
+    /* ─── GRID ─── */
+    .g2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(480px, 1fr)); gap: 1rem; }
+    .g3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+    .g4 { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem; }
+
+    /* ─── HIERARCHY (OpenAI-ish) ─── */
+    .hier {
+      padding: 1rem 1rem 0.8rem;
+      background: linear-gradient(180deg, #11161e 0%, #0d1117 100%);
+      border: 1px solid #2a3340;
+      border-radius: 10px;
+      position: relative;
+    }
+    .hier::before {
+      content: "";
+      position: absolute;
+      left: 22px;
+      top: 42px;
+      bottom: 18px;
+      width: 2px;
+      background: linear-gradient(180deg, rgba(16,163,127,0.5), rgba(16,163,127,0.1));
+    }
+    .hier-row {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      margin-bottom: 0.5rem;
+      position: relative;
+      z-index: 1;
+    }
+    .hier-row:last-child { margin-bottom: 0; }
+    .hi { padding-left: 1.15rem; }
+    .hi2 { padding-left: 2.3rem; }
+    .hi3 { padding-left: 3.45rem; }
+    .h-tree {
+      color: #4b5667;
+      font-size: 10px;
+      width: 44px;
+      flex-shrink: 0;
+      text-align: right;
+      font-family: var(--mono);
+    }
+    .hnode {
+      padding: 0.22rem 0.62rem;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      border: 1px solid transparent;
+      backdrop-filter: blur(2px);
+    }
+    .hmeta {
+      color: #9ba7b9;
+      font-size: 11px;
+    }
+    .hcard {
+      margin-top: 0.6rem;
+      border-top: 1px dashed #2a3340;
+      padding-top: 0.55rem;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .hpill {
+      font-size: 10px;
+      border: 1px solid #2a3340;
+      background: #0f141c;
+      color: #c9d1d9;
+      border-radius: 999px;
+      padding: 0.15rem 0.5rem;
+    }
+    .hpill strong { color: #10a37f; font-weight: 700; }
+
+    /* ─── RULES TABLE ─── */
+    .rtable { width: 100%; border-collapse: collapse; }
+    .rtable td { padding: 0.3rem 0.85rem; border-bottom: 1px solid var(--border); font-size: 12px; }
+    .rtable tr:last-child td { border-bottom: none; }
+    .rtable .rk { color: var(--blue); white-space: nowrap; }
+    .rtable .rv { color: var(--muted); }
+
+    /* ─── INLINE BADGES ─── */
+    .pill {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      padding: 0.1rem 0.4rem; border-radius: 3px;
+      letter-spacing: 0.04em;
+    }
+    .p-req { background:rgba(248,81,73,0.12); color:var(--red); border:1px solid rgba(248,81,73,0.25); }
+    .p-opt { background:rgba(139,148,158,0.08); color:var(--dim); border:1px solid var(--border); }
+
+    /* ─── SKILL CARDS ─── */
+    .skill-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .skill-head {
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      padding: 0.4rem 0.85rem;
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 12px; font-weight: 700; color: var(--text);
+    }
+    .skill-head img { width: 22px; height: 22px; filter: brightness(0) invert(1); opacity: 1; }
+    .skill-body { padding: 0.6rem 0.85rem; }
+    .skill-item-row {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.25rem 0; border-bottom: 1px solid var(--border); font-size: 12px;
+    }
+    .skill-item-row:last-child { border-bottom: none; }
+    .skill-item-row img { width: 16px; height: 16px; filter: brightness(0) invert(1); opacity: 0.9; }
+    .skill-item-row .sid { color: var(--blue); font-size: 11px; width: 160px; flex-shrink: 0; }
+    .skill-item-row .slabel { color: var(--text); }
+
+    /* ─── CAT GRID ─── */
+    .cat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px; overflow: hidden;
+    }
+    .cat-head {
+      background: var(--surface2); border-bottom: 1px solid var(--border);
+      padding: 0.35rem 0.85rem;
+      display: flex; align-items: center; gap: 0.4rem;
+      font-size: 11px; font-weight: 700; color: var(--text);
+    }
+    .cat-head img { width: 18px; height: 18px; filter: brightness(0) invert(1); opacity: 1; }
+    .cat-body { padding: 0.5rem 0.85rem; display: flex; flex-direction: column; gap: 0.25rem; }
+    .cat-row { display: flex; align-items: center; gap: 0.4rem; font-size: 12px; color: var(--text); }
+    .cat-row img { width: 15px; height: 15px; filter: brightness(0) invert(1); opacity: 0.9; }
+    .cat-row .cid { color: var(--blue); font-size: 11px; width: 110px; flex-shrink: 0; }
+
+    /* ─── NOTE ─── */
+    .note {
+      background: rgba(210,153,34,0.06);
+      border: 1px solid rgba(210,153,34,0.2);
+      border-radius: 4px;
+      padding: 0.5rem 0.85rem;
+      font-size: 12px; color: var(--yellow);
+      margin-bottom: 1rem;
+    }
+    .note code { color: var(--yellow); background: rgba(210,153,34,0.1); }
+
+    /* ─── ENUM LIST ─── */
+    .enum-list { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0.5rem 0.85rem; }
+    .enum-val {
+      font-size: 11px; padding: 0.1rem 0.5rem; border-radius: 3px;
+      border: 1px solid var(--border); color: var(--acc);
+      background: rgba(210,168,255,0.06);
+    }
+
+    /* ─── SCROLL ─── */
+    .scroll-x { overflow-x: auto; }
+    .w100 { width: 100%; }
+
+    /* ─── VOCAB TABLE ─── */
+    .vtable tbody tr:nth-child(1) td:first-child { border-left: 3px solid var(--acc); }
+    .vtable tbody tr:nth-child(2) td:first-child { border-left: 3px solid var(--blue); }
+    .vtable tbody tr:nth-child(3) td:first-child { border-left: 3px solid var(--green); }
+    .vtable tbody tr:nth-child(4) td:first-child { border-left: 3px solid var(--yellow); }
+
+    /* ─── OVERVIEW SUMMARY TABLE ─── */
+    .sum-table { width: 100%; border-collapse: collapse; }
+    .sum-table th { background: var(--surface2); border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); padding: 0.4rem 0.85rem; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #c9d1d9; text-align: left; }
+    .sum-table td { padding: 0.4rem 0.85rem; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); font-size: 12px; vertical-align: top; }
+    .sum-table tr:last-child td { border-bottom: none; }
+    .sum-table td:last-child, .sum-table th:last-child { border-right: none; }
+    .sum-table tr:hover td { background: rgba(255,255,255,0.015); }
+
+    /* ─── LOV TABLE ─── */
+    .lov-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .lov-table th { background: var(--surface2); border: 1px solid var(--border); padding: 0.4rem 0.75rem; font-size: 11px; font-weight: 700; text-transform: none; letter-spacing: 0.02em; color: #c9d1d9; text-align: left; white-space: nowrap; }
+    .lov-table td { border: 1px solid var(--border); padding: 0.3rem 0.75rem; vertical-align: top; color: var(--muted); }
+    .lov-table td code { font-size: 11px; color: var(--acc); }
+    .lov-table tbody tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* ─── DDD TAB ─── */
+    /* ─── LISTENER TAB ─── */
+    .ev-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem; }
+    .ev-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+      overflow: hidden; position: relative;
+    }
+    .ev-card-head {
+      background: var(--surface2); border-bottom: 1px solid var(--border);
+      padding: 0.35rem 0.75rem; display: flex; align-items: center; gap: 0.5rem;
+      font-size: 11px; font-weight: 700;
+    }
+    .ev-card-body { padding: 0.5rem 0.75rem; font-size: 11px; max-height: 180px; overflow-y: auto; }
+    .ev-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .ev-dot.on  { background: #3fb950; box-shadow: 0 0 6px rgba(63,185,80,0.5); }
+    .ev-dot.off { background: #484f58; }
+    .ev-row { display: flex; gap: 0.5rem; padding: 0.15rem 0; border-bottom: 1px solid rgba(48,54,61,0.4); align-items: baseline; }
+    .ev-row:last-child { border-bottom: none; }
+    .ev-k { color: var(--blue); white-space: nowrap; min-width: 80px; flex-shrink: 0; }
+    .ev-v { color: var(--muted); word-break: break-all; }
+    .ev-v.on { color: var(--green); }
+    .ev-v.off { color: var(--dim); }
+    .ev-v.warn { color: var(--yellow); }
+    .ev-empty { color: var(--dim); font-style: italic; padding: 0.25rem 0; }
+    .ev-log {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+      padding: 0.5rem; font-size: 10px; max-height: 250px; overflow-y: auto;
+      display: flex; flex-direction: column-reverse;
+    }
+    .ev-log-row { display: flex; gap: 0.5rem; padding: 0.1rem 0; }
+    .ev-log-ts { color: var(--dim); white-space: nowrap; flex-shrink: 0; }
+    .ev-log-type { font-weight: 700; white-space: nowrap; flex-shrink: 0; min-width: 65px; }
+    .ev-log-msg { color: var(--muted); }
+    .ev-controls { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+    .ev-controls button {
+      font-family: var(--mono); font-size: 11px; padding: 0.3rem 0.75rem;
+      border-radius: 4px; border: 1px solid var(--border); background: var(--surface);
+      color: var(--text); cursor: pointer;
+    }
+    .ev-controls button:hover { border-color: var(--muted); }
+    .ev-controls button.active { border-color: #3fb950; color: #3fb950; background: rgba(63,185,80,0.08); }
+    .ev-badge { font-size: 9px; padding: 0.1rem 0.35rem; border-radius: 3px; font-weight: 700; }
+    .ev-badge-on { background: rgba(63,185,80,0.15); color: #3fb950; border: 1px solid rgba(63,185,80,0.25); }
+    .ev-badge-off { background: rgba(139,148,158,0.1); color: #8b949e; border: 1px solid var(--border); }
+
+    .ddd-badge { font-size: 9px; font-weight: 700; letter-spacing: 0.08em; padding: 0.15rem 0.4rem; border-radius: 3px; }
+    .ddd-enum { background: rgba(57,211,83,0.12); color: #3fb950; border: 1px solid rgba(57,211,83,0.2); }
+    .ddd-ref { background: rgba(121,192,255,0.12); color: #79c0ff; border: 1px solid rgba(121,192,255,0.2); }
+
+    /* ─── ARCHI TAB ─── */
+    #tab-archi { background: #0d1117; padding: 1.5rem; overflow-x: auto; }
+
+    .fc { position: relative; width: 100%; min-width: 1000px; }
+
+    .fc-row {
+      display: flex; align-items: flex-start; gap: 1rem;
+      margin-bottom: 0.5rem;
+      position: relative;
+    }
+    .fc-row.centered { justify-content: center; }
+
+    .fc-box {
+      padding: 0.6rem 1rem;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      white-space: nowrap;
+      position: relative;
+      line-height: 1.4;
+      min-width: 120px;
+    }
+    .fc-box .fc-sub { font-size: 10px; font-weight: 400; opacity: 0.7; display: block; margin-top: 0.15rem; }
+
+    /* box types */
+    .fc-input    { background: #1c3a5f; border: 2px solid #388bfd; color: #79c0ff; border-radius: 20px; }
+    .fc-process  { background: #1c2d1f; border: 2px solid #3fb950; color: #56d364; }
+    .fc-decision { background: #3d2210; border: 2px solid #d29922; color: #e3b341; transform: rotate(0deg); border-radius: 2px; }
+    .fc-decision::before { content: '◆'; margin-right: 0.4rem; font-size: 10px; }
+    .fc-output   { background: #2a1435; border: 2px solid #bc8cff; color: #d2a8ff; border-radius: 0 12px 12px 0; }
+    .fc-data     { background: #162032; border: 2px solid #8b949e; color: #c9d1d9; border-radius: 4px; border-left: 4px solid #8b949e; }
+    .fc-engine   { background: #3d1518; border: 2px solid #f85149; color: #ff7b72; }
+    .fc-api      { background: #1c2333; border: 2px dashed #8b949e; color: #c9d1d9; border-radius: 4px; }
+    .fc-ui       { background: #0d2035; border: 2px solid #58a6ff; color: #79c0ff; border-radius: 12px; }
+
+    /* arrows */
+    .fc-arrow {
+      display: flex; align-items: center; justify-content: center;
+      color: var(--dim); font-size: 16px; padding: 0.2rem 0.3rem;
+      font-family: var(--mono);
+    }
+    .fc-arrow-down {
+      text-align: center; color: var(--dim); font-size: 14px;
+      padding: 0.15rem 0; font-family: var(--mono); line-height: 1;
+    }
+    .fc-arrow-label { font-size: 9px; color: var(--muted); padding: 0 0.5rem; font-weight: 400; }
+
+    /* section label */
+    .fc-section {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 0.25rem 0.6rem; border-radius: 3px; margin-bottom: 0.75rem;
+      display: inline-block;
+    }
+    .fc-s-infra { background: rgba(248,81,73,0.1); color: #ff7b72; border: 1px solid rgba(248,81,73,0.25); }
+    .fc-s-logic { background: rgba(63,185,80,0.1); color: #3fb950; border: 1px solid rgba(63,185,80,0.2); }
+    .fc-s-data  { background: rgba(139,148,158,0.1); color: #8b949e; border: 1px solid rgba(139,148,158,0.2); }
+    .fc-s-front { background: rgba(88,166,255,0.1); color: #58a6ff; border: 1px solid rgba(88,166,255,0.2); }
+
+    /* group */
+    .fc-group {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.25rem;
+      position: relative;
+    }
+    .fc-group-label {
+      position: absolute; top: -0.55rem; left: 1rem;
+      background: var(--bg); padding: 0 0.5rem;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+
+    /* connector vertical line  */
+    .fc-vline { width: 2px; height: 20px; background: var(--dim); margin: 0 auto; }
+
+    /* flex helpers for flowchart */
+    .fc-flex { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .fc-flex-col { display: flex; flex-direction: column; align-items: center; gap: 0; }
+    .fc-flex-spread { display: flex; align-items: flex-start; gap: 1.5rem; flex-wrap: wrap; justify-content: center; }
+
+    /* ─── UX FLOW (UML Activity) ─── */
+    .ux-flow { display: flex; flex-direction: column; align-items: center; gap: 0; min-width: 700px; padding: 1rem 0; }
+
+    .ux-start, .ux-end {
+      width: 40px; height: 40px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 700;
+    }
+    .ux-start { background: #3fb950; color: #0d1117; border: 3px solid #56d364; }
+    .ux-end   { background: #f85149; color: #0d1117; border: 3px solid #ff7b72; border-width: 3px 3px 3px 3px; }
+    .ux-end::after { content: ''; display: block; width: 16px; height: 16px; border-radius: 50%; background: #0d1117; }
+
+    .ux-action {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 0.6rem 1.25rem;
+      text-align: center;
+      min-width: 200px;
+      max-width: 350px;
+      position: relative;
+    }
+    .ux-action .ux-title { font-weight: 700; font-size: 12px; color: var(--text); }
+    .ux-action .ux-desc  { font-size: 10px; color: var(--muted); margin-top: 0.2rem; }
+    .ux-action .ux-obj   { position: absolute; top: -0.4rem; right: 0.75rem; font-size: 8px; font-weight: 700; letter-spacing: 0.06em; padding: 0.05rem 0.35rem; border-radius: 3px; }
+
+    .ux-action.a-lieu    { border-color: #3fb950; }
+    .ux-action.a-lieu .ux-title { color: #56d364; }
+    .ux-action.a-site    { border-color: #79c0ff; }
+    .ux-action.a-site .ux-title { color: #79c0ff; }
+    .ux-action.a-cam     { border-color: #d29922; }
+    .ux-action.a-cam .ux-title  { color: #e3b341; }
+    .ux-action.a-benef   { border-color: #d2a8ff; }
+    .ux-action.a-benef .ux-title { color: #d2a8ff; }
+    .ux-action.a-monitor { border-color: #58a6ff; }
+    .ux-action.a-monitor .ux-title { color: #79c0ff; }
+
+    .ux-diamond {
+      width: 140px; height: 60px;
+      background: #3d2210;
+      border: 2px solid #d29922;
+      color: #e3b341;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700;
+      text-align: center;
+      clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+      padding: 0.5rem;
+    }
+
+    .ux-fork {
+      display: flex; align-items: flex-start; justify-content: center; gap: 2rem;
+      position: relative;
+    }
+    .ux-branch { display: flex; flex-direction: column; align-items: center; gap: 0; }
+    .ux-branch-label { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 0.25rem; }
+
+    .ux-bar { width: 200px; height: 4px; background: var(--dim); border-radius: 2px; }
+
+    .ux-vline { width: 2px; height: 16px; background: var(--dim); }
+    .ux-varrow { color: var(--dim); font-size: 12px; line-height: 1; }
+
+    .ux-loop-label {
+      font-size: 9px; color: var(--muted); font-style: italic;
+      border: 1px dashed var(--border); border-radius: 4px;
+      padding: 0.15rem 0.5rem; margin: 0.25rem 0;
+    }
+
+    .ux-note {
+      background: rgba(210,168,255,0.06);
+      border: 1px dashed rgba(210,168,255,0.25);
+      border-radius: 4px;
+      padding: 0.35rem 0.75rem;
+      font-size: 10px;
+      color: var(--muted);
+      max-width: 300px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════ TOPBAR ═══════════ -->
+<div id="topbar">
+  <span class="logo">YRYS · SPEC</span>
+  <span class="sep">│</span>
+  <button class="tab-btn active" onclick="showTab('overview')">overview</button>
+  <span class="sep">│</span>
+  <span class="topbar-label">SPEC</span>
+  <button class="tab-btn" onclick="showTab('site-lieux')">lieu &amp; site</button>
+  <button class="tab-btn" onclick="showTab('camera')">camera</button>
+  <button class="tab-btn" onclick="showTab('benefice')">benefice</button>
+  <button class="tab-btn" onclick="showTab('skills')">skills &amp; cats</button>
+  <span class="sep">│</span>
+  <span class="topbar-label">DDD</span>
+  <button class="tab-btn" onclick="showTab('lov')">LOV &amp; Data</button>
+  <span class="sep">│</span>
+  <span class="topbar-label">ARCHI</span>
+  <button class="tab-btn" onclick="showTab('archi')">Technique</button>
+  <button class="tab-btn" onclick="showTab('archi-ux')">Parcours UX</button>
+  <span class="sep">│</span>
+  <span class="topbar-label">FEATURES</span>
+  <button class="tab-btn" onclick="showTab('feat-video')">Video &amp; Upload</button>
+  <button class="tab-btn" onclick="showTab('feat-counting')">Counting</button>
+  <button class="tab-btn" onclick="showTab('feat-blur')">Blur</button>
+  <button class="tab-btn" onclick="showTab('feat-metrics')">Metrics &amp; Logs</button>
+  <span class="sep">│</span>
+  <span class="topbar-label">API</span>
+  <button class="tab-btn" onclick="showTab('api-ref')">Contrats API</button>
+  <span class="sep">│</span>
+  <button class="tab-btn" onclick="showTab('listener')" id="btn-listener">Live</button>
+  <span style="margin-left:auto;color:var(--dim);font-size:11px">v0.2 · 2026-02</span>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB : OVERVIEW
+════════════════════════════════════════════ -->
+<div id="tab-overview" class="tab-pane active">
+
+  <div class="sh">Hiérarchie des objets</div>
+
+  <div class="g2" style="margin-bottom:1.5rem">
+    <div class="hier">
+      <div class="hier-row">
+        <span class="hnode tag-lieu">LIEU</span>
+        <span class="hmeta">zone géographique / ville / région</span>
+        <span class="hpill"><strong>1</strong> unique</span>
+      </div>
+      <div class="hier-row hi">
+        <span class="h-tree">└─ 1..*</span>
+        <span class="hnode tag-site">SITE</span>
+        <span class="hmeta">établissement physique</span>
+      </div>
+      <div class="hier-row hi2">
+        <span class="h-tree">└─ 1..*</span>
+        <span class="hnode tag-cam">CAMÉRA</span>
+        <span class="hmeta">source vidéo</span>
+      </div>
+      <div class="hier-row hi3">
+        <span class="h-tree">└─ 1..*</span>
+        <span class="hnode tag-benef">BÉNÉFICE</span>
+        <span class="hmeta">analyse IA (skill + polygone)</span>
+      </div>
+      <div class="hcard">
+        <span class="hpill"><strong>Cardinalité</strong> 1 LIEU → N SITE</span>
+        <span class="hpill">1 SITE → N CAMÉRA</span>
+        <span class="hpill">1 CAMÉRA → N BÉNÉFICE</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">règles globales</div>
+      <table class="rtable">
+        <tr><td class="rk">IDs</td><td class="rv"><code>snake_case</code> minuscule, unique par type. LIEU est unique (pas de doublons de zone géo).</td></tr>
+        <tr><td class="rk">Cardinalité</td><td class="rv">1 LIEU → 1..N SITE → 1..N CAMÉRA → 1..N BÉNÉFICE. Chaque enfant a exactement 1 parent.</td></tr>
+        <tr><td class="rk">Icônes</td><td class="rv">fichiers <code>.svg</code> dans <code>assets_youn/SvIcons/SVGnew/</code></td></tr>
+        <tr><td class="rk">zone_polygons</td><td class="rv">Polygones attachés au BÉNÉFICE (pas un objet séparé). Coords en pixels image. Min 3 points.</td></tr>
+        <tr><td class="rk">skill → cats</td><td class="rv">seules les catégories compatibles sont autorisées (voir onglet skills)</td></tr>
+        <tr><td class="rk">Stockage actuel</td><td class="rv"><code>data/zones.json</code>, <code>data/cameras.json</code>, <code>static/config/benefit-modal-spec.json</code></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="sh">Résumé des objets</div>
+  <div class="panel">
+    <div class="scroll-x">
+      <table class="sum-table w100">
+        <thead>
+          <tr>
+            <th>Objet</th>
+            <th>Champs REQUIS</th>
+            <th>Champs optionnels</th>
+            <th>Parent</th>
+            <th>Enfants</th>
+            <th>Stockage</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="hnode tag-lieu">LIEU</span></td>
+            <td><code>id</code>, <code>name</code></td>
+            <td><code>address</code>, <code>description</code>, <code>sites[]</code>, <code>icon</code></td>
+            <td><span class="fopt">—</span></td>
+            <td>SITE (N)</td>
+            <td><span class="fopt">à définir</span></td>
+          </tr>
+          <tr>
+            <td><span class="hnode tag-site">SITE</span></td>
+            <td><code>id</code>, <code>name</code>, <code>lieu_id</code></td>
+            <td><code>address</code>, <code>description</code>, <code>cameras[]</code>, <code>icon</code></td>
+            <td>LIEU</td>
+            <td>CAMÉRA (N)</td>
+            <td><span class="fopt">à définir</span></td>
+          </tr>
+          <tr>
+            <td><span class="hnode tag-cam">CAMÉRA</span></td>
+            <td><code>id</code>, <code>name</code>, <code>type</code>, <code>site_id</code>, <code>url</code>/<code>device_id</code>/<code>path</code></td>
+            <td><code>resolution</code>, <code>fps</code>, <code>reconnect</code>, <code>loop</code></td>
+            <td>SITE</td>
+            <td>BÉNÉFICE (N)</td>
+            <td><code>data/cameras.json</code></td>
+          </tr>
+          <tr>
+            <td><span class="hnode tag-benef">BÉNÉFICE</span></td>
+            <td><code>id</code>, <code>name</code>, <code>skill</code>, <code>skill_item</code>, <code>categories[]</code>, <code>camera_id</code></td>
+            <td><code>zone_polygons</code>, <code>active</code>, <code>canvas{}</code></td>
+            <td>CAMÉRA</td>
+            <td>—</td>
+            <td><span class="fopt">à définir</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB : LIEU & SITE
+════════════════════════════════════════════ -->
+<div id="tab-site-lieux" class="tab-pane">
+
+  <!-- ── LIEU ── -->
+  <div class="sh">Objet · LIEU <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--dim)">— le conteneur le plus grand (ex: ville, région)</span></div>
+  <div class="g2">
+    <div class="panel">
+      <div class="panel-head"><span class="obj-tag tag-lieu">LIEU</span> Champs</div>
+      <table class="ftable">
+        <thead><tr><th>Champ</th><th>Type</th><th>R/O</th><th>Description / Contraintes</th></tr></thead>
+        <tbody>
+          <tr><td class="fname">id</td><td class="ftype">string</td><td><span class="pill p-req">REQ</span></td><td class="fdesc">Unique, snake_case. Ex: <code>lieu_lyon</code></td></tr>
+          <tr><td class="fname">name</td><td class="ftype">string</td><td><span class="pill p-req">REQ</span></td><td class="fdesc">Nom affiché. Ex: <code>Lyon</code></td></tr>
+          <tr><td class="fname">address</td><td class="ftype">string</td><td><span class="pill p-opt">OPT</span></td><td class="fdesc">Adresse ou zone géographique</td></tr>
+          <tr><td class="fname">description</td><td class="ftype">string</td><td><span class="pill p-opt">OPT</span></td><td class="fdesc">Texte libre</td></tr>
+          <tr><td class="fname">icon</td><td class="ftype">string</td><td><span class="pill p-opt">OPT</span></td><td class="fdesc">Nom fichier SVG</td></tr>
+          <tr><td class="fname">sites</td><td class="ftype">string[]</td><td><span class="pill p-opt">OPT</span></td><td class="fdesc">Liste des <code>site_id</code> rattachés</td></tr>
+          <tr><td class="fname">created_at</td><td class="ftype">datetime</td><td><span class="pill p-opt">OPT</span></td><td class="fdesc">ISO 8601</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><span class="obj-tag tag-lieu">LIEU</span> Exemple JSON</div>
+      <div class="codeblock">{
+  <span class="k">"id"</span>:          <span class="v">"lieu_lyon"</span>,
+  <span class="k">"name"</span>:        <span class="v">"Lyon"</span>,
+  <span class="k">"address"</span>:     <span class="v">"Métropole de Lyon, 69000"</span>,
+  <span class="k">"description"</span>: <span class="v">"Zone clients Grand Lyon"</span>,
+  <span class="k">"sites"</span>: [
+    <span class="v">"site_entrepot_central"</span>,
+    <span class="v">"site_usine_nord"</span>
+  ],
+  <span class="k">"created_at"</span>: <span class="v">"2025-01-15T09:00:00Z"</span>
+}</div>
+    </div>
+  </div>
+
+  <!-- ── SITE ── -->
+  <div class="sh" style="margin-top:2.5rem">Objet · SITE <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--dim)">— établissement physique dans un lieu (ex: bâtiment, entrepôt)</span></div>
+  <div class="g2">
+    <div class="panel">
+      <div class="panel-head"><span class="obj-tag tag-site">SITE</span> Champs</div>
+      <table class="ftable">
+        <thead><tr><th>Champ</th><th>Type</th><th>R/O</th><th>Description / Contraintes</th></tr></thead>
+        <tbody>
+          <tr><td class="fname">id</td><td class="ftype">string</td><td><span class="pill p-req">REQ</span></td><td class="fdesc">Unique, snake_case. Ex: <code>site_entrepot_central</code></td></tr>
+          <tr><td class="fname">name</td><td class="ftype">string</td><td><span class="pill p-req">REQ</span></td><td class="fdesc">Nom affiché. Ex: <code>Entrepôt central</code></td></tr>
+          <tr><td class="fname">lieu_id</td><td class="ftype">string</td><td><span class="pill p-req">REQ</span></td><td class="fdesc">Ref vers <code>LIEU.id</code> parent</td></tr>
+          <tr><td class="fname">address</td><td class="ftype">string</td><td><span class="pill p-opt">OPT</span></td><td class="fdesc">Adresse précise du bâtiment</td></tr>
+          <tr><td class="fname">description</td><td class="ftype">string</td><td><span class="pill p-opt">OPT</span></td><td class="fdesc">Texte libre</td></tr>
+          <tr><td class="fname">icon</td><td class="ftype">string</td><td><span class="pill p-opt">OPT</span></td><td class="fdesc">Nom fichier SVG</td></tr>
+          <tr><td class="fname">cameras</td><td class="ftype">string[]</td><td><span class="pill p-opt">OPT</span></td><td class="fdesc">Liste des <code>camera_id</code> installées</td></tr>
+          <tr><td class="fname">created_at</td><td class="ftype">datetime</td><td><span class="pill p-opt">OPT</span></td><td class="fdesc">ISO 8601</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><span class="obj-tag tag-site">SITE</span> Exemple JSON</div>
+      <div class="codeblock">{
+  <span class="k">"id"</span>:          <span class="v">"site_entrepot_central"</span>,
+  <span class="k">"name"</span>:        <span class="v">"Entrepôt central"</span>,
+  <span class="k">"lieu_id"</span>:     <span class="v">"lieu_lyon"</span>,
+  <span class="k">"address"</span>:     <span class="v">"12 rue du Parc, 69000 Lyon"</span>,
+  <span class="k">"description"</span>: <span class="v">"Site logistique principal"</span>,
+  <span class="k">"cameras"</span>: [
+    <span class="v">"cam_entrepot_entree"</span>,
+    <span class="v">"cam_entrepot_quai"</span>
+  ],
+  <span class="k">"created_at"</span>: <span class="v">"2025-01-15T09:00:00Z"</span>
+}</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB : CAMERA
+════════════════════════════════════════════ -->
+<div id="tab-camera" class="tab-pane">
+
+  <div class="sh">Objet · CAMÉRA — Champs communs</div>
+  <div class="note">Stockage : <code>data/cameras.json</code> — clé = <code>camera_id</code></div>
+  <div class="g2" style="margin-bottom:1.5rem">
+    <div class="panel">
+      <div class="panel-head"><span class="obj-tag tag-cam">CAMÉRA</span> Champs communs (tous types)</div>
+      <table class="ftable">
+        <thead><tr><th>Champ</th><th>Type</th><th>R/O</th><th>Description / Contraintes</th></tr></thead>
+        <tbody>
+          <tr><td class="fname">id</td><td class="ftype">string</td><td><span class="pill p-req">REQ</span></td><td class="fdesc">snake_case. Ex: <code>cam_entree</code></td></tr>
+          <tr><td class="fname">name</td><td class="ftype">string</td><td><span class="pill p-req">REQ</span></td><td class="fdesc">Nom affiché</td></tr>
+          <tr><td class="fname">type</td><td class="ftype">enum</td><td><span class="pill p-req">REQ</span></td><td class="fdesc"><code>webcam</code> | <code>rtsp</code> | <code>video</code></td></tr>
+          <tr><td class="fname">site_id</td><td class="ftype">string</td><td><span class="pill p-req">REQ</span></td><td class="fdesc">Ref vers <code>SITE.id</code> parent</td></tr>
+          <tr><td class="fname">description</td><td class="ftype">string</td><td><span class="pill p-opt">OPT</span></td><td class="fdesc">Texte libre</td></tr>
+          <tr><td class="fname">resolution</td><td class="ftype">string</td><td><span class="pill p-opt">OPT</span></td><td class="fdesc">Ex: <code>1920x1080</code></td></tr>
+          <tr><td class="fname">fps</td><td class="ftype">number</td><td><span class="pill p-opt">OPT</span></td><td class="fdesc">Images/seconde source</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div class="panel" style="margin-bottom:1rem">
+        <div class="panel-head"><span class="obj-tag tag-cam">type: webcam</span> Champs spécifiques</div>
+        <table class="ftable">
+          <tbody>
+            <tr><td class="fname">device_id</td><td class="ftype">integer</td><td><span class="pill p-req">REQ</span></td><td class="fdesc">Index périphérique OS. <code>0</code> = défaut</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel" style="margin-bottom:1rem">
+        <div class="panel-head"><span class="obj-tag tag-cam">type: rtsp</span> Champs spécifiques</div>
+        <table class="ftable">
+          <tbody>
+            <tr><td class="fname">url</td><td class="ftype">string</td><td><span class="pill p-req">REQ</span></td><td class="fdesc"><code>rtsp://user:pass@host/path</code></td></tr>
+            <tr><td class="fname">reconnect</td><td class="ftype">boolean</td><td><span class="pill p-opt">OPT</span></td><td class="fdesc">Reconnexion auto. Défaut: <code>true</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="obj-tag tag-cam">type: video</span> Champs spécifiques</div>
+        <table class="ftable">
+          <tbody>
+            <tr><td class="fname">path</td><td class="ftype">string</td><td><span class="pill p-req">REQ</span></td><td class="fdesc">Chemin relatif dans <code>videos/</code>. Ex: <code>entr1.mp4</code></td></tr>
+            <tr><td class="fname">loop</td><td class="ftype">boolean</td><td><span class="pill p-opt">OPT</span></td><td class="fdesc">Rejouer en boucle. Défaut: <code>false</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="sh">Exemples JSON par type</div>
+  <div class="g3">
+    <div class="panel">
+      <div class="panel-head"><span class="obj-tag tag-cam">webcam</span></div>
+      <div class="codeblock">{
+  <span class="k">"id"</span>:        <span class="v">"webcam_bureau"</span>,
+  <span class="k">"type"</span>:      <span class="v">"webcam"</span>,
+  <span class="k">"name"</span>:      <span class="v">"Webcam bureau"</span>,
+  <span class="k">"device_id"</span>: <span class="n">0</span>
+}</div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><span class="obj-tag tag-cam">rtsp</span></div>
+      <div class="codeblock">{
+  <span class="k">"id"</span>:         <span class="v">"rtsp_parking"</span>,
+  <span class="k">"type"</span>:       <span class="v">"rtsp"</span>,
+  <span class="k">"name"</span>:       <span class="v">"IP Cam parking"</span>,
+  <span class="k">"url"</span>:        <span class="v">"rtsp://admin:pw@192.168.1.10/s1"</span>,
+  <span class="k">"reconnect"</span>: <span class="b">true</span>
+}</div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><span class="obj-tag tag-cam">video</span></div>
+      <div class="codeblock">{
+  <span class="k">"id"</span>:    <span class="v">"video_demo"</span>,
+  <span class="k">"type"</span>: <span class="v">"video"</span>,
+  <span class="k">"name"</span>: <span class="v">"Démo entrée"</span>,
+  <span class="k">"path"</span>: <span class="v">"entr1.mp4"</span>,
+  <span class="k">"loop"</span>: <span class="b">true</span>
+}</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB : BÉNÉFICE
+════════════════════════════════════════════ -->
+<div id="tab-benefice" class="tab-pane">
+
+  <div class="sh">Objet · BÉNÉFICE</div>
+  <div class="g2" style="margin-bottom:1.5rem">
+    <div class="panel">
+      <div class="panel-head"><span class="obj-tag tag-benef">BÉNÉFICE</span> Champs</div>
+      <table class="ftable">
+        <thead><tr><th>Champ</th><th>Type</th><th>R/O</th><th>Description / Contraintes</th></tr></thead>
+        <tbody>
+          <tr><td class="fname">id</td><td class="ftype">string</td><td><span class="pill p-req">REQ</span></td><td class="fdesc">snake_case. Ex: <code>benef_comptage_entree</code></td></tr>
+          <tr><td class="fname">name</td><td class="ftype">string</td><td><span class="pill p-req">REQ</span></td><td class="fdesc">Nom affiché</td></tr>
+          <tr><td class="fname">skill</td><td class="ftype">enum</td><td><span class="pill p-req">REQ</span></td><td class="fdesc"><code>detection</code> | <code>counting</code> | <code>heatmap</code> | <code>quality</code></td></tr>
+          <tr><td class="fname">skill_item</td><td class="ftype">string</td><td><span class="pill p-req">REQ</span></td><td class="fdesc">Sous-type du skill. Ex: <code>counting_people</code></td></tr>
+          <tr><td class="fname">categories</td><td class="ftype">string[]</td><td><span class="pill p-req">REQ</span></td><td class="fdesc">Min 1 catégorie. Doit être compatible avec le skill (voir table ci-dessous)</td></tr>
+          <tr><td class="fname">camera_id</td><td class="ftype">string</td><td><span class="pill p-req">REQ</span></td><td class="fdesc">Ref vers <code>CAMÉRA.id</code> parent</td></tr>
+          <tr><td class="fname">zone_polygons</td><td class="ftype">float[][][]</td><td><span class="pill p-opt">OPT</span></td><td class="fdesc">Polygone(s) de restriction sur l'image. Même format que <code>data/zones.json</code>. Si absent = analyse sur toute l'image.</td></tr>
+          <tr><td class="fname">active</td><td class="ftype">boolean</td><td><span class="pill p-opt">OPT</span></td><td class="fdesc">Défaut: <code>true</code></td></tr>
+          <tr><td class="fname">canvas</td><td class="ftype">object</td><td><span class="pill p-opt">OPT</span></td><td class="fdesc">Config rendu visuel — voir sous-objet ci-dessous</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:1rem">
+      <div class="panel">
+        <div class="panel-head"><span class="obj-tag tag-canvas">canvas</span> Sous-objet config visuelle</div>
+        <table class="ftable">
+          <thead><tr><th>Champ</th><th>Type</th><th>Défaut</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="fname">show_bbox</td><td class="ftype">boolean</td><td><code>true</code></td><td class="fdesc">Afficher les bounding boxes</td></tr>
+            <tr><td class="fname">show_labels</td><td class="ftype">boolean</td><td><code>true</code></td><td class="fdesc">Afficher les labels texte</td></tr>
+            <tr><td class="fname">show_zone</td><td class="ftype">boolean</td><td><code>true</code></td><td class="fdesc">Afficher le polygone de zone</td></tr>
+            <tr><td class="fname">color</td><td class="ftype">string</td><td><code>#BD44D5</code></td><td class="fdesc">Couleur hex annotations</td></tr>
+            <tr><td class="fname">opacity</td><td class="ftype">float</td><td><code>0.5</code></td><td class="fdesc">Opacité remplissage zone (0–1)</td></tr>
+            <tr><td class="fname">blur_faces</td><td class="ftype">boolean</td><td><code>false</code></td><td class="fdesc">Flouter les visages</td></tr>
+            <tr><td class="fname">overlay</td><td class="ftype">enum</td><td><code>none</code></td><td class="fdesc"><code>none</code> | <code>heatmap</code> | <code>trajectory</code></td></tr>
+            <tr><td class="fname">counter_position</td><td class="ftype">enum</td><td><code>top-left</code></td><td class="fdesc"><code>top-left</code> | <code>top-right</code> | <code>bottom</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">Compatibilité skill → catégories autorisées</div>
+        <table class="ftable">
+          <thead><tr><th>skill</th><th>Catégories autorisées</th></tr></thead>
+          <tbody>
+            <tr><td class="ftype">detection</td><td class="fdesc"><code>human</code>, <code>transport</code></td></tr>
+            <tr><td class="ftype">counting</td><td class="fdesc"><code>human</code>, <code>transport</code></td></tr>
+            <tr><td class="ftype">heatmap</td><td class="fdesc"><code>human</code>, <code>object</code></td></tr>
+            <tr><td class="ftype">quality</td><td class="fdesc"><code>object</code> uniquement</td></tr>
+          </tbody>
+        </table>
+        <div class="panel-head" style="border-top:1px solid var(--border);border-bottom:none;margin-top:0">Icônes quality (règle spéciale)</div>
+        <div class="enum-list">
+          <span class="enum-val">Yqualitydefect.svg</span>
+          <span class="enum-val">Yfissure.svg</span>
+          <span class="enum-val">Yhumidity.svg</span>
+          <span class="enum-val">Yqualitycheck.svg</span>
+        </div>
+        <div style="padding:0.3rem 0.85rem;font-size:11px;color:var(--dim)">Fallback: <code>Yqualitydefect.svg</code></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sh">Exemple JSON complet</div>
+  <div class="g2">
+    <div class="panel">
+      <div class="panel-head"><span class="obj-tag tag-benef">BÉNÉFICE</span> Exemple</div>
+      <div class="codeblock">{
+  <span class="k">"id"</span>:          <span class="v">"benef_comptage_entree"</span>,
+  <span class="k">"name"</span>:        <span class="v">"Comptage Entrée Principale"</span>,
+  <span class="k">"skill"</span>:       <span class="v">"counting"</span>,
+  <span class="k">"skill_item"</span>:  <span class="v">"counting_people"</span>,
+  <span class="k">"categories"</span>:    [<span class="v">"silhouette"</span>, <span class="v">"foule"</span>],
+  <span class="k">"camera_id"</span>:     <span class="v">"cam_entrepot_entree"</span>,
+  <span class="k">"zone_polygons"</span>: [[
+    [<span class="n">416</span>, <span class="n">225</span>], [<span class="n">470</span>, <span class="n">47</span>],
+    [<span class="n">347</span>, <span class="n">80</span>],  [<span class="n">286</span>, <span class="n">262</span>]
+  ]],
+  <span class="k">"active"</span>:        <span class="b">true</span>,
+  <span class="k">"canvas"</span>: {
+    <span class="k">"show_bbox"</span>:        <span class="b">true</span>,
+    <span class="k">"show_labels"</span>:      <span class="b">true</span>,
+    <span class="k">"show_zone"</span>:        <span class="b">true</span>,
+    <span class="k">"color"</span>:            <span class="v">"#BD44D5"</span>,
+    <span class="k">"opacity"</span>:          <span class="n">0.25</span>,
+    <span class="k">"blur_faces"</span>:       <span class="b">false</span>,
+    <span class="k">"overlay"</span>:          <span class="v">"none"</span>,
+    <span class="k">"counter_position"</span>: <span class="v">"top-left"</span>
+  }
+}</div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><span class="obj-tag tag-benef">BÉNÉFICE</span> Exemple quality</div>
+      <div class="codeblock">{
+  <span class="k">"id"</span>:          <span class="v">"benef_fissure_chaine"</span>,
+  <span class="k">"name"</span>:        <span class="v">"Détection Fissure Chaîne A"</span>,
+  <span class="k">"skill"</span>:       <span class="v">"quality"</span>,
+  <span class="k">"skill_item"</span>:  <span class="v">"quality_fissure"</span>,
+  <span class="k">"categories"</span>: [<span class="v">"fissure"</span>],
+  <span class="k">"camera_id"</span>:  <span class="v">"cam_entrepot_chaine"</span>,
+  <span class="k">"active"</span>:     <span class="b">true</span>,
+  <span class="k">"canvas"</span>: {
+    <span class="k">"show_bbox"</span>:   <span class="b">true</span>,
+    <span class="k">"show_labels"</span>: <span class="b">false</span>,
+    <span class="k">"show_zone"</span>:   <span class="b">true</span>,
+    <span class="k">"color"</span>:       <span class="v">"#f85149"</span>,
+    <span class="k">"opacity"</span>:     <span class="n">0.4</span>,
+    <span class="k">"overlay"</span>:     <span class="v">"none"</span>
+  }
+}</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB : DDD (Domain-Driven Design)
+════════════════════════════════════════════ -->
+<div id="tab-lov" class="tab-pane">
+  <div class="sh">Domain · Valeurs bornées</div>
+  <div class="panel" style="margin-bottom:1.5rem">
+    <table class="rtable">
+      <tr><td class="rk">Domain Enum</td><td class="rv">Valeurs fixes du domaine métier. Pas d'édition par l'utilisateur. Source : config (<code>solution-spec.json</code>) ou spec technique.</td></tr>
+      <tr><td class="rk">Entity Reference</td><td class="rv">Référence vers un agrégat (LIEU, SITE, CAMÉRA, BÉNÉFICE). La LOV = liste des IDs du type cible. Alimente les selects / formulaires.</td></tr>
+      <tr><td class="rk">Usage</td><td class="rv">Domain Enums → validation, contraintes. Entity References → navigation, choix parent/enfant. Filtrer par contexte (ex. site_id par lieu_id).</td></tr>
+    </table>
+  </div>
+
+  <div class="sh"><span class="ddd-badge ddd-enum">DOMAIN ENUM</span> Valeurs du domaine</div>
+  <div class="panel">
+    <div class="scroll-x">
+      <table class="lov-table" id="lov-static-table">
+        <thead><tr><th>skill</th><th>skill_item</th><th>class_family</th><th>class</th><th>camera.type</th><th>canvas.overlay</th><th>canvas.counter_position</th></tr></thead>
+        <tbody id="lov-static-body"></tbody>
+      </table>
+    </div>
+    <div class="panel-head" style="border-top:1px solid var(--border);margin-top:0">Source</div>
+    <div style="padding:0.3rem 0.85rem;font-size:11px;color:var(--dim)">solution-spec.json · spec CAMÉRA / BÉNÉFICE</div>
+  </div>
+
+  <div class="sh" style="margin-top:2rem"><span class="ddd-badge ddd-ref">ENTITY REFERENCE</span> Références entre agrégats</div>
+  <div class="panel">
+    <div class="scroll-x">
+      <table class="lov-table">
+        <thead><tr><th>lieu_id</th><th>site_id</th><th>camera_id</th><th>benefit_id</th><th>lieu.sites[]</th><th>site.cameras[]</th></tr></thead>
+        <tbody>
+          <tr><td><code>LIEU.id</code></td><td><code>SITE.id</code></td><td><code>CAMÉRA.id</code></td><td><code>BÉNÉFICE.id</code></td><td><code>SITE.id</code></td><td><code>CAMÉRA.id</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="panel-head" style="border-top:1px solid var(--border);margin-top:0">Usage</div>
+    <div style="padding:0.3rem 0.85rem;font-size:11px;color:var(--dim)">Select parent (SITE) · Select parent (CAMÉRA) · Select caméra (BÉNÉFICE) · Liste bénéfices · Multi-select sites · Multi-select caméras</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB : ARCHI (Flowchart)
+════════════════════════════════════════════ -->
+<div id="tab-archi" class="tab-pane">
+
+  <div class="sh" style="color:var(--muted)">Architecture · Flowchart de la solution YRYS</div>
+
+  <div class="fc">
+
+    <!-- ─── SOURCES ─── -->
+    <div class="fc-group" style="border-color: #388bfd40">
+      <div class="fc-group-label" style="color:#388bfd">SOURCES VIDÉO</div>
+      <div class="fc-row centered">
+        <div class="fc-box fc-input">📷 Webcam<span class="fc-sub">device_id: 0, 1…</span></div>
+        <div class="fc-box fc-input">📡 RTSP<span class="fc-sub">rtsp://user:pass@host</span></div>
+        <div class="fc-box fc-input">🎬 Fichier MP4<span class="fc-sub">videos/*.mp4</span></div>
+      </div>
+    </div>
+
+    <div class="fc-flex-col"><div class="fc-vline"></div><div class="fc-arrow-down">▼</div><div class="fc-vline"></div></div>
+
+    <!-- ─── BACKEND INGESTION ─── -->
+    <div class="fc-group" style="border-color: #f8514940">
+      <div class="fc-group-label" style="color:#ff7b72">BACKEND · FASTAPI</div>
+
+      <div class="fc-row centered">
+        <div class="fc-box fc-engine">OpenCV Capture<span class="fc-sub">cv2.VideoCapture(source)</span></div>
+        <div class="fc-arrow">→</div>
+        <div class="fc-box fc-engine">Frame Buffer<span class="fc-sub">shared_frames{} + lock</span></div>
+      </div>
+
+      <div class="fc-flex-col"><div class="fc-vline"></div><div class="fc-arrow-down">▼</div></div>
+
+      <!-- PROCESSING PIPELINE -->
+      <div class="fc-row centered" style="margin-bottom:0.75rem">
+        <div class="fc-box fc-engine" style="min-width:180px">🧠 YOLO Model<span class="fc-sub">human.pt · GPU/CPU</span></div>
+        <div class="fc-arrow">→</div>
+        <div class="fc-box fc-process" style="min-width:160px">Detections[ ]<span class="fc-sub">bbox, confidence, class</span></div>
+      </div>
+
+      <div class="fc-flex-col"><div class="fc-vline"></div><div class="fc-arrow-down">▼</div></div>
+
+      <!-- ZONE MATCHING -->
+      <div class="fc-row centered">
+        <div class="fc-box fc-decision">Zone ∩ BBox ≥ 30% ?</div>
+      </div>
+
+      <div style="display:flex;justify-content:center;gap:4rem;margin-top:0.5rem">
+        <div class="fc-flex-col">
+          <div class="fc-arrow-down" style="color:var(--green)">▼ OUI</div>
+          <div class="fc-vline" style="background:var(--green)"></div>
+        </div>
+      </div>
+
+      <!-- SKILL DISPATCH -->
+      <div class="fc-flex-spread" style="margin-top:0.5rem">
+        <div class="fc-flex-col">
+          <div class="fc-box fc-process">Detection<span class="fc-sub">presence / linecross / zone</span></div>
+          <div class="fc-arrow-down" style="font-size:11px">│</div>
+          <div class="fc-box fc-data" style="font-size:11px">zone_timers{}</div>
+        </div>
+        <div class="fc-flex-col">
+          <div class="fc-box fc-process">Counting<span class="fc-sub">YOLO + MOG2 blob</span></div>
+          <div class="fc-arrow-down" style="font-size:11px">│</div>
+          <div class="fc-box fc-data" style="font-size:11px">counting_state{}</div>
+        </div>
+        <div class="fc-flex-col">
+          <div class="fc-box fc-process">Heatmap<span class="fc-sub">density / trajectory</span></div>
+          <div class="fc-arrow-down" style="font-size:11px">│</div>
+          <div class="fc-box fc-data" style="font-size:11px">heatmap overlay</div>
+        </div>
+        <div class="fc-flex-col">
+          <div class="fc-box fc-process">Quality<span class="fc-sub">fissure / humidity</span></div>
+          <div class="fc-arrow-down" style="font-size:11px">│</div>
+          <div class="fc-box fc-data" style="font-size:11px">quality flags</div>
+        </div>
+      </div>
+
+      <div class="fc-flex-col" style="margin-top:0.75rem"><div class="fc-vline"></div><div class="fc-arrow-down">▼</div></div>
+
+      <!-- FRAME RENDER -->
+      <div class="fc-row centered">
+        <div class="fc-box fc-engine" style="min-width:220px">Frame Renderer<span class="fc-sub">overlay: bbox + zone + labels + counter + blur</span></div>
+      </div>
+    </div>
+
+    <div class="fc-flex-col"><div class="fc-vline"></div><div class="fc-arrow-down">▼</div><div class="fc-vline"></div></div>
+
+    <!-- ─── API LAYER ─── -->
+    <div class="fc-group" style="border-color: #8b949e40">
+      <div class="fc-group-label" style="color:#8b949e">API REST · ENDPOINTS</div>
+      <div class="fc-flex-spread">
+        <div class="fc-box fc-api">/api/stream/{name}<span class="fc-sub">MJPEG StreamingResponse</span></div>
+        <div class="fc-box fc-api">/api/zones/*<span class="fc-sub">CRUD polygones</span></div>
+        <div class="fc-box fc-api">/api/cameras/*<span class="fc-sub">CRUD sources</span></div>
+        <div class="fc-box fc-api">/api/presence<span class="fc-sub">timers par zone</span></div>
+        <div class="fc-box fc-api">/api/counting/*<span class="fc-sub">config + état</span></div>
+        <div class="fc-box fc-api">/api/solution-spec<span class="fc-sub">skills & categories</span></div>
+      </div>
+    </div>
+
+    <div class="fc-flex-col"><div class="fc-vline"></div><div class="fc-arrow-down">▼</div><div class="fc-vline"></div></div>
+
+    <!-- ─── DATA LAYER ─── -->
+    <div class="fc-group" style="border-color: #8b949e40">
+      <div class="fc-group-label" style="color:#8b949e">DONNÉES · JSON FILES</div>
+      <div class="fc-flex-spread">
+        <div class="fc-box fc-data">data/zones.json<span class="fc-sub">{camera: {zone: {polygons}}}</span></div>
+        <div class="fc-box fc-data">data/cameras.json<span class="fc-sub">{id: {type, name, url…}}</span></div>
+        <div class="fc-box fc-data">data/presence.json<span class="fc-sub">{zone: {total_time}}</span></div>
+        <div class="fc-box fc-data">config/solution-spec.json<span class="fc-sub">skills, categories</span></div>
+        <div class="fc-box fc-data">config/benefit-modal-spec.json<span class="fc-sub">modal creation spec</span></div>
+      </div>
+    </div>
+
+    <div class="fc-flex-col"><div class="fc-vline"></div><div class="fc-arrow-down">▼</div><div class="fc-vline"></div></div>
+
+    <!-- ─── FRONTEND ─── -->
+    <div class="fc-group" style="border-color: #58a6ff40">
+      <div class="fc-group-label" style="color:#58a6ff">FRONTEND · UI</div>
+      <div class="fc-row centered">
+        <div class="fc-box fc-ui">index.html<span class="fc-sub">Dashboard principal</span></div>
+        <div class="fc-arrow">→</div>
+        <div class="fc-box fc-ui">Video Player<span class="fc-sub">MJPEG &lt;img&gt; stream</span></div>
+        <div class="fc-arrow">→</div>
+        <div class="fc-box fc-ui">Zone Editor<span class="fc-sub">Canvas polygon draw</span></div>
+      </div>
+      <div class="fc-flex-spread" style="margin-top:0.75rem">
+        <div class="fc-box fc-ui">Benefit Modal<span class="fc-sub">skill → type → categories</span></div>
+        <div class="fc-box fc-ui">Counting Panel<span class="fc-sub">simple/complex + flip</span></div>
+        <div class="fc-box fc-ui">Presence Timers<span class="fc-sub">zone occupation time</span></div>
+        <div class="fc-box fc-ui">spec.html<span class="fc-sub">cette page</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- LÉGENDE -->
+  <div class="sh" style="color:var(--muted);margin-top:2rem">Légende</div>
+  <div class="panel" style="padding:1rem">
+    <div style="display:flex;flex-wrap:wrap;gap:1.25rem;font-size:12px">
+      <div class="fc-flex" style="gap:0.4rem"><div class="fc-box fc-input" style="padding:0.2rem 0.6rem;min-width:auto;font-size:10px">…</div> Source / Entrée</div>
+      <div class="fc-flex" style="gap:0.4rem"><div class="fc-box fc-engine" style="padding:0.2rem 0.6rem;min-width:auto;font-size:10px">…</div> Moteur / Processing</div>
+      <div class="fc-flex" style="gap:0.4rem"><div class="fc-box fc-process" style="padding:0.2rem 0.6rem;min-width:auto;font-size:10px">…</div> Skill / Traitement</div>
+      <div class="fc-flex" style="gap:0.4rem"><div class="fc-box fc-decision" style="padding:0.2rem 0.6rem;min-width:auto;font-size:10px;transform:none">…</div> Décision</div>
+      <div class="fc-flex" style="gap:0.4rem"><div class="fc-box fc-data" style="padding:0.2rem 0.6rem;min-width:auto;font-size:10px">…</div> Données / Stockage</div>
+      <div class="fc-flex" style="gap:0.4rem"><div class="fc-box fc-api" style="padding:0.2rem 0.6rem;min-width:auto;font-size:10px">…</div> Endpoint API</div>
+      <div class="fc-flex" style="gap:0.4rem"><div class="fc-box fc-ui" style="padding:0.2rem 0.6rem;min-width:auto;font-size:10px">…</div> Interface UI</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB : ARCHI UX (Parcours utilisateur)
+════════════════════════════════════════════ -->
+<div id="tab-archi-ux" class="tab-pane">
+
+  <div class="sh" style="color:var(--muted);margin-bottom:0.5rem">User Journey · Activity Flow</div>
+
+  <div style="overflow-x:auto">
+  <div class="ux-flow">
+
+    <!-- START -->
+    <div class="ux-start">●</div>
+    <div class="ux-vline"></div>
+    <div class="ux-varrow">▼</div>
+    <div class="ux-vline"></div>
+
+    <!-- 1. CREATE LOCATION -->
+    <div class="ux-action a-lieu">
+      <div class="ux-title">Define LOCATION</div>
+      <div class="ux-desc">Geographic area (city/region) - unique</div>
+    </div>
+    <div class="ux-vline"></div>
+    <div class="ux-varrow">▼</div>
+    <div class="ux-vline"></div>
+
+    <!-- 2. CREATE SITE -->
+    <div class="ux-action a-site">
+      <div class="ux-title">Create SITE</div>
+      <div class="ux-desc">Physical facility within location</div>
+    </div>
+    <div class="ux-vline"></div>
+    <div class="ux-varrow">▼</div>
+    <div class="ux-vline"></div>
+
+    <!-- 3. ADD CAMERA -->
+    <div class="ux-action a-cam">
+      <div class="ux-title">Add CAMERA</div>
+      <div class="ux-desc">Video source attached to site</div>
+    </div>
+    <div class="ux-vline"></div>
+    <div class="ux-varrow">▼</div>
+    <div class="ux-vline"></div>
+
+    <!-- DECISION -->
+    <div class="ux-diamond">Source Type?</div>
+    <div class="ux-vline"></div>
+
+    <!-- FORK -->
+    <div class="ux-fork">
+      <div class="ux-branch">
+        <div class="ux-branch-label">WEBCAM</div>
+        <div class="ux-action a-cam" style="min-width:120px">
+          <div class="ux-title">Select Device</div>
+          <div class="ux-desc">device_id from OS</div>
+        </div>
+      </div>
+      <div class="ux-branch">
+        <div class="ux-branch-label">RTSP</div>
+        <div class="ux-action a-cam" style="min-width:120px">
+          <div class="ux-title">Enter RTSP URL</div>
+          <div class="ux-desc">rtsp://user:pass@host</div>
+        </div>
+      </div>
+      <div class="ux-branch">
+        <div class="ux-branch-label">VIDEO</div>
+        <div class="ux-action a-cam" style="min-width:120px">
+          <div class="ux-title">Upload MP4</div>
+          <div class="ux-desc">videos/*.mp4 file</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ux-vline"></div>
+    <div class="ux-bar"></div>
+    <div class="ux-vline"></div>
+    <div class="ux-varrow">▼</div>
+    <div class="ux-vline"></div>
+
+    <!-- 4. START STREAM -->
+    <div class="ux-action a-monitor">
+      <div class="ux-title">Start Stream</div>
+      <div class="ux-desc">POST /api/stream/{id}/start</div>
+    </div>
+    <div class="ux-vline"></div>
+    <div class="ux-varrow">▼</div>
+    <div class="ux-vline"></div>
+
+    <!-- LOOP -->
+    <div class="ux-loop-label">[LOOP] for each benefit on camera</div>
+    <div class="ux-vline"></div>
+
+    <!-- 5. CREATE BENEFIT -->
+    <div class="ux-action a-benef" style="min-width:300px">
+      <div class="ux-title">Create BENEFIT</div>
+      <div class="ux-desc">AI analysis on camera (polygon included)</div>
+    </div>
+    <div class="ux-vline"></div>
+    <div class="ux-varrow">▼</div>
+    <div class="ux-vline"></div>
+
+    <!-- SUB-STEPS -->
+    <div style="display:flex;gap:0.6rem;align-items:stretch">
+      <div class="ux-action a-benef" style="min-width:120px">
+        <div class="ux-title">Select Skill</div>
+        <div class="ux-desc">detection/counting/heatmap/quality</div>
+      </div>
+      <div style="display:flex;align-items:center"><div class="fc-arrow">→</div></div>
+      <div class="ux-action a-benef" style="min-width:120px">
+        <div class="ux-title">Choose Type</div>
+        <div class="ux-desc">counting_people, etc.</div>
+      </div>
+      <div style="display:flex;align-items:center"><div class="fc-arrow">→</div></div>
+      <div class="ux-action a-benef" style="min-width:120px">
+        <div class="ux-title">Select Categories</div>
+        <div class="ux-desc">human/transport/object</div>
+      <div style="display:flex;align-items:center"><div class="fc-arrow">→</div></div>
+      <div class="ux-action a-benef" style="min-width:140px">
+        <div class="ux-title" style="font-size:11px">5d · Class(es)</div>
+        <div class="ux-desc">silhouette, foule…</div>
+      </div>
+      </div>
+    </div>
+
+    <div class="ux-vline"></div>
+    <div class="ux-varrow">▼</div>
+    <div class="ux-vline"></div>
+
+    <!-- 6. DRAW POLYGON -->
+    <div class="ux-action a-benef" style="min-width:300px">
+      <div class="ux-title">Draw Polygon (zone_polygons)</div>
+      <div class="ux-desc">Analysis area on image. Optional: defaults to full frame</div>
+    </div>
+    <div class="ux-vline"></div>
+    <div class="ux-varrow">▼</div>
+    <div class="ux-vline"></div>
+
+    <!-- 7. CONFIGURE CANVAS -->
+    <div class="ux-action a-benef" style="min-width:280px">
+      <div class="ux-title">Configure Canvas</div>
+      <div class="ux-desc">bbox, labels, overlay, color, opacity, blur, counter</div>
+    </div>
+    <div class="ux-vline"></div>
+
+    <div class="ux-loop-label">[END LOOP]</div>
+    <div class="ux-vline"></div>
+    <div class="ux-varrow">▼</div>
+    <div class="ux-vline"></div>
+
+    <!-- 8. LIVE MONITORING -->
+    <div class="ux-action a-monitor" style="min-width:320px">
+      <div class="ux-title">Live Monitoring</div>
+      <div class="ux-desc">Stream with overlays, counters, presence, heatmap</div>
+    </div>
+    <div class="ux-vline"></div>
+    <div class="ux-varrow">▼</div>
+    <div class="ux-vline"></div>
+
+    <!-- DECISION -->
+    <div class="ux-diamond">Next Action?</div>
+    <div class="ux-vline"></div>
+
+    <div class="ux-fork">
+      <div class="ux-branch">
+        <div class="ux-branch-label">EDIT</div>
+        <div class="ux-action a-benef" style="min-width:120px">
+          <div class="ux-title">Edit Benefit</div>
+          <div class="ux-desc">Polygon & config</div>
+        </div>
+        <div class="ux-vline"></div>
+        <div class="ux-note">← back to step 5</div>
+      </div>
+      <div class="ux-branch">
+        <div class="ux-branch-label">CONFIG</div>
+        <div class="ux-action a-benef" style="min-width:120px">
+          <div class="ux-title">Toggle/Config</div>
+          <div class="ux-desc">On/off, flip count</div>
+        </div>
+        <div class="ux-vline"></div>
+        <div class="ux-note">← back to step 8</div>
+      </div>
+      <div class="ux-branch">
+        <div class="ux-branch-label">ADD</div>
+        <div class="ux-action a-cam" style="min-width:120px">
+          <div class="ux-title">New Camera</div>
+          <div class="ux-desc">To current site</div>
+        </div>
+        <div class="ux-vline"></div>
+        <div class="ux-note">← back to step 3</div>
+      </div>
+      <div class="ux-branch">
+        <div class="ux-branch-label">DONE</div>
+        <div class="ux-action" style="min-width:120px">
+          <div class="ux-title">Stop Stream</div>
+          <div class="ux-desc">End processing</div>
+        </div>
+        <div class="ux-vline"></div>
+        <div class="ux-varrow">▼</div>
+      </div>
+    </div>
+
+    <div class="ux-vline"></div>
+
+  <!-- LÉGENDE UX -->
+  <div class="sh" style="color:var(--muted);margin-top:2rem">Légende</div>
+  <div class="panel" style="padding:1rem">
+    <div style="display:flex;flex-wrap:wrap;gap:1.5rem;font-size:12px;align-items:center">
+      <div class="fc-flex" style="gap:0.4rem"><div class="ux-start" style="width:20px;height:20px;font-size:8px">●</div> Début</div>
+      <div class="fc-flex" style="gap:0.4rem"><div class="ux-end" style="width:20px;height:20px" ></div> Fin</div>
+      <div class="fc-flex" style="gap:0.4rem"><div style="border:2px solid var(--border);border-radius:6px;padding:0.1rem 0.5rem;font-size:10px;background:var(--surface)">…</div> Action</div>
+      <div class="fc-flex" style="gap:0.4rem"><div class="ux-diamond" style="width:40px;height:20px;font-size:7px">?</div> Décision</div>
+      <div class="fc-flex" style="gap:0.4rem"><div class="ux-loop-label" style="margin:0;font-size:9px">↻</div> Boucle</div>
+      <div class="fc-flex" style="gap:0.4rem"><div class="ux-note" style="font-size:9px;max-width:none">↩</div> Retour</div>
+      <div style="margin-left:1.5rem;color:var(--dim);font-size:11px;border-left:1px solid var(--border);padding-left:1rem">
+        Couleurs : <span style="color:#56d364">■</span> LIEU · <span style="color:#79c0ff">■</span> SITE · <span style="color:#e3b341">■</span> CAMÉRA · <span style="color:#d2a8ff">■</span> BÉNÉFICE · <span style="color:#58a6ff">■</span> UI/Monitoring
+      </div>
+    </div>
+  </div>
+    <div class="ux-varrow">▼</div>
+    <div class="ux-vline"></div>
+
+    <!-- END -->
+    <div class="ux-end">■</div>
+
+  </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB : LISTENER (Live monitor)
+════════════════════════════════════════════ -->
+<div id="tab-listener" class="tab-pane">
+  <div class="ev-controls">
+    <button id="ev-toggle" class="active" onclick="toggleListener()">● LIVE</button>
+    <span style="color:var(--dim);font-size:11px">Poll: <span id="ev-interval">2s</span></span>
+    <span style="color:var(--dim);font-size:11px">|</span>
+    <button onclick="clearLog()">Clear log</button>
+    <span style="color:var(--dim);font-size:11px;margin-left:auto" id="ev-last-poll">—</span>
+  </div>
+
+  <div class="ev-grid" id="ev-cards"></div>
+
+  <div class="sh" style="color:var(--muted)">Event Log</div>
+  <div class="ev-log" id="ev-log">
+    <div class="ev-log-row"><span class="ev-log-ts">--:--:--</span><span class="ev-log-type" style="color:var(--dim)">INIT</span><span class="ev-log-msg">En attente de polling…</span></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB : SKILLS & CATÉGORIES
+════════════════════════════════════════════ -->
+<div id="tab-skills" class="tab-pane">
+
+  <!-- VOCABULAIRE (statique) -->
+  <div class="sh">Vocabulaire</div>
+  <div class="panel" style="margin-bottom:1.5rem">
+    <table class="ftable vtable">
+      <thead><tr><th style="width:160px">Terme</th><th style="width:120px">Clé JSON</th><th>Définition</th><th>Exemples</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span style="color:var(--acc);font-weight:700;font-size:13px">SKILL</span></td>
+          <td class="ftype">skill</td>
+          <td class="fdesc">Capacité analytique principale d'YRYS. Il en existe 4, fixes. Chaque bénéfice est rattaché à exactement 1 skill.</td>
+          <td><code>detection</code>, <code>counting</code>, <code>heatmap</code>, <code>quality</code></td>
+        </tr>
+        <tr>
+          <td><span style="color:var(--blue);font-weight:700;font-size:13px">TYPE SKILL</span></td>
+          <td class="ftype">skill_item</td>
+          <td class="fdesc">Sous-mode d'un skill. Précise la nature exacte de l'analyse. Un bénéfice choisit 1 type skill parmi ceux du skill parent.</td>
+          <td><code>counting_people</code>, <code>detection_zone</code>, <code>heatmap_trajectory</code></td>
+        </tr>
+        <tr>
+          <td><span style="color:var(--green);font-weight:700;font-size:13px">CLASS FAMILY</span></td>
+          <td class="ftype">category (key)</td>
+          <td class="fdesc">Famille d'objets détectables. Regroupe des classes du même domaine. Les class families compatibles dépendent du skill choisi.</td>
+          <td><code>human</code>, <code>transport</code>, <code>object</code></td>
+        </tr>
+        <tr>
+          <td><span style="color:var(--yellow);font-weight:700;font-size:13px">CLASS</span></td>
+          <td class="ftype">category.items[].id</td>
+          <td class="fdesc">Objet concret détecté par le modèle IA. Un bénéfice peut cibler une ou plusieurs classes. Une class appartient à une seule class family.</td>
+          <td><code>silhouette</code>, <code>foule</code>, <code>voiture</code>, <code>fissure</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ARBRE (dynamique) -->
+  <div class="sh">Arbre SKILL → TYPE SKILL → CLASS FAMILY → CLASS</div>
+  <div id="skills-content">
+    <div style="color:var(--muted);padding:1rem">Chargement depuis /api/solution-spec …</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB : VIDEO & UPLOAD
+════════════════════════════════════════════ -->
+<div id="tab-feat-video" class="tab-pane">
+  <h2 style="color:var(--acc)">Video &amp; Upload</h2>
+  <p style="color:var(--muted);margin-bottom:1rem">Gestion des fichiers vidéo comme sources d'analyse.</p>
+
+  <table class="ftable"><thead><tr>
+    <th>Endpoint</th><th>Méthode</th><th>Description</th><th>Paramètres</th><th>Réponse</th>
+  </tr></thead><tbody>
+    <tr><td><code>/api/videos</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>Liste tous les fichiers vidéo disponibles dans <code>/videos/</code></td>
+      <td>—</td><td><code>{ videos: string[] }</code></td></tr>
+    <tr><td><code>/api/videos/upload</code></td><td><span class="badge" style="background:#1f6feb">POST</span></td>
+      <td>Upload un fichier vidéo (multipart/form-data)</td>
+      <td><code>file: UploadFile</code></td><td><code>{ message, filename }</code></td></tr>
+    <tr><td><code>/api/videos/optimize/{name}</code></td><td><span class="badge" style="background:#1f6feb">POST</span></td>
+      <td>Ré-encode la vidéo en H.264 pour un streaming optimal</td>
+      <td><code>name: str</code> (path)</td><td><code>{ message, filename }</code></td></tr>
+    <tr><td><code>/api/videos/{name}/frame</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>Capture une frame JPEG de la vidéo (snapshot)</td>
+      <td><code>name: str</code> (path)</td><td>JPEG image</td></tr>
+    <tr><td><code>/api/videos/{name}/info</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>Métadonnées vidéo : résolution, FPS, durée, codec</td>
+      <td><code>name: str</code> (path)</td><td><code>{ width, height, fps, duration, codec, ... }</code></td></tr>
+  </tbody></table>
+
+  <div class="sh" style="margin-top:1.5rem">Règles métier</div>
+  <ul style="color:var(--text)">
+    <li>Formats acceptés : <code>.mp4</code>, <code>.avi</code>, <code>.mkv</code>, <code>.mov</code>, <code>.webm</code></li>
+    <li>L'optimisation utilise <code>ffmpeg -c:v libx264 -preset fast -crf 23</code></li>
+    <li>Les vidéos sont stockées dans <code>/videos/</code> (plat, pas de sous-dossiers)</li>
+    <li>La frame est capturée à la position 0 (première frame lisible)</li>
+  </ul>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB : COUNTING
+════════════════════════════════════════════ -->
+<div id="tab-feat-counting" class="tab-pane">
+  <h2 style="color:var(--acc)">Counting (Comptage)</h2>
+  <p style="color:var(--muted);margin-bottom:1rem">Module de comptage d'objets traversant une ligne de zone.</p>
+
+  <table class="ftable"><thead><tr>
+    <th>Endpoint</th><th>Méthode</th><th>Description</th><th>Paramètres</th><th>Réponse</th>
+  </tr></thead><tbody>
+    <tr><td><code>/api/counting/{video}</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>État comptage pour une vidéo (zone, direction, count, enabled)</td>
+      <td><code>video: str</code></td><td><code>{ configured, zone_name, count, ... }</code></td></tr>
+    <tr><td><code>/api/counting/{video}/config</code></td><td><span class="badge" style="background:#1f6feb">POST</span></td>
+      <td>Configure la zone de comptage et le mode</td>
+      <td><code>{ zone_name, mode?, zone_settings? }</code></td><td><code>{ message }</code></td></tr>
+    <tr><td><code>/api/counting/{video}/toggle</code></td><td><span class="badge" style="background:#1f6feb">POST</span></td>
+      <td>Active/désactive le comptage pour la vidéo</td>
+      <td>—</td><td><code>{ enabled }</code></td></tr>
+    <tr><td><code>/api/counting/{video}/flip</code></td><td><span class="badge" style="background:#1f6feb">POST</span></td>
+      <td>Inverse la direction de comptage (in ↔ out)</td>
+      <td>—</td><td><code>{ flip_count }</code></td></tr>
+    <tr><td><code>/api/counting/{video}/reset</code></td><td><span class="badge" style="background:#1f6feb">POST</span></td>
+      <td>Remet le compteur à zéro</td>
+      <td>—</td><td><code>{ count: 0 }</code></td></tr>
+    <tr><td><code>/api/counting/params</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>Paramètres globaux de l'algorithme de comptage</td>
+      <td>—</td><td><code>{ min_blob_area, mog2_history, ... }</code></td></tr>
+    <tr><td><code>/api/counting/params</code></td><td><span class="badge" style="background:#da3633">PUT</span></td>
+      <td>Modifier les paramètres globaux</td>
+      <td><code>{ min_blob_area?, ... }</code></td><td><code>{ ...params }</code></td></tr>
+  </tbody></table>
+
+  <div class="sh" style="margin-top:1.5rem">Modes de comptage</div>
+  <table class="ftable"><thead><tr>
+    <th>Mode</th><th>Algorithme</th><th>Usage</th>
+  </tr></thead><tbody>
+    <tr><td><code>simple</code></td><td>Gradient-based (différence de frames)</td><td>Flux faible, luminosité stable</td></tr>
+    <tr><td><code>complex</code></td><td>MOG2 background subtraction + blob detection</td><td>Flux élevé, conditions variables</td></tr>
+  </tbody></table>
+
+  <div class="sh" style="margin-top:1.5rem">Paramètres algorithme (counting_params.json)</div>
+  <table class="ftable"><thead><tr>
+    <th>Paramètre</th><th>Défaut</th><th>Description</th>
+  </tr></thead><tbody>
+    <tr><td><code>min_blob_area</code></td><td>5000</td><td>Surface minimum d'un blob pour être compté (px²)</td></tr>
+    <tr><td><code>blob_proximity_threshold</code></td><td>80</td><td>Distance max pour fusionner deux blobs proches (px)</td></tr>
+    <tr><td><code>mog2_history</code></td><td>500</td><td>Nombre de frames pour le modèle d'arrière-plan MOG2</td></tr>
+    <tr><td><code>mog2_var_threshold</code></td><td>50</td><td>Seuil de variance pour la détection d'avant-plan</td></tr>
+    <tr><td><code>counting_line_position</code></td><td>0.75</td><td>Position de la ligne de comptage (0.0–1.0, relatif à la zone)</td></tr>
+    <tr><td><code>grace_frames</code></td><td>5</td><td>Frames de tolérance avant oubli d'un blob</td></tr>
+    <tr><td><code>INTERSECTION_THRESHOLD</code></td><td>0.30</td><td>% minimum d'intersection bbox/zone pour la détection de présence</td></tr>
+  </tbody></table>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB : BLUR
+════════════════════════════════════════════ -->
+<div id="tab-feat-blur" class="tab-pane">
+  <h2 style="color:var(--acc)">Blur (Floutage)</h2>
+  <p style="color:var(--muted);margin-bottom:1rem">Floutage automatique des visages dans les flux vidéo (zone haute de la bbox YOLO).</p>
+
+  <table class="ftable"><thead><tr>
+    <th>Endpoint</th><th>Méthode</th><th>Description</th><th>Réponse</th>
+  </tr></thead><tbody>
+    <tr><td><code>/api/blur</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>État actuel du floutage</td><td><code>{ enabled: bool }</code></td></tr>
+    <tr><td><code>/api/blur/toggle</code></td><td><span class="badge" style="background:#1f6feb">POST</span></td>
+      <td>Bascule on/off</td><td><code>{ enabled: bool }</code></td></tr>
+    <tr><td><code>/api/blur/{state}</code></td><td><span class="badge" style="background:#1f6feb">POST</span></td>
+      <td>Force l'état (<code>on</code> ou <code>off</code>)</td><td><code>{ enabled: bool }</code></td></tr>
+  </tbody></table>
+
+  <div class="sh" style="margin-top:1.5rem">Fonctionnement technique</div>
+  <ul style="color:var(--text)">
+    <li>Appliqué sur les <strong>30% supérieurs</strong> de chaque bounding box détectée par YOLO</li>
+    <li>Utilise un <strong>gaussian blur</strong> via OpenCV (<code>cv2.GaussianBlur</code>)</li>
+    <li>Thread-safe via <code>blur_lock</code></li>
+    <li>Actif sur tous les streams simultanément (flag global)</li>
+    <li>N'affecte pas la détection YOLO elle-même (appliqué après l'inférence)</li>
+  </ul>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB : METRICS & LOGS
+════════════════════════════════════════════ -->
+<div id="tab-feat-metrics" class="tab-pane">
+  <h2 style="color:var(--acc)">Metrics &amp; Logs</h2>
+  <p style="color:var(--muted);margin-bottom:1rem">Monitoring système et journal d'audit.</p>
+
+  <div class="sh">Métriques système — <code>GET /api/metrics</code></div>
+  <table class="ftable"><thead><tr>
+    <th>Champ</th><th>Type</th><th>Description</th>
+  </tr></thead><tbody>
+    <tr><td><code>cpu_percent</code></td><td>float</td><td>Utilisation CPU (%)</td></tr>
+    <tr><td><code>ram_used_gb</code></td><td>float</td><td>RAM utilisée (Go)</td></tr>
+    <tr><td><code>ram_total_gb</code></td><td>float</td><td>RAM totale (Go)</td></tr>
+    <tr><td><code>gpu_name</code></td><td>str</td><td>Nom du GPU (CUDA) ou "N/A"</td></tr>
+    <tr><td><code>gpu_memory_used</code></td><td>float</td><td>VRAM utilisée (Mo)</td></tr>
+    <tr><td><code>gpu_memory_total</code></td><td>float</td><td>VRAM totale (Mo)</td></tr>
+    <tr><td><code>active_threads</code></td><td>int</td><td>Nombre de threads actifs</td></tr>
+    <tr><td><code>active_streams</code></td><td>int</td><td>Nombre de streams vidéo en cours</td></tr>
+    <tr><td><code>yolo_device</code></td><td>str</td><td>Device YOLO utilisé (cuda / cpu)</td></tr>
+  </tbody></table>
+
+  <div class="sh" style="margin-top:1.5rem">Journal d'audit</div>
+  <table class="ftable"><thead><tr>
+    <th>Endpoint</th><th>Méthode</th><th>Description</th><th>Réponse</th>
+  </tr></thead><tbody>
+    <tr><td><code>/api/logs</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>Récupère le journal d'audit (50 derniers événements par défaut)</td>
+      <td><code>{ events: AuditEvent[] }</code></td></tr>
+    <tr><td><code>/api/logs</code></td><td><span class="badge" style="background:#da3633">DELETE</span></td>
+      <td>Efface le journal d'audit</td>
+      <td><code>{ message }</code></td></tr>
+  </tbody></table>
+
+  <div class="sh" style="margin-top:1.5rem">Structure AuditEvent</div>
+  <table class="ftable"><thead><tr>
+    <th>Champ</th><th>Type</th><th>Description</th>
+  </tr></thead><tbody>
+    <tr><td><code>ts</code></td><td>str (ISO)</td><td>Timestamp UTC</td></tr>
+    <tr><td><code>category</code></td><td>str</td><td><code>zone | stream | camera | system | detection | blur | video | lieu | site | benefit</code></td></tr>
+    <tr><td><code>action</code></td><td>str</td><td><code>created | deleted | started | stopped | edited | reset | upload | error</code></td></tr>
+    <tr><td><code>detail</code></td><td>str</td><td>Description humaine de l'événement</td></tr>
+    <tr><td><code>level</code></td><td>str</td><td><code>info | warn | error | success</code></td></tr>
+    <tr><td><code>meta</code></td><td>dict?</td><td>Données structurées supplémentaires</td></tr>
+  </tbody></table>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB : API CONTRACTS
+════════════════════════════════════════════ -->
+<div id="tab-api-ref" class="tab-pane">
+  <h2 style="color:var(--acc)">Contrats API — Référence complète</h2>
+  <p style="color:var(--muted);margin-bottom:1rem">Tous les endpoints REST de la solution, groupés par domaine. Codes d'erreur standardisés en bas de page.</p>
+
+  <!-- HIERARCHY -->
+  <div class="sh">Hiérarchie (LIEU → SITE → CAMÉRA → BÉNÉFICE)</div>
+  <table class="ftable"><thead><tr>
+    <th>Endpoint</th><th>Méthode</th><th>Body / Params</th><th>Réponse OK</th><th>Erreurs</th>
+  </tr></thead><tbody>
+    <tr><td><code>/api/lieux</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>—</td><td><code>{ lieux: {[id]: Lieu} }</code></td><td>—</td></tr>
+    <tr><td><code>/api/lieux/{id}</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>—</td><td><code>{ lieu: Lieu, sites: {[id]: Site} }</code></td><td>404</td></tr>
+    <tr><td><code>/api/lieux</code></td><td><span class="badge" style="background:#1f6feb">POST</span></td>
+      <td><code>{ lieu_id, name, address?, description?, icon? }</code></td><td><code>{ message, lieu_id }</code></td><td>400 (ID exists)</td></tr>
+    <tr><td><code>/api/lieux/{id}</code></td><td><span class="badge" style="background:#da3633">PUT</span></td>
+      <td><code>{ name?, address?, description?, icon? }</code></td><td><code>{ message }</code></td><td>404</td></tr>
+    <tr><td><code>/api/lieux/{id}</code></td><td><span class="badge" style="background:#f85149">DELETE</span></td>
+      <td>—</td><td><code>{ message }</code></td><td>400 (children), 404</td></tr>
+
+    <tr><td colspan="5" style="border:0;padding:6px 0;color:var(--dim)">───── Sites ─────</td></tr>
+    <tr><td><code>/api/sites</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>—</td><td><code>{ sites: {[id]: Site} }</code></td><td>—</td></tr>
+    <tr><td><code>/api/sites/{id}</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>—</td><td><code>{ site: Site, cameras: {[id]: Camera} }</code></td><td>404</td></tr>
+    <tr><td><code>/api/sites</code></td><td><span class="badge" style="background:#1f6feb">POST</span></td>
+      <td><code>{ site_id, name, lieu_id, address?, description?, icon? }</code></td><td><code>{ message, site_id }</code></td><td>400 (ID exists / lieu not found)</td></tr>
+    <tr><td><code>/api/sites/{id}</code></td><td><span class="badge" style="background:#da3633">PUT</span></td>
+      <td><code>{ name?, lieu_id?, address?, description?, icon? }</code></td><td><code>{ message }</code></td><td>400, 404</td></tr>
+    <tr><td><code>/api/sites/{id}</code></td><td><span class="badge" style="background:#f85149">DELETE</span></td>
+      <td>—</td><td><code>{ message }</code></td><td>400 (children), 404</td></tr>
+
+    <tr><td colspan="5" style="border:0;padding:6px 0;color:var(--dim)">───── Caméras ─────</td></tr>
+    <tr><td><code>/api/cameras</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>—</td><td><code>{ cameras: {[id]: Camera} }</code></td><td>—</td></tr>
+    <tr><td><code>/api/cameras</code></td><td><span class="badge" style="background:#1f6feb">POST</span></td>
+      <td><code>{ camera_id, name, type, device_id?, url?, site_id? }</code></td><td><code>{ message, camera_id }</code></td><td>400</td></tr>
+    <tr><td><code>/api/cameras/{id}</code></td><td><span class="badge" style="background:#f85149">DELETE</span></td>
+      <td>—</td><td><code>{ message, benefits_removed }</code></td><td>404</td></tr>
+    <tr><td><code>/api/cameras/detect/webcams</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>—</td><td><code>{ webcams: [{index, name}] }</code></td><td>—</td></tr>
+    <tr><td><code>/api/cameras/detect/onvif</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>—</td><td><code>{ cameras: [{ip, port, name?, url?}] }</code></td><td>—</td></tr>
+    <tr><td><code>/api/cameras/test-rtsp</code></td><td><span class="badge" style="background:#1f6feb">POST</span></td>
+      <td><code>{ url }</code></td><td><code>{ success, width?, height? }</code></td><td>—</td></tr>
+    <tr><td><code>/api/cameras/{id}/test</code></td><td><span class="badge" style="background:#1f6feb">POST</span></td>
+      <td>—</td><td><code>{ success, width?, height? }</code></td><td>404</td></tr>
+    <tr><td><code>/api/cameras/{id}/frame</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>—</td><td>JPEG image</td><td>404, 500</td></tr>
+
+    <tr><td colspan="5" style="border:0;padding:6px 0;color:var(--dim)">───── Bénéfices ─────</td></tr>
+    <tr><td><code>/api/benefits</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>—</td><td><code>{ benefits: {[id]: Benefit} }</code></td><td>—</td></tr>
+    <tr><td><code>/api/benefits/{id}</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>—</td><td><code>{ benefit: Benefit }</code></td><td>404</td></tr>
+    <tr><td><code>/api/cameras/{cam_id}/benefits</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>—</td><td><code>{ benefits: {[id]: Benefit} }</code></td><td>404</td></tr>
+    <tr><td><code>/api/benefits</code></td><td><span class="badge" style="background:#1f6feb">POST</span></td>
+      <td><code>{ benefit_id, name, skill, skill_item?, categories[], camera_id, zone_polygons?, active?, canvas? }</code></td>
+      <td><code>{ message, benefit_id }</code></td><td>400</td></tr>
+    <tr><td><code>/api/benefits/{id}</code></td><td><span class="badge" style="background:#da3633">PUT</span></td>
+      <td><code>{ name?, skill?, categories?, zone_polygons?, active?, canvas? }</code></td><td><code>{ message }</code></td><td>404</td></tr>
+    <tr><td><code>/api/benefits/{id}</code></td><td><span class="badge" style="background:#f85149">DELETE</span></td>
+      <td>—</td><td><code>{ message }</code></td><td>404</td></tr>
+    <tr><td><code>/api/benefits/sync-zones</code></td><td><span class="badge" style="background:#1f6feb">POST</span></td>
+      <td>—</td><td><code>{ synced: int }</code></td><td>—</td></tr>
+
+    <tr><td colspan="5" style="border:0;padding:6px 0;color:var(--dim)">───── Hiérarchie complète ─────</td></tr>
+    <tr><td><code>/api/hierarchy</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>—</td><td><code>{ hierarchy: { [lieuId]: { ...lieu, sites: { [siteId]: { ...site, cameras: { ... } } } } } }</code></td><td>—</td></tr>
+  </tbody></table>
+
+  <!-- ZONES -->
+  <div class="sh" style="margin-top:2rem">Zones (polygones YOLO)</div>
+  <table class="ftable"><thead><tr>
+    <th>Endpoint</th><th>Méthode</th><th>Body / Params</th><th>Réponse OK</th><th>Erreurs</th>
+  </tr></thead><tbody>
+    <tr><td><code>/api/zones/{video}</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>—</td><td><code>{ zones: {[name]: {polygons}} }</code></td><td>—</td></tr>
+    <tr><td><code>/api/zones</code></td><td><span class="badge" style="background:#1f6feb">POST</span></td>
+      <td><code>{ name, polygons[][], video }</code></td><td><code>{ message }</code></td><td>—</td></tr>
+    <tr><td><code>/api/zones/{video}/{zone}</code></td><td><span class="badge" style="background:#da3633">PUT</span></td>
+      <td><code>{ polygons[][] }</code></td><td><code>{ message }</code></td><td>404</td></tr>
+    <tr><td><code>/api/zones/{video}/{zone}</code></td><td><span class="badge" style="background:#f85149">DELETE</span></td>
+      <td>—</td><td><code>{ message }</code></td><td>404</td></tr>
+    <tr><td><code>/api/zones/{video}</code></td><td><span class="badge" style="background:#f85149">DELETE</span></td>
+      <td>—</td><td><code>{ message }</code></td><td>—</td></tr>
+    <tr><td><code>/api/zones/cleanup</code></td><td><span class="badge" style="background:#1f6feb">POST</span></td>
+      <td>—</td><td><code>{ cleaned: int }</code></td><td>—</td></tr>
+    <tr><td><code>/api/zones/reset</code></td><td><span class="badge" style="background:#1f6feb">POST</span></td>
+      <td>—</td><td><code>{ message }</code></td><td>—</td></tr>
+  </tbody></table>
+
+  <!-- STREAMS -->
+  <div class="sh" style="margin-top:2rem">Streaming &amp; Détection</div>
+  <table class="ftable"><thead><tr>
+    <th>Endpoint</th><th>Méthode</th><th>Description</th><th>Réponse</th>
+  </tr></thead><tbody>
+    <tr><td><code>/api/streams</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>Liste des streams actifs</td><td><code>{ streams: string[] }</code></td></tr>
+    <tr><td><code>/api/stream/{video}/start</code></td><td><span class="badge" style="background:#1f6feb">POST</span></td>
+      <td>Démarre le stream + détection YOLO</td><td><code>{ message }</code></td></tr>
+    <tr><td><code>/api/stream/{video}</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>Flux MJPEG (StreamingResponse)</td><td><code>multipart/x-mixed-replace</code></td></tr>
+    <tr><td><code>/api/stream/{video}/stop</code></td><td><span class="badge" style="background:#1f6feb">POST</span></td>
+      <td>Arrête le stream</td><td><code>{ message }</code></td></tr>
+    <tr><td><code>/api/streams/stop</code></td><td><span class="badge" style="background:#1f6feb">POST</span></td>
+      <td>Arrête tous les streams</td><td><code>{ stopped: int }</code></td></tr>
+    <tr><td><code>/api/stream/camera/{cam_id}/start</code></td><td><span class="badge" style="background:#1f6feb">POST</span></td>
+      <td>Démarre stream d'une caméra backend</td><td><code>{ message, source_name }</code></td></tr>
+    <tr><td><code>/api/stream/camera/{cam_id}</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>Flux MJPEG d'une caméra backend</td><td><code>multipart/x-mixed-replace</code></td></tr>
+  </tbody></table>
+
+  <!-- PRESENCE -->
+  <div class="sh" style="margin-top:2rem">Présence</div>
+  <table class="ftable"><thead><tr>
+    <th>Endpoint</th><th>Méthode</th><th>Description</th><th>Réponse</th>
+  </tr></thead><tbody>
+    <tr><td><code>/api/presence</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>Présence globale (toutes zones, tous streams)</td><td><code>{ [zone]: { total_time, is_occupied, person_count } }</code></td></tr>
+    <tr><td><code>/api/presence/{video}</code></td><td><span class="badge" style="background:#238636">GET</span></td>
+      <td>Présence filtrée par vidéo/caméra</td><td><code>{ [zone]: { total_time, is_occupied, person_count } }</code></td></tr>
+  </tbody></table>
+
+  <!-- ERROR CODES -->
+  <div class="sh" style="margin-top:2rem">Codes d'erreur standardisés</div>
+  <table class="ftable"><thead><tr>
+    <th>Code</th><th>Signification</th><th>Quand ?</th>
+  </tr></thead><tbody>
+    <tr><td><code>200</code></td><td>OK</td><td>Opération réussie</td></tr>
+    <tr><td><code>400</code></td><td>Bad Request</td><td>ID existe déjà, parent introuvable, champ requis manquant, enfants encore attachés</td></tr>
+    <tr><td><code>404</code></td><td>Not Found</td><td>Entité introuvable (lieu, site, caméra, bénéfice, zone)</td></tr>
+    <tr><td><code>500</code></td><td>Internal Error</td><td>Erreur OpenCV, YOLO, ffmpeg, etc.</td></tr>
+  </tbody></table>
+
+  <div class="sh" style="margin-top:1.5rem">Format d'erreur</div>
+  <pre style="background:var(--surface);padding:1rem;border-radius:6px;color:var(--text);overflow-x:auto"><code>{ "detail": "Human-readable error message" }</code></pre>
+</div>
+
+<script>
+  var DDD_TABS = ['lov'];
+  var ARCHI_TABS = ['archi','archi-ux'];
+  var LIVE_TABS = ['listener'];
+  var FEAT_TABS = ['feat-video','feat-counting','feat-blur','feat-metrics'];
+  var API_TABS = ['api-ref'];
+  function showTab(id) {
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.classList.remove('active-ddd'); b.classList.remove('active-archi'); b.classList.remove('active-live'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    var isDDD = DDD_TABS.indexOf(id) !== -1;
+    var isArchi = ARCHI_TABS.indexOf(id) !== -1;
+    var isLive = LIVE_TABS.indexOf(id) !== -1;
+    var isFeat = FEAT_TABS.indexOf(id) !== -1;
+    var isApi = API_TABS.indexOf(id) !== -1;
+    var cls = isDDD ? 'active-ddd' : isArchi ? 'active-archi' : isLive ? 'active-live' : isFeat ? 'active-archi' : isApi ? 'active-ddd' : 'active';
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      if (b.getAttribute('onclick') === "showTab('" + id + "')") b.classList.add(cls);
+    });
+    if (isLive) startListener(); else stopListener();
+    if (id === 'skills' && !window._skillsLoaded) loadSkills();
+    if (id === 'lov' && !window._lovLoaded) loadLOV();
+  }
+
+  const SVG_BASE = '/static/assets_youn/SvIcons/SVGnew/';
+  function iconPath(icon) {
+    if (!icon) return '';
+    if (icon.startsWith('/')) return icon;
+    return SVG_BASE + icon.replace(/^.*\//, '');
+  }
+
+  async function loadLOV() {
+    window._lovLoaded = true;
+    try {
+      let data;
+      const r = await fetch('/api/solution-spec');
+      if (r.ok) { data = await r.json(); }
+      else {
+        const r2 = await fetch('/static/config/solution-spec.json');
+        if (!r2.ok) return;
+        data = await r2.json();
+      }
+      renderLOV(data.spec || data);
+    } catch(e) { /* ignore */ }
+  }
+
+  function renderLOV(spec) {
+    var skillVals = (spec.skills || []).map(s => s.key);
+    var skillItemVals = [];
+    (spec.skills || []).forEach(s => { (s.items || []).forEach(i => skillItemVals.push(i.id)); });
+    var classFamilyVals = (spec.categories || []).map(c => c.key);
+    var classVals = [];
+    (spec.categories || []).forEach(c => { (c.items || []).forEach(i => classVals.push(i.id)); });
+    var cameraTypeVals = ['webcam','rtsp','video'];
+    var overlayVals = ['none','heatmap','trajectory'];
+    var counterPosVals = ['top-left','top-right','bottom'];
+
+    var cols = [skillVals, skillItemVals, classFamilyVals, classVals, cameraTypeVals, overlayVals, counterPosVals];
+    var maxRows = Math.max.apply(null, cols.map(c => c.length));
+
+    var html = '';
+    for (var r = 0; r < maxRows; r++) {
+      html += '<tr>';
+      for (var c = 0; c < cols.length; c++) {
+        var val = cols[c][r];
+        html += '<td>' + (val ? '<code>' + val + '</code>' : '') + '</td>';
+      }
+      html += '</tr>';
+    }
+    document.getElementById('lov-static-body').innerHTML = html;
+  }
+
+  async function loadSkills() {
+    window._skillsLoaded = true;
+    try {
+      let data;
+      const r = await fetch('/api/solution-spec');
+      if (r.ok) { data = await r.json(); }
+      else {
+        const r2 = await fetch('/static/config/solution-spec.json');
+        if (!r2.ok) throw new Error('solution-spec.json non trouvé');
+        data = await r2.json();
+      }
+      renderSkills(data.spec || data);
+    } catch(e) {
+      document.getElementById('skills-content').innerHTML =
+        '<div style="color:var(--red);padding:1rem">Erreur: ' + e.message + '</div>';
+    }
+  }
+
+  function renderSkills(spec) {
+    var catMap = {};
+    (spec.categories || []).forEach(c => { catMap[c.key] = c; });
+    var catsBySkill = spec.categories_by_skill || {};
+
+    var html = '';
+
+    // ── ARBRE par skill ──
+    html += '<div style="display:flex;flex-direction:column;gap:1.25rem">';
+
+    (spec.skills || []).forEach(s => {
+      var allowedCatKeys = catsBySkill[s.key] || [];
+      var allowedCats = allowedCatKeys.map(k => catMap[k]).filter(Boolean);
+
+      html += '<div class="panel">';
+
+      // ── Niveau 1 : SKILL ──
+      html += '<div style="background:var(--surface2);border-bottom:1px solid var(--border);padding:0.5rem 1rem;display:flex;align-items:center;gap:0.75rem">';
+      html += '<img src="' + iconPath(s.icon) + '" style="width:22px;height:22px;filter:brightness(0) invert(1)" alt=""/>';
+      html += '<span style="color:var(--acc);font-weight:700;font-size:13px">' + s.label + '</span>';
+      html += '<span style="color:var(--dim);font-size:11px;font-family:var(--mono)">' + s.key + '</span>';
+      html += '<span style="margin-left:auto;font-size:10px;color:var(--dim);border:1px solid var(--border);padding:0.1rem 0.4rem;border-radius:3px">SKILL</span>';
+      html += '</div>';
+
+      html += '<div style="padding:0.75rem 1rem;display:flex;gap:2rem;flex-wrap:wrap">';
+
+      // ── Colonne gauche : TYPE SKILL ──
+      html += '<div style="flex:0 0 260px">';
+      html += '<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--blue);margin-bottom:0.5rem;padding-bottom:0.25rem;border-bottom:1px solid var(--border)">TYPE SKILL</div>';
+      (s.items || []).forEach((it, idx) => {
+        var isLast = idx === (s.items.length - 1);
+        html += '<div style="display:flex;align-items:center;gap:0.5rem;padding:0.3rem 0;' + (isLast ? '' : 'border-bottom:1px solid rgba(48,54,61,0.5)') + '">';
+        html += '<span style="color:var(--dim);font-family:var(--mono);font-size:11px;width:10px;flex-shrink:0">' + (isLast ? '└' : '├') + '</span>';
+        html += '<img src="' + iconPath(it.icon) + '" style="width:16px;height:16px;filter:brightness(0) invert(1);opacity:0.85" alt=""/>';
+        html += '<span style="color:var(--blue);font-size:11px;font-family:var(--mono);flex:1">' + it.id + '</span>';
+        html += '<span style="color:var(--muted);font-size:11px">' + it.label + '</span>';
+        html += '</div>';
+      });
+      html += '</div>';
+
+      // ── Colonne droite : CLASS FAMILY → CLASS ──
+      html += '<div style="flex:1;min-width:300px">';
+      html += '<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--green);margin-bottom:0.5rem;padding-bottom:0.25rem;border-bottom:1px solid var(--border)">CLASS FAMILY &amp; CLASS</div>';
+
+      allowedCats.forEach((cat, ci) => {
+        var isLastCat = ci === (allowedCats.length - 1);
+        // CLASS FAMILY header
+        html += '<div style="display:flex;align-items:center;gap:0.5rem;padding:0.3rem 0 0.15rem 0">';
+        html += '<span style="color:var(--dim);font-family:var(--mono);font-size:11px;width:10px">' + (isLastCat ? '└' : '├') + '</span>';
+        html += '<img src="' + iconPath(cat.icon) + '" style="width:16px;height:16px;filter:brightness(0) invert(1);opacity:0.85" alt=""/>';
+        html += '<span style="color:var(--green);font-weight:700;font-size:12px">' + cat.label + '</span>';
+        html += '<span style="color:var(--dim);font-size:10px;font-family:var(--mono)">' + cat.key + '</span>';
+        html += '<span style="margin-left:4px;font-size:9px;color:var(--dim);border:1px solid var(--border);padding:0 0.3rem;border-radius:3px">CLASS FAMILY</span>';
+        html += '</div>';
+
+        // CLASSES
+        var indent = isLastCat ? '&nbsp;&nbsp;&nbsp;&nbsp;' : '<span style="color:var(--border);font-family:var(--mono)">│</span>&nbsp;&nbsp;&nbsp;';
+        (cat.items || []).forEach((cls, ki) => {
+          var isLastCls = ki === (cat.items.length - 1);
+          html += '<div style="display:flex;align-items:center;gap:0.5rem;padding:0.2rem 0 0.2rem 10px">';
+          html += '<span style="color:var(--dim);font-family:var(--mono);font-size:10px">' + indent + (isLastCls ? '└─' : '├─') + '</span>';
+          html += '<img src="' + iconPath(cls.icon) + '" style="width:14px;height:14px;filter:brightness(0) invert(1);opacity:0.75" alt=""/>';
+          html += '<span style="color:var(--yellow);font-size:11px;font-family:var(--mono)">' + cls.id + '</span>';
+          html += '<span style="color:var(--muted);font-size:11px">' + cls.label + '</span>';
+          html += '<span style="margin-left:auto;font-size:9px;color:var(--dim);border:1px solid var(--border);padding:0 0.3rem;border-radius:3px">CLASS</span>';
+          html += '</div>';
+        });
+
+        if (!isLastCat) {
+          html += '<div style="height:0.4rem;padding-left:10px"><span style="color:var(--border);font-family:var(--mono);font-size:11px">│</span></div>';
+        }
+      });
+
+      html += '</div>'; // col droite
+      html += '</div>'; // row
+      html += '</div>'; // panel
+    });
+
+    html += '</div>'; // stack
+
+    // ── Matrice skill × class family ──
+    html += '<div class="sh" style="margin-top:2rem">Matrice SKILL × CLASS FAMILY</div>';
+    html += '<div class="panel"><div class="scroll-x"><table class="sum-table w100"><thead><tr>';
+    html += '<th>SKILL</th>';
+    (spec.categories || []).forEach(c => {
+      html += '<th><div style="display:flex;align-items:center;gap:0.4rem"><img src="' + iconPath(c.icon) + '" style="width:14px;height:14px;filter:brightness(0) invert(1);opacity:0.8" alt=""/>' + c.label + '</div></th>';
+    });
+    html += '</tr></thead><tbody>';
+    (spec.skills || []).forEach(s => {
+      var allowed = catsBySkill[s.key] || [];
+      html += '<tr>';
+      html += '<td><div style="display:flex;align-items:center;gap:0.5rem"><img src="' + iconPath(s.icon) + '" style="width:16px;height:16px;filter:brightness(0) invert(1);opacity:0.85" alt=""/><span class="ftype">' + s.key + '</span></div></td>';
+      (spec.categories || []).forEach(c => {
+        var ok = allowed.indexOf(c.key) !== -1;
+        html += '<td style="text-align:center;font-size:14px">' + (ok
+          ? '<span style="color:var(--green)">✓</span>'
+          : '<span style="color:var(--dim)">—</span>') + '</td>';
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table></div></div>';
+
+    document.getElementById('skills-content').innerHTML = html;
+  }
+
+  // ═══════════════════════════════════════
+  //  LIVE LISTENER
+  // ═══════════════════════════════════════
+  var _listenerTimer = null;
+  var _listenerOn = false;
+  var _prevState = {};
+  var _evLog = [];
+  var _MAX_LOG = 200;
+
+  var ENDPOINTS = [
+    { key: 'streams',  url: '/api/streams',   label: 'Streams actifs',   color: '#f85149' },
+    { key: 'cameras',  url: '/api/cameras',   label: 'Caméras',          color: '#d29922' },
+    { key: 'presence', url: '/api/presence',   label: 'Présence',         color: '#3fb950' },
+    { key: 'blur',     url: '/api/blur',       label: 'Blur',             color: '#8b949e' },
+    { key: 'videos',   url: '/api/videos',     label: 'Vidéos',           color: '#79c0ff' },
+  ];
+
+  function startListener() {
+    if (_listenerOn) return;
+    _listenerOn = true;
+    document.getElementById('ev-toggle').classList.add('active');
+    document.getElementById('ev-toggle').textContent = '● LIVE';
+    pollAll();
+    _listenerTimer = setInterval(pollAll, 2000);
+  }
+
+  function stopListener() {
+    _listenerOn = false;
+    if (_listenerTimer) { clearInterval(_listenerTimer); _listenerTimer = null; }
+    var btn = document.getElementById('ev-toggle');
+    if (btn) { btn.classList.remove('active'); btn.textContent = '○ PAUSED'; }
+  }
+
+  function toggleListener() {
+    if (_listenerOn) stopListener(); else startListener();
+  }
+
+  function clearLog() {
+    _evLog = [];
+    document.getElementById('ev-log').innerHTML = '<div class="ev-log-row"><span class="ev-log-ts">--:--:--</span><span class="ev-log-type" style="color:var(--dim)">CLR</span><span class="ev-log-msg">Log vidé</span></div>';
+  }
+
+  function logEvent(type, msg, color) {
+    var now = new Date();
+    var ts = now.toTimeString().slice(0,8);
+    _evLog.unshift({ ts: ts, type: type, msg: msg, color: color || 'var(--muted)' });
+    if (_evLog.length > _MAX_LOG) _evLog.length = _MAX_LOG;
+    renderLog();
+  }
+
+  function renderLog() {
+    var el = document.getElementById('ev-log');
+    if (!el) return;
+    el.innerHTML = _evLog.map(function(e) {
+      return '<div class="ev-log-row"><span class="ev-log-ts">' + e.ts + '</span><span class="ev-log-type" style="color:' + e.color + '">' + e.type + '</span><span class="ev-log-msg">' + e.msg + '</span></div>';
+    }).join('');
+  }
+
+  async function pollAll() {
+    var ts = new Date().toTimeString().slice(0,8);
+    document.getElementById('ev-last-poll').textContent = 'last poll: ' + ts;
+
+    var results = {};
+    await Promise.all(ENDPOINTS.map(async function(ep) {
+      try {
+        var r = await fetch(ep.url);
+        if (r.ok) results[ep.key] = await r.json();
+        else results[ep.key] = { _error: r.status };
+      } catch(e) {
+        results[ep.key] = { _error: e.message };
+      }
+    }));
+
+    diffAndLog(results);
+    renderCards(results);
+    _prevState = results;
+  }
+
+  function diffAndLog(curr) {
+    if (!_prevState.streams) { logEvent('INIT', 'Premier poll effectué', '#58a6ff'); return; }
+
+    var ps = _prevState.streams || {};
+    var cs = curr.streams || {};
+    var prevKeys = Object.keys(ps); var currKeys = Object.keys(cs);
+    currKeys.forEach(function(k) {
+      if (prevKeys.indexOf(k) === -1) logEvent('STREAM+', 'Nouveau stream: ' + k, '#3fb950');
+      else if (cs[k] && cs[k].active && ps[k] && !ps[k].active) logEvent('STREAM▶', 'Stream activé: ' + k, '#3fb950');
+      else if (cs[k] && !cs[k].active && ps[k] && ps[k].active) logEvent('STREAM■', 'Stream arrêté: ' + k, '#f85149');
+    });
+    prevKeys.forEach(function(k) { if (currKeys.indexOf(k) === -1) logEvent('STREAM−', 'Stream disparu: ' + k, '#f85149'); });
+
+    var pcams = _prevState.cameras || {};
+    var ccams = curr.cameras || {};
+    var prevCK = Object.keys(pcams); var currCK = Object.keys(ccams);
+    currCK.forEach(function(k) { if (prevCK.indexOf(k) === -1) logEvent('CAM+', 'Caméra ajoutée: ' + k + ' (' + (ccams[k].type||'?') + ')', '#d29922'); });
+    prevCK.forEach(function(k) { if (currCK.indexOf(k) === -1) logEvent('CAM−', 'Caméra supprimée: ' + k, '#d29922'); });
+
+    var ppres = _prevState.presence || {};
+    var cpres = curr.presence || {};
+    Object.keys(cpres).forEach(function(k) {
+      var pv = ppres[k]; var cv = cpres[k];
+      var pt = (pv && typeof pv === 'object') ? pv.total_time : pv;
+      var ct = (cv && typeof cv === 'object') ? cv.total_time : cv;
+      if (pt !== undefined && ct !== undefined && Math.abs((ct||0) - (pt||0)) > 1) {
+        logEvent('PRES', k + ': ' + (pt||0).toFixed(0) + 's → ' + (ct||0).toFixed(0) + 's', '#3fb950');
+      }
+    });
+
+    var pb = _prevState.blur || {};
+    var cb = curr.blur || {};
+    if (JSON.stringify(pb) !== JSON.stringify(cb)) logEvent('BLUR', 'Blur: ' + JSON.stringify(cb), '#8b949e');
+  }
+
+  function renderCards(data) {
+    var html = '';
+
+    // Streams
+    var streams = data.streams || {};
+    var sKeys = Object.keys(streams);
+    html += '<div class="ev-card"><div class="ev-card-head"><div class="ev-dot ' + (sKeys.length ? 'on' : 'off') + '"></div><span style="color:#ff7b72">Streams</span><span style="margin-left:auto" class="ev-badge ' + (sKeys.length ? 'ev-badge-on' : 'ev-badge-off') + '">' + sKeys.length + '</span></div>';
+    html += '<div class="ev-card-body">';
+    if (!sKeys.length) html += '<div class="ev-empty">Aucun stream actif</div>';
+    else sKeys.forEach(function(k) {
+      var s = streams[k];
+      var active = s && s.active;
+      html += '<div class="ev-row"><span class="ev-k">' + k + '</span><span class="ev-v ' + (active ? 'on' : 'off') + '">' + (active ? '▶ actif' : '■ inactif') + '</span>';
+      if (s && s.detections) html += '<span class="ev-v" style="margin-left:auto">' + (Array.isArray(s.detections) ? s.detections.length : '?') + ' det</span>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+
+    // Cameras
+    var cams = data.cameras || {};
+    var cKeys = Object.keys(cams);
+    html += '<div class="ev-card"><div class="ev-card-head"><div class="ev-dot ' + (cKeys.length ? 'on' : 'off') + '"></div><span style="color:#e3b341">Caméras</span><span style="margin-left:auto" class="ev-badge ' + (cKeys.length ? 'ev-badge-on' : 'ev-badge-off') + '">' + cKeys.length + '</span></div>';
+    html += '<div class="ev-card-body">';
+    if (!cKeys.length) html += '<div class="ev-empty">Aucune caméra</div>';
+    else cKeys.forEach(function(k) {
+      var c = cams[k];
+      html += '<div class="ev-row"><span class="ev-k">' + k + '</span><span class="ev-v">' + (c.type||'?') + '</span><span class="ev-v" style="margin-left:auto;color:var(--text)">' + (c.name||'') + '</span></div>';
+    });
+    html += '</div></div>';
+
+    // Presence
+    var pres = data.presence || {};
+    var pKeys = Object.keys(pres);
+    html += '<div class="ev-card"><div class="ev-card-head"><div class="ev-dot ' + (pKeys.length ? 'on' : 'off') + '"></div><span style="color:#56d364">Présence</span><span style="margin-left:auto" class="ev-badge ' + (pKeys.length ? 'ev-badge-on' : 'ev-badge-off') + '">' + pKeys.length + ' zones</span></div>';
+    html += '<div class="ev-card-body">';
+    if (!pKeys.length) html += '<div class="ev-empty">Aucune donnée</div>';
+    else pKeys.forEach(function(k) {
+      var v = pres[k];
+      var t = (v && typeof v === 'object') ? v.total_time : v;
+      html += '<div class="ev-row"><span class="ev-k">' + k + '</span><span class="ev-v">' + (t !== undefined ? t.toFixed(1) + 's' : '—') + '</span></div>';
+    });
+    html += '</div></div>';
+
+    // Blur
+    var blur = data.blur || {};
+    html += '<div class="ev-card"><div class="ev-card-head"><div class="ev-dot ' + (blur.enabled ? 'on' : 'off') + '"></div><span style="color:#c9d1d9">Blur</span></div>';
+    html += '<div class="ev-card-body">';
+    html += '<div class="ev-row"><span class="ev-k">enabled</span><span class="ev-v ' + (blur.enabled ? 'on' : 'off') + '">' + (blur.enabled ? 'ON' : 'OFF') + '</span></div>';
+    html += '</div></div>';
+
+    // Videos
+    var vids = data.videos;
+    if (Array.isArray(vids)) {
+      html += '<div class="ev-card"><div class="ev-card-head"><div class="ev-dot ' + (vids.length ? 'on' : 'off') + '"></div><span style="color:#79c0ff">Vidéos</span><span style="margin-left:auto" class="ev-badge ' + (vids.length ? 'ev-badge-on' : 'ev-badge-off') + '">' + vids.length + '</span></div>';
+      html += '<div class="ev-card-body">';
+      if (!vids.length) html += '<div class="ev-empty">Aucune vidéo</div>';
+      else vids.forEach(function(v) { html += '<div class="ev-row"><span class="ev-v">' + v + '</span></div>'; });
+      html += '</div></div>';
+    }
+
+    document.getElementById('ev-cards').innerHTML = html;
+  }
+</script>
+</body>
+</html>

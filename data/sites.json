@@ -1,0 +1,18 @@
+{
+  "entrepot_central": {
+    "name": "Entrepôt Central",
+    "lieu_id": "lyon",
+    "address": "Bât A, Quai de déchargement",
+    "description": "Site de logistique avec 2 caméras",
+    "icon": "",
+    "created_at": "2026-02-23T20:00:00+00:00"
+  },
+  "galerie_voltaire": {
+    "name": "Galerie Voltaire",
+    "lieu_id": "paris",
+    "address": "Hall principal",
+    "description": "Surveillance flux visiteurs",
+    "icon": "",
+    "created_at": "2026-02-23T20:00:00+00:00"
+  }
+}

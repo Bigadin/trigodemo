@@ -1,0 +1,131 @@
+{
+  "ben_detection_entrepot": {
+    "name": "Détection présence entrepôt",
+    "skill": "detection",
+    "skill_item": "detection_presence",
+    "categories": [
+      "human::silhouette"
+    ],
+    "camera_id": "cam_entrepot",
+    "zone_polygons": [
+      [
+        [
+          120,
+          180
+        ],
+        [
+          520,
+          180
+        ],
+        [
+          520,
+          480
+        ],
+        [
+          120,
+          480
+        ]
+      ]
+    ],
+    "active": true,
+    "canvas": {},
+    "created_at": "2026-02-23T20:00:00+00:00"
+  },
+  "ben_counting_convoyeur": {
+    "name": "Comptage convoyeur",
+    "skill": "counting",
+    "skill_item": "counting_people",
+    "categories": [
+      "human::silhouette"
+    ],
+    "camera_id": "cam_convoyeur",
+    "zone_polygons": [
+      [
+        [
+          200,
+          200
+        ],
+        [
+          400,
+          200
+        ],
+        [
+          400,
+          400
+        ],
+        [
+          200,
+          400
+        ]
+      ]
+    ],
+    "active": true,
+    "canvas": {},
+    "created_at": "2026-02-23T20:00:00+00:00"
+  },
+  "ben_detection_convoyeur": {
+    "name": "Détection présence convoyeur",
+    "skill": "detection",
+    "skill_item": "detection_presence",
+    "categories": [
+      "human::silhouette",
+      "transport::voiture"
+    ],
+    "camera_id": "cam_convoyeur",
+    "zone_polygons": [
+      [
+        [
+          50,
+          50
+        ],
+        [
+          600,
+          50
+        ],
+        [
+          600,
+          500
+        ],
+        [
+          50,
+          500
+        ]
+      ]
+    ],
+    "active": true,
+    "canvas": {},
+    "created_at": "2026-02-23T20:00:00+00:00"
+  },
+  "ben_counting_hall": {
+    "name": "Comptage visiteurs hall",
+    "skill": "counting",
+    "skill_item": "counting_people",
+    "categories": [
+      "human::silhouette"
+    ],
+    "camera_id": "cam_hall",
+    "zone_polygons": [
+      [
+        [
+          100,
+          100
+        ],
+        [
+          500,
+          100
+        ],
+        [
+          500,
+          400
+        ],
+        [
+          100,
+          400
+        ]
+      ]
+    ],
+    "active": true,
+    "canvas": {},
+    "created_at": "2026-02-23T20:00:00+00:00"
+  }
+}

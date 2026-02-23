@@ -1,12 +1,20 @@
 {
-  "rtsp_popo": {
-    "type": "rtsp",
-    "name": "popo",
-    "url": "rtsp://rtspstream:WyiuHW-4kMT44rRzCYWW1@zephyr.rtsp.stream/movie"
+  "cam_entrepot": {
+    "type": "video",
+    "name": "Entrepôt",
+    "path": "entr1.mp4",
+    "site_id": "entrepot_central"
   },
-  "webcam_sqd": {
-    "type": "webcam",
-    "name": "sqd",
-    "device_id": 0
+  "cam_convoyeur": {
+    "type": "video",
+    "name": "Convoyeur",
+    "path": "video_01.mp4",
+    "site_id": "entrepot_central"
+  },
+  "cam_hall": {
+    "type": "video",
+    "name": "Hall Principal",
+    "path": "Mall1.mp4",
+    "site_id": "galerie_voltaire"
   }
 }

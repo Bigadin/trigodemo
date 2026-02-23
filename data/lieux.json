@@ -1,0 +1,16 @@
+{
+  "lyon": {
+    "name": "Lyon",
+    "address": "Quartier Perrache, Lyon 69002",
+    "description": "Zone logistique principale",
+    "icon": "",
+    "created_at": "2026-02-23T20:00:00+00:00"
+  },
+  "paris": {
+    "name": "Paris",
+    "address": "12 rue Voltaire, Paris 75011",
+    "description": "Galerie commerciale",
+    "icon": "",
+    "created_at": "2026-02-23T20:00:00+00:00"
+  }
+}

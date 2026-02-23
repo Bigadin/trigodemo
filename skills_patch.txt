@@ -1,0 +1,2 @@
+Replace SKILLS_CONFIG in main.py (lines 993-1009) with the 4 skills config.
+See skills-adapter.js for the full structure - backend should match.

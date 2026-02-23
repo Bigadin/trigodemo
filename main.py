@@ -64,6 +64,9 @@ blur_lock = threading.Lock()
 ZONES_FILE = DATA_DIR / "zones.json"
 PRESENCE_FILE = DATA_DIR / "presence.json"
 CAMERAS_FILE = DATA_DIR / "cameras.json"
+LIEUX_FILE = DATA_DIR / "lieux.json"
+SITES_FILE = DATA_DIR / "sites.json"
+BENEFITS_FILE = DATA_DIR / "benefits.json"
 
 GRACE_PERIOD = 0.5
 YOLO_CONFIDENCE = 0.45
@@ -71,6 +74,11 @@ TRACKING_REINFERENCE_INTERVAL = 30  # Réinférence complète toutes les 30 fram
 
 # Camera sources storage: {camera_id: {"type": "webcam"|"rtsp", "name": str, ...}}
 cameras = {}
+
+# Hierarchy storage
+lieux = {}      # {lieu_id: {"name", "address", "description", "icon", "created_at"}}
+sites = {}      # {site_id: {"name", "lieu_id", "address", "description", "icon", "created_at"}}
+benefits = {}   # {benefit_id: {"name", "skill", "skill_item", "categories", "camera_id", "zone_polygons", "active", "canvas", "created_at"}}
 
 # ==================== Counting Module State ====================
 # Config per video — each zone has its own mode + flip_count:
@@ -117,7 +125,7 @@ def load_counting_params():
     global counting_params
     counting_params = COUNTING_PARAMS_DEFAULTS.copy()
     if COUNTING_PARAMS_FILE.exists():
-        with open(COUNTING_PARAMS_FILE, "r") as f:
+        with open(COUNTING_PARAMS_FILE, "r", encoding="utf-8") as f:
             user = json.load(f)
         counting_params.update(user)
     print(f"[COUNTING] Params loaded: {counting_params}")
@@ -127,12 +135,12 @@ load_counting_params()
 
 
 def load_data():
-    global zones_by_video, zone_timers, cameras
+    global zones_by_video, zone_timers, cameras, lieux, sites, benefits
     if ZONES_FILE.exists():
-        with open(ZONES_FILE, "r") as f:
+        with open(ZONES_FILE, "r", encoding="utf-8") as f:
             zones_by_video = json.load(f)
     if PRESENCE_FILE.exists():
-        with open(PRESENCE_FILE, "r") as f:
+        with open(PRESENCE_FILE, "r", encoding="utf-8") as f:
             loaded = json.load(f)
             for zone_name, value in loaded.items():
                 if isinstance(value, (int, float)):
@@ -142,25 +150,49 @@ def load_data():
                     if "last_occupied" not in zone_timers[zone_name]:
                         zone_timers[zone_name]["last_occupied"] = None
     if CAMERAS_FILE.exists():
-        with open(CAMERAS_FILE, "r") as f:
+        with open(CAMERAS_FILE, "r", encoding="utf-8") as f:
             cameras = json.load(f)
+    if LIEUX_FILE.exists():
+        with open(LIEUX_FILE, "r", encoding="utf-8") as f:
+            lieux = json.load(f)
+    if SITES_FILE.exists():
+        with open(SITES_FILE, "r", encoding="utf-8") as f:
+            sites = json.load(f)
+    if BENEFITS_FILE.exists():
+        with open(BENEFITS_FILE, "r", encoding="utf-8") as f:
+            benefits = json.load(f)
 
 
 def save_zones():
-    with open(ZONES_FILE, "w") as f:
-        json.dump(zones_by_video, f, indent=2)
+    with open(ZONES_FILE, "w", encoding="utf-8") as f:
+        json.dump(zones_by_video, f, indent=2, ensure_ascii=False)
 
 
 def save_presence():
     with data_lock:
-        with open(PRESENCE_FILE, "w") as f:
+        with open(PRESENCE_FILE, "w", encoding="utf-8") as f:
             save_data = {k: {"total_time": v["total_time"]} for k, v in zone_timers.items()}
-            json.dump(save_data, f, indent=2)
+            json.dump(save_data, f, indent=2, ensure_ascii=False)
 
 
 def save_cameras():
-    with open(CAMERAS_FILE, "w") as f:
-        json.dump(cameras, f, indent=2)
+    with open(CAMERAS_FILE, "w", encoding="utf-8") as f:
+        json.dump(cameras, f, indent=2, ensure_ascii=False)
+
+
+def save_lieux():
+    with open(LIEUX_FILE, "w", encoding="utf-8") as f:
+        json.dump(lieux, f, indent=2, ensure_ascii=False)
+
+
+def save_sites():
+    with open(SITES_FILE, "w", encoding="utf-8") as f:
+        json.dump(sites, f, indent=2, ensure_ascii=False)
+
+
+def save_benefits():
+    with open(BENEFITS_FILE, "w", encoding="utf-8") as f:
+        json.dump(benefits, f, indent=2, ensure_ascii=False)
 
 
 def get_camera_source(camera_id: str):
@@ -276,7 +308,7 @@ def cleanup_zones_data():
 def load_counting_config():
     global counting_config
     if COUNTING_FILE.exists():
-        with open(COUNTING_FILE, "r") as f:
+        with open(COUNTING_FILE, "r", encoding="utf-8") as f:
             counting_config = json.load(f)
     # Migrate old format: {video: {"zone_name", "flip_count"}} → new format with zone_settings
     for video_name, cfg in counting_config.items():
@@ -289,8 +321,8 @@ def load_counting_config():
 
 
 def save_counting_config():
-    with open(COUNTING_FILE, "w") as f:
-        json.dump(counting_config, f, indent=2)
+    with open(COUNTING_FILE, "w", encoding="utf-8") as f:
+        json.dump(counting_config, f, indent=2, ensure_ascii=False)
 
 
 def get_zone_settings(video_name: str, zone_name: str = None) -> dict | None:
@@ -992,21 +1024,31 @@ def _generate_demo_metrics(points: int = 200) -> dict:
 # Skills/categories supportés par le backend (YOLO human.pt = détection présence humain)
 SKILLS_CONFIG = {
     "skills": [
-        {
-            "key": "detection",
-            "label": "Détection",
-            "icon": "/static/assets_youn/SvIcons/SVGnew/Yclassify.svg",
-            "items": [
-                {"id": "detection_presence", "label": "Détection présence absence", "icon": "/static/assets_youn/SvIcons/SVGnew/Ysilhouette.svg"}
-            ]
-        }
+        {"key": "detection", "label": "Détection", "icon": "/static/assets_youn/SvIcons/SVGnew/Yclassify.svg", "items": [{"id": "detection_presence", "label": "Présence / Absence", "icon": "/static/assets_youn/SvIcons/SVGnew/Ysilhouette.svg"}, {"id": "detection_linecross", "label": "Franchissement ligne", "icon": "/static/assets_youn/SvIcons/SVGnew/Ylinecross.svg"}, {"id": "detection_zone", "label": "Détection zone", "icon": "/static/assets_youn/SvIcons/SVGnew/Yzonedetect.svg"}]},
+        {"key": "counting", "label": "Comptage", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycounting.svg", "items": [{"id": "counting_people", "label": "Comptage personnes", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycountingppl.svg"}, {"id": "counting_objects", "label": "Comptage objets", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycounting.svg"}, {"id": "counting_zone", "label": "Comptage zone", "icon": "/static/assets_youn/SvIcons/SVGnew/square-area-svgrepo-com.svg"}]},
+        {"key": "heatmap", "label": "Heatmap", "icon": "/static/assets_youn/SvIcons/SVGnew/Yheatmap.svg", "items": [{"id": "heatmap_density", "label": "Densité de flux", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycrowdfoule.svg"}, {"id": "heatmap_presence", "label": "Heatmap présence", "icon": "/static/assets_youn/SvIcons/SVGnew/Yheatmapdense.svg"}, {"id": "heatmap_trajectory", "label": "Heatmap trajectoires", "icon": "/static/assets_youn/SvIcons/SVGnew/Ytraj.svg"}]},
+        {"key": "quality", "label": "Qualité", "icon": "/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg", "items": [{"id": "quality_fissure", "label": "Fissure", "icon": "/static/assets_youn/SvIcons/SVGnew/Yfissure.svg"}, {"id": "quality_humidity", "label": "Humidité", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumidity.svg"}, {"id": "quality_check", "label": "Qualité générale", "icon": "/static/assets_youn/SvIcons/SVGnew/Yqualitycheck.svg"}]}
     ],
     "categories_by_skill": {
         "detection": [
-            {"key": "human", "label": "Humain", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumancat.svg", "items": [{"id": "silhouette", "label": "Silhouette", "icon": "/static/assets_youn/SvIcons/SVGnew/Ysilhouette.svg"}]}
+            {"key": "human", "label": "Humain", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumancat.svg", "items": [{"id": "silhouette", "label": "Silhouette", "icon": "/static/assets_youn/SvIcons/SVGnew/Ysilhouette.svg"}, {"id": "visage", "label": "Visage", "icon": "/static/assets_youn/SvIcons/SVGnew/Yface.svg"}, {"id": "foule", "label": "Foule", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycrowdfoule.svg"}]},
+            {"key": "transport", "label": "Transport", "icon": "/static/assets_youn/SvIcons/SVGnew/Ytransport2.svg", "items": [{"id": "voiture", "label": "Voiture", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycar.svg"}, {"id": "velo", "label": "Vélo", "icon": "/static/assets_youn/SvIcons/SVGnew/Ybike.svg"}, {"id": "public_transport", "label": "Transport public", "icon": "/static/assets_youn/SvIcons/SVGnew/Ypublic%20transport.svg"}, {"id": "avion", "label": "Avion", "icon": "/static/assets_youn/SvIcons/SVGnew/plane-svgrepo-com.svg"}, {"id": "moto", "label": "Moto", "icon": "/static/assets_youn/SvIcons/SVGnew/motorcycle.svg"}]}
+        ],
+        "counting": [
+            {"key": "human", "label": "Humain", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumancat.svg", "items": [{"id": "silhouette", "label": "Silhouette", "icon": "/static/assets_youn/SvIcons/SVGnew/Ysilhouette.svg"}]},
+            {"key": "transport", "label": "Transport", "icon": "/static/assets_youn/SvIcons/SVGnew/Ytransport2.svg", "items": [{"id": "voiture", "label": "Voiture", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycar.svg"}, {"id": "velo", "label": "Vélo", "icon": "/static/assets_youn/SvIcons/SVGnew/Ybike.svg"}, {"id": "public_transport", "label": "Transport public", "icon": "/static/assets_youn/SvIcons/SVGnew/Ypublic%20transport.svg"}, {"id": "avion", "label": "Avion", "icon": "/static/assets_youn/SvIcons/SVGnew/plane-svgrepo-com.svg"}, {"id": "moto", "label": "Moto", "icon": "/static/assets_youn/SvIcons/SVGnew/motorcycle.svg"}]}
+        ],
+        "heatmap": [
+            {"key": "human", "label": "Humain", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumancat.svg", "items": [{"id": "silhouette", "label": "Silhouette", "icon": "/static/assets_youn/SvIcons/SVGnew/Ysilhouette.svg"}]},
+            {"key": "object", "label": "Objet", "icon": "/static/assets_youn/SvIcons/SVGnew/Yobstruction.svg", "items": [{"id": "encombrement", "label": "Encombrement", "icon": "/static/assets_youn/SvIcons/SVGnew/Yobstruction.svg"}, {"id": "zone_encombrée", "label": "Zone encombrée", "icon": "/static/assets_youn/SvIcons/SVGnew/Yobstruction.svg"}]}
+        ],
+        "quality": [
+            {"key": "object", "label": "Objet", "icon": "/static/assets_youn/SvIcons/SVGnew/Yobstruction.svg", "items": [{"id": "fissure", "label": "Fissure", "icon": "/static/assets_youn/SvIcons/SVGnew/Yfissure.svg"}, {"id": "humidity", "label": "Humidité", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumidity.svg"}, {"id": "qualitycheck", "label": "Qualité générale", "icon": "/static/assets_youn/SvIcons/SVGnew/Yqualitycheck.svg"}]}
         ]
     }
 }
+
+
 
 
 @app.get("/api/skills")
@@ -1014,6 +1056,14 @@ async def get_skills():
     """Retourne les skills et catégories supportés par le backend (détection présence humain)."""
     return SKILLS_CONFIG
 
+@app.get("/api/solution-spec")
+async def get_solution_spec():
+    """Retourne la spec centrale de la solution (skills, categories, mapping)."""
+    spec_path = Path(__file__).parent / "static" / "config" / "solution-spec.json"
+    if spec_path.exists():
+        with open(spec_path, encoding="utf-8") as f:
+            return json.load(f)
+    return {"error": "solution-spec.json not found"}
 
 @app.get("/api/metrics")
 async def get_metrics(points: int = 120):
@@ -1722,9 +1772,314 @@ async def update_counting_params(params: dict):
     for key, value in params.items():
         if key in COUNTING_PARAMS_DEFAULTS:
             counting_params[key] = value
-    with open(COUNTING_PARAMS_FILE, "w") as f:
-        json.dump(counting_params, f, indent=2)
+    with open(COUNTING_PARAMS_FILE, "w", encoding="utf-8") as f:
+        json.dump(counting_params, f, indent=2, ensure_ascii=False)
     return counting_params
+
+
+# ==================== Lieu API Endpoints ====================
+
+class LieuCreate(BaseModel):
+    lieu_id: str
+    name: str
+    address: Optional[str] = None
+    description: Optional[str] = None
+    icon: Optional[str] = None
+
+
+class LieuUpdate(BaseModel):
+    name: Optional[str] = None
+    address: Optional[str] = None
+    description: Optional[str] = None
+    icon: Optional[str] = None
+
+
+@app.get("/api/lieux")
+async def list_lieux():
+    return {"lieux": lieux}
+
+
+@app.get("/api/lieux/{lieu_id}")
+async def get_lieu(lieu_id: str):
+    if lieu_id not in lieux:
+        raise HTTPException(status_code=404, detail="Lieu not found")
+    lieu = lieux[lieu_id]
+    lieu_sites = {sid: s for sid, s in sites.items() if s.get("lieu_id") == lieu_id}
+    return {"lieu": lieu, "sites": lieu_sites}
+
+
+@app.post("/api/lieux")
+async def create_lieu(lieu: LieuCreate):
+    if lieu.lieu_id in lieux:
+        raise HTTPException(status_code=400, detail="Lieu ID already exists")
+    lieux[lieu.lieu_id] = {
+        "name": lieu.name,
+        "address": lieu.address or "",
+        "description": lieu.description or "",
+        "icon": lieu.icon or "",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    save_lieux()
+    audit_event("lieu", "created", f"Lieu « {lieu.name} » créé", "success",
+                {"lieu_id": lieu.lieu_id, "name": lieu.name})
+    return {"message": "Lieu created", "lieu_id": lieu.lieu_id}
+
+
+@app.put("/api/lieux/{lieu_id}")
+async def update_lieu(lieu_id: str, payload: LieuUpdate):
+    if lieu_id not in lieux:
+        raise HTTPException(status_code=404, detail="Lieu not found")
+    for field in ("name", "address", "description", "icon"):
+        val = getattr(payload, field, None)
+        if val is not None:
+            lieux[lieu_id][field] = val
+    save_lieux()
+    audit_event("lieu", "updated", f"Lieu « {lieux[lieu_id]['name']} » modifié", "info",
+                {"lieu_id": lieu_id})
+    return {"message": "Lieu updated"}
+
+
+@app.delete("/api/lieux/{lieu_id}")
+async def delete_lieu(lieu_id: str):
+    if lieu_id not in lieux:
+        raise HTTPException(status_code=404, detail="Lieu not found")
+    child_sites = [sid for sid, s in sites.items() if s.get("lieu_id") == lieu_id]
+    if child_sites:
+        raise HTTPException(status_code=400,
+                            detail=f"Cannot delete: {len(child_sites)} site(s) still attached")
+    lieu_name = lieux[lieu_id].get("name", lieu_id)
+    del lieux[lieu_id]
+    save_lieux()
+    audit_event("lieu", "deleted", f"Lieu « {lieu_name} » supprimé", "warn",
+                {"lieu_id": lieu_id})
+    return {"message": "Lieu deleted"}
+
+
+# ==================== Site API Endpoints ====================
+
+class SiteCreate(BaseModel):
+    site_id: str
+    name: str
+    lieu_id: str
+    address: Optional[str] = None
+    description: Optional[str] = None
+    icon: Optional[str] = None
+
+
+class SiteUpdate(BaseModel):
+    name: Optional[str] = None
+    lieu_id: Optional[str] = None
+    address: Optional[str] = None
+    description: Optional[str] = None
+    icon: Optional[str] = None
+
+
+@app.get("/api/sites")
+async def list_sites():
+    return {"sites": sites}
+
+
+@app.get("/api/sites/{site_id}")
+async def get_site(site_id: str):
+    if site_id not in sites:
+        raise HTTPException(status_code=404, detail="Site not found")
+    site = sites[site_id]
+    site_cameras = {cid: c for cid, c in cameras.items() if c.get("site_id") == site_id}
+    return {"site": site, "cameras": site_cameras}
+
+
+@app.post("/api/sites")
+async def create_site(site: SiteCreate):
+    if site.site_id in sites:
+        raise HTTPException(status_code=400, detail="Site ID already exists")
+    if site.lieu_id not in lieux:
+        raise HTTPException(status_code=400, detail=f"Lieu '{site.lieu_id}' not found")
+    sites[site.site_id] = {
+        "name": site.name,
+        "lieu_id": site.lieu_id,
+        "address": site.address or "",
+        "description": site.description or "",
+        "icon": site.icon or "",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    save_sites()
+    audit_event("site", "created", f"Site « {site.name} » créé dans lieu « {site.lieu_id} »", "success",
+                {"site_id": site.site_id, "name": site.name, "lieu_id": site.lieu_id})
+    return {"message": "Site created", "site_id": site.site_id}
+
+
+@app.put("/api/sites/{site_id}")
+async def update_site(site_id: str, payload: SiteUpdate):
+    if site_id not in sites:
+        raise HTTPException(status_code=404, detail="Site not found")
+    if payload.lieu_id is not None and payload.lieu_id not in lieux:
+        raise HTTPException(status_code=400, detail=f"Lieu '{payload.lieu_id}' not found")
+    for field in ("name", "lieu_id", "address", "description", "icon"):
+        val = getattr(payload, field, None)
+        if val is not None:
+            sites[site_id][field] = val
+    save_sites()
+    audit_event("site", "updated", f"Site « {sites[site_id]['name']} » modifié", "info",
+                {"site_id": site_id})
+    return {"message": "Site updated"}
+
+
+@app.delete("/api/sites/{site_id}")
+async def delete_site(site_id: str):
+    if site_id not in sites:
+        raise HTTPException(status_code=404, detail="Site not found")
+    child_cams = [cid for cid, c in cameras.items() if c.get("site_id") == site_id]
+    if child_cams:
+        raise HTTPException(status_code=400,
+                            detail=f"Cannot delete: {len(child_cams)} camera(s) still attached")
+    site_name = sites[site_id].get("name", site_id)
+    del sites[site_id]
+    save_sites()
+    audit_event("site", "deleted", f"Site « {site_name} » supprimé", "warn",
+                {"site_id": site_id})
+    return {"message": "Site deleted"}
+
+
+# ==================== Benefit API Endpoints ====================
+
+class BenefitCreate(BaseModel):
+    benefit_id: str
+    name: str
+    skill: str
+    skill_item: Optional[str] = None
+    categories: list[str] = []
+    camera_id: str
+    zone_polygons: Optional[list] = None
+    active: bool = True
+    canvas: Optional[dict] = None
+
+
+class BenefitUpdate(BaseModel):
+    name: Optional[str] = None
+    skill: Optional[str] = None
+    skill_item: Optional[str] = None
+    categories: Optional[list[str]] = None
+    zone_polygons: Optional[list] = None
+    active: Optional[bool] = None
+    canvas: Optional[dict] = None
+
+
+@app.get("/api/benefits")
+async def list_benefits():
+    return {"benefits": benefits}
+
+
+@app.get("/api/benefits/{benefit_id}")
+async def get_benefit(benefit_id: str):
+    if benefit_id not in benefits:
+        raise HTTPException(status_code=404, detail="Benefit not found")
+    return {"benefit": benefits[benefit_id]}
+
+
+@app.get("/api/cameras/{camera_id}/benefits")
+async def list_camera_benefits(camera_id: str):
+    if camera_id not in cameras:
+        raise HTTPException(status_code=404, detail="Camera not found")
+    cam_benefits = {bid: b for bid, b in benefits.items() if b.get("camera_id") == camera_id}
+    return {"benefits": cam_benefits}
+
+
+@app.post("/api/benefits")
+async def create_benefit(benefit: BenefitCreate):
+    if benefit.benefit_id in benefits:
+        raise HTTPException(status_code=400, detail="Benefit ID already exists")
+    if benefit.camera_id not in cameras:
+        raise HTTPException(status_code=400, detail=f"Camera '{benefit.camera_id}' not found")
+    benefits[benefit.benefit_id] = {
+        "name": benefit.name,
+        "skill": benefit.skill,
+        "skill_item": benefit.skill_item or "",
+        "categories": benefit.categories,
+        "camera_id": benefit.camera_id,
+        "zone_polygons": benefit.zone_polygons or [],
+        "active": benefit.active,
+        "canvas": benefit.canvas or {},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    save_benefits()
+    audit_event("benefit", "created",
+                f"Bénéfice « {benefit.name} » créé (skill={benefit.skill}, camera={benefit.camera_id})",
+                "success",
+                {"benefit_id": benefit.benefit_id, "skill": benefit.skill, "camera_id": benefit.camera_id})
+    return {"message": "Benefit created", "benefit_id": benefit.benefit_id}
+
+
+@app.put("/api/benefits/{benefit_id}")
+async def update_benefit(benefit_id: str, payload: BenefitUpdate):
+    if benefit_id not in benefits:
+        raise HTTPException(status_code=404, detail="Benefit not found")
+    for field in ("name", "skill", "skill_item", "categories", "zone_polygons", "active", "canvas"):
+        val = getattr(payload, field, None)
+        if val is not None:
+            benefits[benefit_id][field] = val
+    save_benefits()
+    audit_event("benefit", "updated", f"Bénéfice « {benefits[benefit_id]['name']} » modifié", "info",
+                {"benefit_id": benefit_id})
+    return {"message": "Benefit updated"}
+
+
+@app.delete("/api/benefits/{benefit_id}")
+async def delete_benefit(benefit_id: str):
+    if benefit_id not in benefits:
+        raise HTTPException(status_code=404, detail="Benefit not found")
+    b_name = benefits[benefit_id].get("name", benefit_id)
+    b_camera = benefits[benefit_id].get("camera_id", "")
+    del benefits[benefit_id]
+    save_benefits()
+    audit_event("benefit", "deleted", f"Bénéfice « {b_name} » supprimé", "warn",
+                {"benefit_id": benefit_id, "camera_id": b_camera})
+    return {"message": "Benefit deleted"}
+
+
+# Hierarchical convenience endpoint
+@app.get("/api/hierarchy")
+async def get_hierarchy():
+    """Full hierarchy: LIEU -> SITE -> CAMERA -> BENEFIT"""
+    tree = {}
+    for lid, l in lieux.items():
+        node = {**l, "lieu_id": lid, "sites": {}}
+        for sid, s in sites.items():
+            if s.get("lieu_id") == lid:
+                s_node = {**s, "site_id": sid, "cameras": {}}
+                for cid, c in cameras.items():
+                    if c.get("site_id") == sid:
+                        c_node = {**c, "camera_id": cid, "benefits": {}}
+                        for bid, b in benefits.items():
+                            if b.get("camera_id") == cid:
+                                c_node["benefits"][bid] = {**b, "benefit_id": bid}
+                        s_node["cameras"][cid] = c_node
+                node["sites"][sid] = s_node
+        tree[lid] = node
+    return {"hierarchy": tree}
+
+
+@app.post("/api/benefits/sync-zones")
+async def sync_benefit_zones():
+    """Push all active benefit zone_polygons into zones_by_video for YOLO detection"""
+    synced = 0
+    for bid, b in benefits.items():
+        if not b.get("active", True):
+            continue
+        polys = b.get("zone_polygons", [])
+        if not polys:
+            continue
+        cam_id = b.get("camera_id", "")
+        if not cam_id:
+            continue
+        video_name = f"camera:{cam_id}" if cam_id in cameras else cam_id
+        if video_name not in zones_by_video:
+            zones_by_video[video_name] = {}
+        zone_name = bid
+        zones_by_video[video_name][zone_name] = {"polygons": polys}
+        synced += 1
+    if synced:
+        save_zones()
+    return {"synced": synced}
 
 
 # ==================== Camera API Endpoints ====================
@@ -1735,6 +2090,7 @@ class CameraCreate(BaseModel):
     type: str  # "webcam" or "rtsp"
     device_id: int | None = None  # For webcam
     url: str | None = None  # For RTSP
+    site_id: str | None = None
 
 
 @app.get("/api/cameras")
@@ -1749,13 +2105,17 @@ async def add_camera(camera: CameraCreate):
     if camera.camera_id in cameras:
         raise HTTPException(status_code=400, detail="Camera ID already exists")
 
+    if camera.site_id and camera.site_id not in sites:
+        raise HTTPException(status_code=400, detail=f"Site '{camera.site_id}' not found")
+
     if camera.type == "webcam":
         if camera.device_id is None:
             raise HTTPException(status_code=400, detail="device_id required for webcam")
         cameras[camera.camera_id] = {
             "type": "webcam",
             "name": camera.name,
-            "device_id": camera.device_id
+            "device_id": camera.device_id,
+            "site_id": camera.site_id or "",
         }
     elif camera.type == "rtsp":
         if not camera.url:
@@ -1763,7 +2123,8 @@ async def add_camera(camera: CameraCreate):
         cameras[camera.camera_id] = {
             "type": "rtsp",
             "name": camera.name,
-            "url": camera.url
+            "url": camera.url,
+            "site_id": camera.site_id or "",
         }
     else:
         raise HTTPException(status_code=400, detail="Invalid camera type")
@@ -1787,11 +2148,17 @@ async def delete_camera(camera_id: str):
             active_streams[source_name]["active"] = False
 
     cam_name = cameras.get(camera_id, {}).get("name", camera_id)
+    orphan_benefits = [bid for bid, b in benefits.items() if b.get("camera_id") == camera_id]
+    for bid in orphan_benefits:
+        del benefits[bid]
+    if orphan_benefits:
+        save_benefits()
     del cameras[camera_id]
     save_cameras()
-    audit_event("camera", "deleted", f"Caméra « {cam_name} » supprimée", "warn",
-                {"camera_id": camera_id})
-    return {"message": "Camera deleted"}
+    audit_event("camera", "deleted",
+                f"Caméra « {cam_name} » supprimée ({len(orphan_benefits)} bénéfice(s) cascade)",
+                "warn", {"camera_id": camera_id, "benefits_removed": orphan_benefits})
+    return {"message": "Camera deleted", "benefits_removed": len(orphan_benefits)}
 
 
 @app.get("/api/cameras/detect/webcams")
@@ -2495,30 +2862,30 @@ def generate_frames(video_name: str, draw_overlay: bool = True):
 
                 # Draw tracked blob centers + IDs + movement arrows
                 for tid, dobj in debug_objs.items():
-                cx_d, cy_d = int(dobj["cx"]), int(dobj["cy"])
-                counted = dobj["counted"]
+                    cx_d, cy_d = int(dobj["cx"]), int(dobj["cy"])
+                    counted = dobj["counted"]
 
-                # Color: green if counted, orange if not yet
-                dot_color = (0, 200, 0) if counted else (0, 165, 255)
-                cv2.circle(frame, (cx_d, cy_d), 6, dot_color, -1, cv2.LINE_AA)
+                    # Color: green if counted, orange if not yet
+                    dot_color = (0, 200, 0) if counted else (0, 165, 255)
+                    cv2.circle(frame, (cx_d, cy_d), 6, dot_color, -1, cv2.LINE_AA)
 
-                # Blob ID label + projection value + area for debugging
-                proj_val = dobj.get("proj", 0)
-                thr_val = line_info["threshold"]
-                area_val = dobj.get("area", 0)
-                id_label = f"#{tid}" + (" OK" if counted else f" p={proj_val:.0f}/t={thr_val:.0f}")
-                cv2.putText(frame, id_label, (cx_d + 8, cy_d - 4),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.4, dot_color, 1, cv2.LINE_AA)
-                # Show blob area below
-                cv2.putText(frame, f"a={area_val:.0f}", (cx_d + 8, cy_d + 12),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.3, (180, 180, 180), 1, cv2.LINE_AA)
+                    # Blob ID label + projection value + area for debugging
+                    proj_val = dobj.get("proj", 0)
+                    thr_val = line_info["threshold"]
+                    area_val = dobj.get("area", 0)
+                    id_label = f"#{tid}" + (" OK" if counted else f" p={proj_val:.0f}/t={thr_val:.0f}")
+                    cv2.putText(frame, id_label, (cx_d + 8, cy_d - 4),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, dot_color, 1, cv2.LINE_AA)
+                    # Show blob area below
+                    cv2.putText(frame, f"a={area_val:.0f}", (cx_d + 8, cy_d + 12),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.3, (180, 180, 180), 1, cv2.LINE_AA)
 
-                # Movement arrow (prev -> current)
-                if "prev_cx" in dobj:
-                    pcx, pcy = int(dobj["prev_cx"]), int(dobj["prev_cy"])
-                    if abs(pcx - cx_d) > 1 or abs(pcy - cy_d) > 1:
-                        cv2.arrowedLine(frame, (pcx, pcy), (cx_d, cy_d),
-                                        dot_color, 1, cv2.LINE_AA, tipLength=0.3)
+                    # Movement arrow (prev -> current)
+                    if "prev_cx" in dobj:
+                        pcx, pcy = int(dobj["prev_cx"]), int(dobj["prev_cy"])
+                        if abs(pcx - cx_d) > 1 or abs(pcy - cy_d) > 1:
+                            cv2.arrowedLine(frame, (pcx, pcy), (cx_d, cy_d),
+                                            dot_color, 1, cv2.LINE_AA, tipLength=0.3)
 
             # Flash recent crossing events (bright circle + label)
             for ev in recent_cross:
@@ -2685,3 +3052,5 @@ if __name__ == "__main__":
     logging.getLogger("uvicorn.access").addFilter(StaticFileFilter())
 
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
