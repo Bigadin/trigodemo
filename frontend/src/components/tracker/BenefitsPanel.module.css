@@ -1,8 +1,9 @@
+/* ---- Benefits panel container ---- */
 .panel {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
 }
 
 .header {
@@ -14,101 +15,485 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--border-subtle);
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .count {
   font-size: 10px;
-  background: var(--bg-hover);
+  background: rgba(15, 23, 42, 0.06);
   padding: 0 6px;
   border-radius: 8px;
-  color: var(--text-tertiary);
+  color: var(--color-text-muted);
 }
 
 .empty {
-  padding: var(--space-4);
-  color: var(--text-tertiary);
-  font-size: 12px;
+  padding: 16px;
+  border: 1px dashed var(--color-border);
+  border-radius: 0;
+  color: var(--color-text-secondary);
   text-align: center;
+  font-size: 13px;
+  background: rgba(15,23,42,0.02);
 }
 
+/* Benefits list (vertical rows) */
 .list {
   display: flex;
   flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) 0;
 }
 
+/* Benefits grid (2-col dark tiles) */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  background: transparent;
+  padding: var(--space-3) 0;
+  min-height: 0;
+  border: none;
+}
+
+/* Plus button */
+.plusBtn {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 800;
+  color: var(--color-accent);
+  border: 1px solid rgba(240,131,33,0.4);
+  background: rgba(240,131,33,0.12);
+  cursor: pointer;
+}
+
+/* ======================================
+   Benefit row (list style — white bg)
+   ====================================== */
 .row {
+  width: 100%;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 0;
+  background: #F6F8FC;
+  min-height: 56px;
+  position: relative;
+}
+
+.rowSkill {
+  flex: 0 0 22%;
+  max-width: 22%;
+  min-width: 44px;
+  aspect-ratio: 1;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--border-subtle);
-  transition: background 0.1s;
+  justify-content: center;
+  background: #fff;
+  padding: 6px;
+  position: relative;
+  border-right: 1px solid rgba(15, 23, 42, 0.1);
 }
 
-.row:last-child {
-  border-bottom: none;
+.rowSkillIco {
+  width: 85%;
+  height: 85%;
+  object-fit: contain;
+  filter: brightness(0) saturate(0) opacity(0.65);
 }
 
-.row:hover {
-  background: var(--bg-hover);
+/* Selected state */
+.rowSelected {
+  background: #1d5bff;
+  border-color: #1d5bff;
 }
 
-.rowOccupied {
-  background: rgba(34, 197, 94, 0.06);
+.rowSelected .rowSkill {
+  background: #1d5bff;
+  border-right-color: rgba(255,255,255,0.25);
 }
 
-.icon {
-  font-size: 14px;
+.rowSelected .rowSkillIco {
+  filter: brightness(0) invert(1);
+}
+
+.rowSelected .rowTitle,
+.rowSelected .rowEdit {
+  color: #fff !important;
+}
+
+.rowSelected .rowDot {
+  background: #fff !important;
+}
+
+.rowSelected .rowEdit {
+  background: rgba(255,255,255,0.2) !important;
+  border-color: rgba(255,255,255,0.4) !important;
+}
+
+/* Selected state: chips all become white-on-translucent */
+.rowSelected .rowChips .badge,
+.rowSelected .rowChips .recapChip,
+.rowSelected .rowChips .recapChipSolid,
+.rowSelected .rowChips .chipSuccess,
+.rowSelected .rowChips .chipPrimary,
+.rowSelected .rowChips .chipInfo,
+.rowSelected .rowChips .chipWarning {
+  color: #fff !important;
+  background: rgba(255,255,255,0.15) !important;
+  border-color: rgba(255,255,255,0.25) !important;
+}
+
+/* Selected: icon-only chips — no frame */
+.rowSelected .rowChips .chipIconOnly {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 2px;
+}
+
+.rowSelected .rowChips .benTreeIco {
+  filter: brightness(0) invert(1) !important;
+}
+
+.rowSelected .rowChips .classIco .benTreeIco {
+  filter: brightness(0) invert(1);
+}
+
+.rowMain {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  justify-content: flex-start;
+}
+
+.rowHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
   flex-shrink: 0;
 }
 
-.rowInfo {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
+.rowDot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 0;
 }
 
-.rowName {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-primary);
+.rowTitle {
+  color: #0F172A;
+  font-size: 14px;
+  font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.rowSkill {
-  font-size: 10px;
-  color: var(--text-tertiary);
-}
-
-.rowBadges {
+.rowChips {
   display: flex;
-  gap: 3px;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.rowChips .badge,
+.rowChips .recapChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  font-size: 10px;
+  border-radius: 0;
+  background: rgba(15, 23, 42, 0.06) !important;
+  color: #0F172A !important;
+  border: 1px solid rgba(15, 23, 42, 0.12) !important;
+}
+
+.rowChips .chipIconOnly {
+  width: 18px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 0;
+  background: transparent !important;
+  border: none !important;
+}
+
+.rowChips .benTreeIco {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  filter: brightness(0) saturate(0) opacity(0.65);
+}
+
+.rowChips .recapChipSolid {
+  border: 1px solid rgba(15, 23, 42, 0.18) !important;
+  border-radius: 0;
+  background: rgba(15, 23, 42, 0.08) !important;
+  color: #0F172A !important;
+}
+
+.rowChips .chipSuccess { background: rgba(34,197,94,0.18) !important; color: #065f46; }
+.rowChips .chipPrimary { background: rgba(59,130,246,0.18) !important; color: #1e40af; }
+.rowChips .chipInfo { background: rgba(167,139,250,0.18) !important; color: #4c1d95; }
+.rowChips .chipWarning { background: rgba(250,204,21,0.22) !important; color: #713f12; }
+
+.rowChips .classIco {
+  background: transparent !important;
+  border: none !important;
+  padding: 0;
+}
+
+.rowChips .classIco .benTreeIco {
+  width: 18px;
+  height: 18px;
+  filter: brightness(0) opacity(0.65);
+}
+
+.rowFooter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+  flex-shrink: 0;
+  min-height: 28px;
+}
+
+.rowTimer {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(15, 23, 42, 0.6);
+  font-variant-numeric: tabular-nums;
+}
+
+.rowSelected .rowTimer {
+  color: rgba(255,255,255,0.85);
+}
+
+.rowToggle {
+  margin-left: auto;
   flex-shrink: 0;
 }
 
-.catBadge {
-  font-size: 9px;
-  padding: 1px 5px;
-  border-radius: 3px;
-  background: var(--bg-hover);
-  color: var(--text-secondary);
+.rowEdit {
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  border-radius: 0;
+  background: rgba(15, 23, 42, 0.06);
+  color: #0F172A;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 10px;
+  cursor: pointer;
   white-space: nowrap;
-}
-
-.dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--gray-06);
   flex-shrink: 0;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.dotActive {
-  background: var(--color-success);
+.rowChip {
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 999px;
+  padding: 3px 8px;
+  color: #f5f7ff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.rowChipSuccess { background: rgba(34,197,94,0.22); }
+.rowChipPrimary { background: rgba(59,130,246,0.22); }
+
+/* ======================================
+   Benefit tile (dark compact style)
+   ====================================== */
+.tile {
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  background: #0a0a0a;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tileHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tileTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: #eef3ff;
+}
+
+.tileEdit {
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.04);
+  color: rgba(245,247,255,0.9);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.tileChips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.tileChip {
+  border: 1px solid rgba(59,130,246,0.34);
+  background: rgba(59,130,246,0.16);
+  color: #e8f1ff;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.tileChipGhost {
+  border-color: rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.06);
+  color: rgba(234,242,255,0.88);
+}
+
+.tileChips .tileBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  font-size: 10px;
+  border-radius: 4px;
+}
+
+.tileChips .chipIconOnly {
+  width: 18px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tileChips .chipIconOnly .benTreeIco,
+.tileChips .chipGhost .benTreeIco {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  vertical-align: middle;
+  margin-top: 1px;
+}
+
+.tileChips .chipSolid {
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(59,130,246,0.2);
+}
+
+.tileChips .chipSuccess.chipSolid { background: rgba(34,197,94,0.22); }
+.tileChips .chipPrimary.chipSolid { background: rgba(59,130,246,0.22); }
+.tileChips .chipInfo.chipSolid { background: rgba(167,139,250,0.22); }
+.tileChips .chipWarning.chipSolid { background: rgba(250,204,21,0.22); }
+
+/* Accent icon color filters */
+.tileChips .accentMint .benTreeIco { filter: invert(84%) sepia(21%) saturate(742%) hue-rotate(103deg) brightness(98%) contrast(93%); }
+.tileChips .accentSky .benTreeIco { filter: invert(74%) sepia(27%) saturate(1401%) hue-rotate(178deg) brightness(102%) contrast(100%); }
+.tileChips .accentViolet .benTreeIco { filter: invert(79%) sepia(31%) saturate(786%) hue-rotate(214deg) brightness(102%) contrast(96%); }
+.tileChips .accentPeach .benTreeIco { filter: invert(87%) sepia(25%) saturate(739%) hue-rotate(331deg) brightness(102%) contrast(101%); }
+.tileChips .accentRose .benTreeIco { filter: invert(82%) sepia(17%) saturate(1013%) hue-rotate(296deg) brightness(101%) contrast(99%); }
+.tileChips .accentSand .benTreeIco { filter: invert(92%) sepia(24%) saturate(939%) hue-rotate(339deg) brightness(103%) contrast(100%); }
+.tileChips .accentTeal .benTreeIco { filter: invert(83%) sepia(19%) saturate(877%) hue-rotate(131deg) brightness(97%) contrast(96%); }
+.tileChips .accentSlate .benTreeIco { filter: invert(83%) sepia(11%) saturate(601%) hue-rotate(186deg) brightness(95%) contrast(93%); }
+.tileChips .accentLime .benTreeIco { filter: invert(88%) sepia(31%) saturate(964%) hue-rotate(62deg) brightness(101%) contrast(95%); }
+.tileChips .accentCoral .benTreeIco { filter: invert(82%) sepia(29%) saturate(1008%) hue-rotate(337deg) brightness(103%) contrast(96%); }
+.tileChips .accentAzure .benTreeIco { filter: invert(80%) sepia(24%) saturate(1171%) hue-rotate(187deg) brightness(102%) contrast(98%); }
+.tileChips .accentAmber .benTreeIco { filter: invert(93%) sepia(24%) saturate(1175%) hue-rotate(336deg) brightness(101%) contrast(97%); }
+
+/* ---- Light theme overrides ---- */
+:root[data-theme="light"] .tile {
+  border-color: rgba(15,23,42,0.16);
+  background: rgba(255,255,255,0.84);
+}
+
+:root[data-theme="light"] .tileTitle {
+  color: #111827;
+}
+
+:root[data-theme="light"] .tileEdit {
+  border-color: rgba(15,23,42,0.18);
+  background: rgba(15,23,42,0.06);
+  color: #0f172a;
+}
+
+:root[data-theme="light"] .tileChip {
+  border-color: rgba(37,99,235,0.38);
+  background: rgba(37,99,235,0.16);
+  color: #0f172a;
+}
+
+:root[data-theme="light"] .tileChipGhost {
+  border-color: rgba(15,23,42,0.2);
+  background: rgba(15,23,42,0.08);
+  color: #1f2937;
+}
+
+:root[data-theme="light"] .tileChips .chipSolid {
+  border-color: rgba(15,23,42,0.16);
+  color: #0f172a;
+}
+
+:root[data-theme="light"] .tileChips .chipSuccess.chipSolid { background: rgba(34,197,94,0.18); color: #065f46; }
+:root[data-theme="light"] .tileChips .chipPrimary.chipSolid { background: rgba(59,130,246,0.18); color: #1e40af; }
+:root[data-theme="light"] .tileChips .chipInfo.chipSolid { background: rgba(167,139,250,0.18); color: #4c1d95; }
+:root[data-theme="light"] .tileChips .chipWarning.chipSolid { background: rgba(250,204,21,0.22); color: #713f12; }
+
+:root[data-theme="light"] .tileChips .chipIconOnly .benTreeIco,
+:root[data-theme="light"] .tileChips .chipGhost .benTreeIco,
+:root[data-theme="light"] .tileChips .accentMint .benTreeIco,
+:root[data-theme="light"] .tileChips .accentSky .benTreeIco,
+:root[data-theme="light"] .tileChips .accentViolet .benTreeIco,
+:root[data-theme="light"] .tileChips .accentPeach .benTreeIco,
+:root[data-theme="light"] .tileChips .accentRose .benTreeIco,
+:root[data-theme="light"] .tileChips .accentSand .benTreeIco,
+:root[data-theme="light"] .tileChips .accentTeal .benTreeIco,
+:root[data-theme="light"] .tileChips .accentSlate .benTreeIco,
+:root[data-theme="light"] .tileChips .accentLime .benTreeIco,
+:root[data-theme="light"] .tileChips .accentCoral .benTreeIco,
+:root[data-theme="light"] .tileChips .accentAzure .benTreeIco,
+:root[data-theme="light"] .tileChips .accentAmber .benTreeIco {
+  filter: brightness(0) saturate(0) opacity(0.6) !important;
+}
+
+:root[data-theme="light"] .empty {
+  border-color: rgba(15,23,42,0.2);
+  color: #475569;
+  background: rgba(15,23,42,0.03);
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
 }

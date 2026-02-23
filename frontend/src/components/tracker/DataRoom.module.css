@@ -1,56 +1,479 @@
+/* ---- DATA ROOM block ---- */
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title {
+  font-size: var(--text-lg);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #0F172A;
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.empty {
+  padding: 16px;
+  border: 1px dashed var(--color-border);
+  border-radius: 0;
+  color: var(--color-text-secondary);
+  text-align: center;
+  font-size: 13px;
+  background: rgba(15,23,42,0.02);
+  grid-column: 1 / -1;
+}
+
+/* ---- ROI measure grid ---- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  gap: var(--space-5);
+}
+
+.gridBenefitStyle {
+  grid-template-columns: repeat(2, minmax(280px, 360px));
+}
+
+/* ---- ROI measure card ---- */
+.card {
+  border: 1px solid var(--color-border);
+  border-radius: 0;
+  background: var(--color-surface);
+  padding: var(--space-4);
+  aspect-ratio: 1;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* Benefit-style ROI card (flat, no aspect-ratio) */
+.cardBenefit {
+  background: #F6F8FC;
+  border-color: rgba(15, 23, 42, 0.12);
+  border-radius: 0;
+  aspect-ratio: auto;
+  min-height: 100px;
+}
+
+.cardBenefitRow {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-5);
+  min-height: 120px;
+}
+
+.cardMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.cardTitleWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.cardDot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 0;
+}
+
+.cardTitle {
+  color: #0F172A;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.cardTitleUpper {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* ---- Card chips ---- */
+.cardChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.cardChipsWrap {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  flex-shrink: 0;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.cardChipsWrap::-webkit-scrollbar {
+  height: 4px;
+}
+
+.cardChipsInner {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  align-items: center;
+  min-width: min-content;
+}
+
+/* ---- ROI chip ---- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(15, 23, 42, 0.06);
+  color: #0F172A;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 0;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.chipSuccess { background: rgba(34,197,94,0.10); color: #15803d; border-color: rgba(34,197,94,0.18); }
+.chipPrimary { background: rgba(59,130,246,0.10); color: #1d4ed8; border-color: rgba(59,130,246,0.18); }
+.chipInfo { background: rgba(167,139,250,0.10); color: #6d28d9; border-color: rgba(167,139,250,0.18); }
+.chipWarning { background: rgba(250,204,21,0.10); color: #a16207; border-color: rgba(250,204,21,0.18); }
+
+.chip .benTreeIco {
+  width: 14px;
+  height: 14px;
+  vertical-align: middle;
+}
+
+.cardBenefit .chip .benTreeIco {
+  filter: brightness(0) opacity(0.6);
+}
+
+.cardBenefit .cardChipsInner .chipIconOnly,
+.cardBenefit .cardChipsInner .chipGhostIconOnly {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 2px;
+}
+
+.cardBenefit .cardChipsInner .chipSolid {
+  background: rgba(15, 23, 42, 0.08) !important;
+  color: #0F172A !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+.cardBenefit .cardChipsInner .badge,
+.cardBenefit .cardChipsInner .recapChip,
+.cardBenefit .cardChipsInner .chip {
+  background: rgba(15, 23, 42, 0.06) !important;
+  color: #0F172A !important;
+  border: 1px solid rgba(15, 23, 42, 0.1) !important;
+  border-radius: 0 !important;
+  padding: 2px 6px !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+}
+
+.cardBenefit .cardChipsInner .chipIconOnly .benTreeIco {
+  width: 18px;
+  height: 18px;
+}
+
+/* Accent icon filters in benefit card */
+.cardBenefit .cardChipsInner .accentMint .benTreeIco,
+.cardBenefit .cardChipsInner .accentSky .benTreeIco,
+.cardBenefit .cardChipsInner .accentViolet .benTreeIco,
+.cardBenefit .cardChipsInner .accentPeach .benTreeIco,
+.cardBenefit .cardChipsInner .accentRose .benTreeIco,
+.cardBenefit .cardChipsInner .accentSand .benTreeIco,
+.cardBenefit .cardChipsInner .accentTeal .benTreeIco,
+.cardBenefit .cardChipsInner .accentSlate .benTreeIco,
+.cardBenefit .cardChipsInner .accentLime .benTreeIco,
+.cardBenefit .cardChipsInner .accentCoral .benTreeIco,
+.cardBenefit .cardChipsInner .accentAzure .benTreeIco,
+.cardBenefit .cardChipsInner .accentAmber .benTreeIco {
+  filter: brightness(0) opacity(0.6);
+}
+
+/* ---- Presence bars ---- */
+.presenceBars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.presenceBarWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.presenceLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.presenceBar {
+  height: 10px;
+  background: rgba(15,23,42,0.08);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.presenceFill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  border-radius: 6px;
+  transition: width 0.2s;
+}
+
+.presenceValue {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Benefit card: flat bar style */
+.cardBenefit .presenceLabel,
+.cardBenefit .counterSub {
+  color: #334155;
+  font-size: 12px;
+}
+
+.cardBenefit .presenceValue,
+.cardBenefit .counterValue {
+  color: #0F172A;
+  font-weight: 800;
+}
+
+.cardBenefit .presenceBar {
+  background: rgba(15, 23, 42, 0.1);
+  border-radius: 0;
+}
+
+.cardBenefit .presenceFill {
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  border-radius: 0;
+}
+
+/* ---- Counters ---- */
+.counters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.counterWrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.counterIcon {
+  width: 36px;
+  height: 36px;
+  opacity: 0.85;
+}
+
+.counterValue {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--color-text);
+  line-height: 1;
+}
+
+.counterSub {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.counterLabel {
+  font-size: 12px;
+  color: #334155;
+}
+
+.cardBenefit .presenceIco,
+.cardBenefit .counterIcon {
+  width: 32px;
+  height: 32px;
+  filter: brightness(0) opacity(0.6);
+  opacity: 0.9;
+}
+
+.cardBenefit .counterWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ---- Menu dots (3-dot dropdown) ---- */
+.menuWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.menuBtn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: rgba(15,23,42,0.45);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+}
+
+.menuBtn:hover,
+.menuWrapOpen .menuBtn {
+  color: rgba(15,23,42,0.75);
+}
+
+.menuDots {
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: -2px;
+  color: inherit;
+}
+
+.menuPanel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  left: auto;
+  z-index: 999;
+  min-width: 140px;
+  padding: 4px;
+  background: var(--lov-panel-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--lov-panel-border);
+  border-radius: 2px;
+  box-shadow: var(--lov-panel-shadow);
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  animation: menuIn 0.25s ease;
+}
+
+@keyframes menuIn {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.menuWrapOpen .menuPanel {
+  display: flex;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--lov-item-color);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  white-space: nowrap;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+
+.menuItem:hover {
+  background: var(--lov-item-hover);
+}
+
+.menuItemDanger {
+  color: var(--color-danger);
+}
+
+.menuItemDanger:hover {
+  background: rgba(239,68,68,0.12);
+}
+
+/* Card button */
+.cardBtn {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: rgba(15,23,42,0.04);
+  color: var(--color-text);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 10px;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: background 0.15s;
+}
+
+.cardBtn:hover {
+  background: rgba(15,23,42,0.08);
+}
+
+/* Full-width panel layout */
 .panel {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-}
-
-.title {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-}
-
-.empty {
-  color: var(--text-tertiary);
-  font-size: 12px;
-  text-align: center;
-  padding: var(--space-4);
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: var(--space-3);
-}
-
-.card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: var(--space-3);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  transition: border-color 0.15s;
-}
-
-.cardOccupied {
-  border-color: var(--color-success);
-  border-left: 3px solid var(--color-success);
-}
-
-.cardHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.cardName {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
 }
 
 .statusDot {
@@ -64,6 +487,18 @@
 .statusActive {
   background: var(--color-success);
   box-shadow: 0 0 6px var(--color-success);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cardName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .cardSkill {
@@ -85,7 +520,7 @@
 
 .metricLabel {
   font-size: 10px;
-  color: var(--text-tertiary);
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -93,7 +528,7 @@
 .metricValue {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text);
   font-variant-numeric: tabular-nums;
 }
 
@@ -110,8 +545,32 @@
 .catChip {
   font-size: 9px;
   padding: 1px 6px;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid rgba(15, 23, 42, 0.12);
   border-radius: 0;
   background: rgba(15, 23, 42, 0.06);
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
+}
+
+.cardOccupied {
+  border-color: var(--color-success);
+  border-left: 3px solid var(--color-success);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- Light theme overrides ---- */
+:root[data-theme="light"] .title { color: #0F172A; }
+:root[data-theme="light"] .subtitle { color: #475569; }
+:root[data-theme="light"] .empty { border-color: rgba(15,23,42,0.2); color: #475569; background: rgba(15,23,42,0.03); }
+
+:root[data-theme="light"] .cardBenefit .presenceIco,
+:root[data-theme="light"] .cardBenefit .counterIcon,
+:root[data-theme="light"] .cardBenefit .chip .benTreeIco,
+:root[data-theme="light"] .cardBenefit .cardChipsInner .benTreeIco {
+  filter: brightness(0) saturate(0) opacity(0.65) !important;
 }

@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useSiteStore } from '@/stores/siteStore'
 import { useVideoStore } from '@/stores/videoStore'
+import { useEditorStore } from '@/stores/editorStore'
 import { useStreamsPolling } from '@/hooks/useStreamsPolling'
 import { useZonesPolling } from '@/hooks/useZonesPolling'
 import VideoPlayer from '@/components/video/VideoPlayer'
@@ -9,6 +10,9 @@ import CameraGrid from '@/components/video/CameraGrid'
 import BenefitsPanel from '@/components/tracker/BenefitsPanel'
 import DataRoom from '@/components/tracker/DataRoom'
 import DetectionControls from '@/components/tracker/DetectionControls'
+import CountingPanel from '@/components/tracker/CountingPanel'
+import CountingParams from '@/components/tracker/CountingParams'
+import ZoneEditor from '@/components/editor/ZoneEditor'
 import styles from './TrackerView.module.css'
 
 export default function TrackerView() {
@@ -20,6 +24,8 @@ export default function TrackerView() {
   const getLieuForSite = useSiteStore((s) => s.getLieuForSite)
   const lieux = useSiteStore((s) => s.lieux)
   const activeStreams = useVideoStore((s) => s.activeStreams)
+  const currentVideo = useVideoStore((s) => s.currentVideo)
+  const openEditor = useEditorStore((s) => s.openEditor)
 
   useStreamsPolling()
   useZonesPolling()
@@ -84,8 +90,21 @@ export default function TrackerView() {
         </div>
       </div>
 
-      {/* Detection controls */}
-      <DetectionControls />
+      {/* Detection controls + Editor button */}
+      <div className={styles.controlsRow}>
+        <DetectionControls />
+        {currentVideo && (
+          <button
+            className={styles.editBtn}
+            onClick={() => openEditor(currentVideo)}
+          >
+            ✎ Éditer zones
+          </button>
+        )}
+      </div>
+
+      {/* Zone Editor modal */}
+      <ZoneEditor />
 
       {/* Main content */}
       <div className={styles.content}>
@@ -95,6 +114,8 @@ export default function TrackerView() {
         </div>
         <div className={styles.right}>
           <BenefitsPanel />
+          <CountingPanel />
+          <CountingParams />
           <DataRoom />
         </div>
       </div>

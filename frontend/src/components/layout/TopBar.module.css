@@ -1,44 +1,57 @@
+/* TopBar — faithful port of .topbar + nav items from static/css/index.css */
+
 .topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 38px;
+  z-index: 200;
   display: flex;
   align-items: center;
-  height: 44px;
-  padding: 0 var(--space-3);
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-subtle);
-  gap: var(--space-2);
-  flex-shrink: 0;
+  justify-content: flex-start;
+  padding: 0 16px 0 20px;
+  background: #070A0F;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   user-select: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding-right: var(--space-2);
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .logo {
-  font-size: 15px;
+  height: 14px;
+  opacity: 0.85;
+  font-size: 14px;
+  line-height: 1;
   color: var(--brand-01);
 }
 
 .title {
-  font-weight: 800;
-  font-size: 13px;
-  letter-spacing: 0.1em;
+  font-size: var(--text-md);
+  font-weight: 700;
   color: var(--text-primary);
+  letter-spacing: 0.5px;
 }
 
 .divider {
   width: 1px;
   height: 20px;
-  background: var(--border-subtle);
+  background: rgba(255, 255, 255, 0.06);
+  margin: 0 var(--space-3);
+  flex-shrink: 0;
 }
 
 .nav {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
 .navGroup {
@@ -49,33 +62,46 @@
 
 .groupLabel {
   font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: var(--text-tertiary);
-  padding: 0 6px;
+  font-weight: 800;
+  color: rgba(245, 247, 255, 0.45);
   text-transform: uppercase;
+  letter-spacing: -0.02em;
+  padding: 0 var(--space-2);
 }
 
 .navItem {
-  padding: 4px 10px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  color: rgba(245, 247, 255, 0.68);
   text-decoration: none;
-  transition: background 0.12s, color 0.12s;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: -0.03em;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   white-space: nowrap;
+  position: relative;
 }
 
 .navItem:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #fff;
 }
 
 .active {
-  background: var(--bg-active);
-  color: var(--brand-01);
-  font-weight: 600;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.active:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 .spacer {
@@ -86,8 +112,10 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
-  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(245, 247, 255, 0.5);
+  letter-spacing: 0.3px;
 }
 
 .stat {
@@ -101,9 +129,10 @@
 .pathBadge {
   font-size: 11px;
   font-weight: 500;
-  color: var(--text-tertiary);
-  background: var(--bg-hover);
+  color: rgba(245, 247, 255, 0.5);
+  background: rgba(255, 255, 255, 0.08);
   padding: 2px 8px;
   border-radius: var(--radius-sm);
   text-transform: capitalize;
+  margin-left: var(--space-2);
 }
