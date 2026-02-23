@@ -1,0 +1,64 @@
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  transition: background 0.12s, opacity 0.12s;
+  white-space: nowrap;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btnPrimary {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.btnDanger {
+  background: var(--color-danger);
+  color: #fff;
+}
+
+.btnDanger:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.btnGhost {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+.btnGhost:hover {
+  background: var(--bg-active);
+  color: var(--text-primary);
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.activeBadge {
+  font-size: 11px;
+  color: var(--color-success);
+  font-weight: 500;
+}

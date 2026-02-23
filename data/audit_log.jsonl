@@ -221,3 +221,5 @@
 {"ts": "2026-02-22T15:49:30.072264+00:00", "category": "blur", "action": "toggled", "detail": "Floutage désactivé", "level": "info", "meta": {"enabled": false}}
 {"ts": "2026-02-22T15:49:30.709667+00:00", "category": "blur", "action": "toggled", "detail": "Floutage activé", "level": "info", "meta": {"enabled": true}}
 {"ts": "2026-02-22T15:57:48.350804+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : entr1.mp4", "level": "info", "meta": {"source": "entr1.mp4"}}
+{"ts": "2026-02-23T20:23:49.657202+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : entr1.mp4", "level": "success", "meta": {"source": "entr1.mp4"}}
+{"ts": "2026-02-23T20:24:03.328037+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
