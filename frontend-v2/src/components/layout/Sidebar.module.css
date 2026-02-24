@@ -1,0 +1,135 @@
+.sidebar {
+  width: 320px;
+  min-width: 320px;
+  background: var(--sidebar-surface);
+  border-right: 1px solid var(--sidebar-border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 38px;
+  height: calc(100vh - 38px);
+  overflow-y: auto;
+}
+
+.header {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--sidebar-border);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.logoImg {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.logoText {
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: var(--sidebar-text);
+  letter-spacing: 0.5px;
+}
+
+.sectionNav {
+  padding: var(--space-3);
+  padding-top: var(--space-4);
+  flex: 0 0 auto;
+}
+
+.sectionTree {
+  padding: var(--space-3);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.sectionLabel {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--sidebar-text-subtle);
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-2);
+  padding-left: var(--space-3);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  color: var(--sidebar-text-muted);
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: -0.03em;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.navItem:hover {
+  background: var(--sidebar-interactive-hover);
+  border-color: var(--sidebar-border-hover);
+  color: #fff;
+}
+
+.navItem.active {
+  background: var(--sidebar-interactive-active);
+  border-color: var(--sidebar-border-hover);
+  color: #fff;
+}
+
+.navItem.active:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.navIcon {
+  width: 20px;
+  height: 20px;
+  opacity: 0.7;
+  flex: 0 0 auto;
+  filter: invert(1);
+}
+
+.navItem.active .navIcon,
+.navItem:hover .navIcon {
+  opacity: 1;
+}
+
+.treeContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: var(--space-2);
+}
+
+.empty {
+  color: var(--sidebar-text-subtle);
+  font-size: var(--text-sm);
+  padding: 6px 0;
+}
+
+.footer {
+  margin-top: auto;
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--sidebar-border);
+}
+
+.version {
+  font-size: 12px;
+  color: var(--sidebar-text-subtle);
+}

@@ -1,0 +1,57 @@
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 38px;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px 0 20px;
+  background: #070A0F;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo {
+  height: 14px;
+  opacity: 0.85;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(245, 247, 255, 0.5);
+  letter-spacing: 0.3px;
+}
+
+.menuBtn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: rgba(245, 247, 255, 0.45);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.menuBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(245, 247, 255, 0.8);
+}

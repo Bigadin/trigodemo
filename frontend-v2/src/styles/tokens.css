@@ -1,0 +1,62 @@
+/* YRYS Design System Tokens */
+:root {
+  --font-sans: "Manrope", system-ui, -apple-system, sans-serif;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --brand-01: #F08321;
+  --brand-02: #1d5bff;
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-md: 16px;
+  --text-lg: 18px;
+  --text-xl: 24px;
+}
+
+:root[data-theme="light"] {
+  --color-bg: #E7EBF2;
+  --color-surface: #EEF2F8;
+  --color-surface-2: #F6F8FC;
+  --color-border: rgba(15, 23, 42, 0.12);
+  --color-text: #0F172A;
+  --color-text-muted: rgba(15, 23, 42, 0.65);
+  --color-text-subtle: rgba(15, 23, 42, 0.45);
+  --color-primary: var(--brand-02);
+  --color-success: #16a34a;
+  --color-danger: #dc2626;
+  --bg-texture-opacity: 0.18;
+}
+
+:root[data-theme="dark"] {
+  --color-bg: #0B0F14;
+  --color-surface: #111825;
+  --color-surface-2: #0E141F;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-text: #F5F7FF;
+  --color-text-muted: rgba(245, 247, 255, 0.65);
+  --color-text-subtle: rgba(245, 247, 255, 0.45);
+  --color-primary: var(--brand-02);
+  --color-success: #22c55e;
+  --color-danger: #ef4444;
+  --bg-texture-opacity: 0.10;
+}
+
+/* Sidebar (toujours sombre) */
+:root {
+  --sidebar-bg: #0B0F14;
+  --sidebar-surface: #111825;
+  --sidebar-surface-2: #0E141F;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-border-hover: rgba(255, 255, 255, 0.14);
+  --sidebar-text: #F5F7FF;
+  --sidebar-text-muted: rgba(245, 247, 255, 0.68);
+  --sidebar-text-subtle: rgba(245, 247, 255, 0.45);
+  --sidebar-interactive-hover: rgba(255, 255, 255, 0.08);
+  --sidebar-interactive-active: rgba(255, 255, 255, 0.12);
+}
