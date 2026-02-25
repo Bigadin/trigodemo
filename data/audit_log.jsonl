@@ -531,3 +531,12 @@
 {"ts": "2026-02-25T14:29:32.046144+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
 {"ts": "2026-02-25T14:29:33.702690+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
 {"ts": "2026-02-25T14:29:36.282061+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:38:48.014033+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_02.mp4", "level": "info", "meta": {"source": "video_02.mp4"}}
+{"ts": "2026-02-25T14:38:48.025260+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_02.mp4", "level": "info", "meta": {"source": "video_02.mp4"}}
+{"ts": "2026-02-25T14:39:05.077824+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:39:05.155251+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:39:28.132364+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:39:28.135256+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:39:37.928085+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:54:48.127027+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-25T14:54:48.142889+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}

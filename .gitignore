@@ -211,3 +211,10 @@ data/presence.json
 
 # Build output
 dist/
+
+# Frontend legacy (remplacé par frontend-v2)
+frontend/
+
+# Cache build
+*.tsbuildinfo
+.vite/
