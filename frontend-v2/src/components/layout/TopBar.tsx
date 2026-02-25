@@ -1,11 +1,13 @@
 import { useLocation } from 'react-router-dom'
+import { img } from '@/utils/theme'
 import styles from './TopBar.module.css'
 
 function getPageLabel(pathname: string): string {
-  if (pathname === '/' || pathname.startsWith('/tracker')) return 'Zone Tracker'
+  if (pathname === '/') return 'Sites'
+  if (pathname.startsWith('/tracker')) return 'Zone Tracker'
   if (pathname.startsWith('/analytics')) return 'Analytics'
   if (pathname.startsWith('/logs')) return 'Log / Historique'
-  return 'Zone Tracker'
+  return 'Sites'
 }
 
 export default function TopBar() {
@@ -17,7 +19,7 @@ export default function TopBar() {
       <div className={styles.left}>
         <img
           className={styles.logo}
-          src="/static/assets_youn/YrysUIPackage/ArcyWhitelogo.svg"
+          src={img('arcy-logo-white')}
           alt="Arcy"
         />
       </div>

@@ -225,3 +225,309 @@
 {"ts": "2026-02-23T20:24:03.328037+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
 {"ts": "2026-02-23T21:39:04.333876+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_convoyeur"}}
 {"ts": "2026-02-24T10:13:03.396214+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-24T11:29:42.314465+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-24T11:29:42.752404+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-24T12:39:22.630797+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-24T12:39:23.647350+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-24T12:39:24.366404+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-24T12:39:25.086132+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-24T12:40:52.125929+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-24T12:40:52.717738+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-24T12:41:33.428678+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_convoyeur"}}
+{"ts": "2026-02-24T12:41:34.204680+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_convoyeur"}}
+{"ts": "2026-02-24T12:41:40.652717+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-24T12:41:41.213919+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-24T12:41:42.237237+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-24T12:41:43.540277+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_convoyeur"}}
+{"ts": "2026-02-24T12:41:43.988759+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_convoyeur"}}
+{"ts": "2026-02-24T12:41:44.581227+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-24T12:41:44.972187+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-24T12:41:46.644911+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-24T12:42:08.120113+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-24T12:42:08.661645+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-24T12:42:09.604858+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_convoyeur"}}
+{"ts": "2026-02-24T12:42:10.093131+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_convoyeur"}}
+{"ts": "2026-02-24T12:42:10.732384+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_convoyeur"}}
+{"ts": "2026-02-24T12:42:11.092422+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_convoyeur"}}
+{"ts": "2026-02-24T12:44:16.060651+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-24T12:44:16.706965+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-24T12:44:17.690433+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_convoyeur"}}
+{"ts": "2026-02-24T12:44:18.107303+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_convoyeur"}}
+{"ts": "2026-02-24T12:44:59.890640+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_convoyeur"}}
+{"ts": "2026-02-24T12:45:34.353606+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T12:45:35.113378+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T12:45:36.105399+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T12:45:36.561398+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T12:45:40.857926+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T12:45:44.875290+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T12:45:45.641623+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T12:55:27.258456+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T12:55:28.026974+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T12:55:28.778344+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T12:55:29.274108+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T12:58:20.169623+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T12:58:25.737203+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T12:58:26.312849+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T12:58:28.816543+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T12:58:29.280955+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T12:58:33.051008+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T12:58:33.777042+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T13:01:26.880539+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T13:01:27.519423+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T13:04:01.046053+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T13:04:01.725213+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T13:04:08.836998+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T13:04:09.300348+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T13:15:33.008198+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence dock » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_dock"}}
+{"ts": "2026-02-24T13:15:38.328234+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T13:15:53.823330+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T13:41:49.403489+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T13:41:49.898609+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T13:45:48.402449+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T13:45:48.888978+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T13:56:02.351373+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-24T13:56:03.198266+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-24T13:56:03.835590+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-24T13:56:04.854305+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-24T15:33:23.961737+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T15:33:52.599959+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T15:34:35.543663+00:00", "category": "benefit", "action": "created", "detail": "Bénéfice « Nouveau bénéfice - Entrée » créé (skill=detection, camera=cam_entree)", "level": "success", "meta": {"benefit_id": "ben-cam_entree-1771947275536", "skill": "detection", "camera_id": "cam_entree"}}
+{"ts": "2026-02-24T15:34:47.817169+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Présence Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1771947275536"}}
+{"ts": "2026-02-24T15:40:03.762866+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Présence Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1771947275536"}}
+{"ts": "2026-02-24T15:56:39.082224+00:00", "category": "benefit", "action": "created", "detail": "Bénéfice « Nouveau bénéfice - Entrée » créé (skill=counting, camera=cam_entree)", "level": "success", "meta": {"benefit_id": "ben-cam_entree-1771948599075", "skill": "counting", "camera_id": "cam_entree"}}
+{"ts": "2026-02-24T15:56:53.697418+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Nouveau bénéfice - Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1771948599075"}}
+{"ts": "2026-02-24T15:57:10.425211+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Nouveau bénéfice - Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1771948599075"}}
+{"ts": "2026-02-24T15:57:48.912193+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Nouveau bénéfice - Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1771948599075"}}
+{"ts": "2026-02-24T16:01:26.001369+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T16:06:20.551159+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Nouveau bénéfice - Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1771948599075"}}
+{"ts": "2026-02-24T16:24:45.690131+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Présence Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1771947275536"}}
+{"ts": "2026-02-24T16:25:14.021157+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Présence Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1771947275536"}}
+{"ts": "2026-02-24T16:25:50.216266+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Présence Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1771947275536"}}
+{"ts": "2026-02-24T16:28:01.536675+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T16:31:23.175756+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-24T16:32:59.083710+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Nouveau bénéfice - Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1771948599075"}}
+{"ts": "2026-02-24T17:00:07.215351+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T08:20:38.262331+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Nouveau bénéfice - Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1771948599075"}}
+{"ts": "2026-02-25T08:22:51.514826+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T08:23:15.115451+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T08:23:16.830539+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T08:27:15.139825+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T08:27:45.045721+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Présence Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1771947275536"}}
+{"ts": "2026-02-25T08:47:48.301280+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T08:47:54.792146+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T08:47:56.148767+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T08:47:59.422923+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-25T08:48:01.372495+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T08:48:02.744223+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-25T08:48:03.588205+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T08:48:07.083283+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-25T08:49:50.680938+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T08:49:54.109428+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T08:49:55.389773+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T08:49:56.437239+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T08:49:58.012342+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T08:51:07.296014+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T08:51:07.885488+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T08:51:08.379872+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T08:51:09.568518+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T08:51:10.040159+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T08:51:10.796194+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T08:51:11.366021+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T10:26:03.906344+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence dock » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_dock"}}
+{"ts": "2026-02-25T10:26:04.644802+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence dock » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_dock"}}
+{"ts": "2026-02-25T10:26:06.883468+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence dock » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_dock"}}
+{"ts": "2026-02-25T10:26:07.280596+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence dock » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_dock"}}
+{"ts": "2026-02-25T10:26:12.901132+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Présence Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1771947275536"}}
+{"ts": "2026-02-25T10:26:13.432038+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Présence Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1771947275536"}}
+{"ts": "2026-02-25T10:26:14.830679+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Nouveau bénéfice - Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1771948599075"}}
+{"ts": "2026-02-25T10:26:15.184032+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Nouveau bénéfice - Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1771948599075"}}
+{"ts": "2026-02-25T10:26:16.770014+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Présence Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1771947275536"}}
+{"ts": "2026-02-25T10:26:16.984398+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Présence Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1771947275536"}}
+{"ts": "2026-02-25T10:26:17.854990+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T10:26:18.032008+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T10:26:18.544692+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T10:26:18.952412+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T10:26:19.376522+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T10:26:19.583868+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T10:26:19.776059+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T10:26:19.968341+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T10:26:20.159995+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T10:26:21.024864+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T10:31:34.631632+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence dock » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_dock"}}
+{"ts": "2026-02-25T10:35:54.735549+00:00", "category": "benefit", "action": "deleted", "detail": "Bénéfice « Présence Entrée » supprimé", "level": "warn", "meta": {"benefit_id": "ben-cam_entree-1771947275536", "camera_id": "cam_entree"}}
+{"ts": "2026-02-25T10:36:23.375847+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-25T10:36:24.334688+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-25T10:38:36.550345+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T10:39:24.777725+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence Mall 2 » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_mall2"}}
+{"ts": "2026-02-25T10:39:27.255941+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence Mall 2 » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_mall2"}}
+{"ts": "2026-02-25T10:39:28.095366+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence Mall 2 » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_mall2"}}
+{"ts": "2026-02-25T11:11:08.111479+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T11:11:13.548639+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T11:11:15.315015+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T11:11:18.901900+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T11:12:00.796368+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T11:20:53.180622+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T11:20:54.272562+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T11:22:56.446678+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T11:23:05.208211+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T11:30:30.349074+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T11:30:58.680417+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T11:31:10.225634+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T11:35:49.804063+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T11:36:52.442652+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T11:37:19.347638+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T11:40:34.353579+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T11:46:52.906500+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T11:51:59.730384+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T11:53:49.913682+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T11:56:52.707284+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T11:59:05.643674+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T12:02:07.533889+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T12:03:33.394392+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T12:18:56.864333+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-25T12:21:12.514199+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Nouveau bénéfice - Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1771948599075"}}
+{"ts": "2026-02-25T12:27:30.080550+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T12:33:59.763314+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T12:33:59.864775+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T12:35:10.182122+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T12:35:18.852153+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T12:39:24.069191+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T12:39:26.767497+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T12:39:29.570335+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T12:39:33.374341+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T12:40:15.997460+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T12:40:25.560310+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T12:50:02.955769+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T12:52:06.797662+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T12:52:06.804343+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T12:52:11.763544+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T12:52:32.628344+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T12:56:01.703108+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T12:56:05.293962+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:01:22.747465+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:02:42.336158+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:06:53.032150+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:06:54.037742+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:07:02.980019+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:07:03.042184+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:08:01.569530+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:08:01.576566+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:08:05.604472+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:09:42.447023+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:09:55.148209+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:11:30.916995+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:11:31.031756+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:12:38.902196+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:13:00.519055+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:15:42.844186+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_02.mp4", "level": "success", "meta": {"source": "video_02.mp4"}}
+{"ts": "2026-02-25T13:16:03.555182+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:16:03.653417+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:22:26.826528+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:22:45.111589+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:22:45.308631+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:22:47.441305+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:22:50.137254+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T13:22:50.950791+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T13:23:48.319921+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:25:02.621557+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:25:25.526409+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (2)", "level": "warn", "meta": {"count": 2}}
+{"ts": "2026-02-25T13:25:25.537669+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:25:26.610259+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:25:35.376683+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:25:36.286565+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T13:25:36.910712+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T13:25:51.068508+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T13:32:54.248702+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:32:54.325958+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:36:28.730253+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:36:28.733816+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:36:53.129159+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T13:44:09.123565+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:44:09.210170+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:45:55.568135+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:47:05.829808+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T13:47:26.307152+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T13:48:11.002731+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:48:11.166355+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:48:28.947632+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:48:31.587828+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:48:31.672701+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:48:46.092014+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:48:46.194528+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:49:40.907082+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:49:43.656729+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:50:09.944875+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:50:09.969773+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:50:14.294292+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:50:20.056537+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:51:03.912019+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Nouveau bénéfice - Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1771948599075"}}
+{"ts": "2026-02-25T13:51:06.237860+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:51:11.313071+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T13:51:12.777518+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence entrée » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-25T13:51:49.358776+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:51:49.386587+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:52:27.224080+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:52:31.595714+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:52:33.894885+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:52:57.381148+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:52:57.509390+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:52:59.901031+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:54:08.682512+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:54:09.091603+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:54:30.223210+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:54:35.707456+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-25T13:54:35.716632+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:54:39.261920+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:54:54.315616+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:55:00.104279+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Nouveau bénéfice - Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1771948599075"}}
+{"ts": "2026-02-25T13:55:16.048153+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:55:16.102949+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:55:20.555476+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:55:31.184623+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:55:32.067482+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:55:47.125518+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:55:53.187219+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:57:11.014937+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:57:21.678615+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:57:21.699940+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:57:23.200520+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:57:32.084663+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Nouveau bénéfice - Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1771948599075"}}
+{"ts": "2026-02-25T13:57:33.539754+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Nouveau bénéfice - Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1771948599075"}}
+{"ts": "2026-02-25T13:59:28.263331+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T13:59:28.365735+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:02:27.172669+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:02:31.082693+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:03:14.177541+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:03:14.241274+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:06:15.185434+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:06:16.094138+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:06:46.223947+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:06:46.233651+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:07:21.861880+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:07:43.146640+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_01.mp4", "level": "info", "meta": {"source": "video_01.mp4"}}
+{"ts": "2026-02-25T14:08:23.955973+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:08:24.035126+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:08:24.761805+00:00", "category": "benefit", "action": "updated", "detail": "Bénéfice « Nouveau bénéfice - Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1771948599075"}}
+{"ts": "2026-02-25T14:08:30.539574+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_01.mp4", "level": "info", "meta": {"source": "video_01.mp4"}}
+{"ts": "2026-02-25T14:08:44.735608+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_01.mp4", "level": "info", "meta": {"source": "video_01.mp4"}}
+{"ts": "2026-02-25T14:09:47.544077+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:10:13.694107+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:10:13.706189+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:10:20.999294+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:10:41.378177+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:10:43.398494+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-25T14:11:05.578294+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:11:06.068548+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:11:52.236008+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:11:52.311609+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:11:55.232553+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_01.mp4", "level": "info", "meta": {"source": "video_01.mp4"}}
+{"ts": "2026-02-25T14:12:04.454672+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_01.mp4", "level": "info", "meta": {"source": "video_01.mp4"}}
+{"ts": "2026-02-25T14:12:13.872312+00:00", "category": "benefit", "action": "created", "detail": "Bénéfice « Nouveau bénéfice - Convoyeur » créé (skill=counting, camera=cam_convoyeur)", "level": "success", "meta": {"benefit_id": "ben-cam_convoyeur-1772028733864", "skill": "counting", "camera_id": "cam_convoyeur"}}
+{"ts": "2026-02-25T14:13:29.898312+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_01.mp4", "level": "info", "meta": {"source": "video_01.mp4"}}
+{"ts": "2026-02-25T14:13:30.096325+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:28:08.383059+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_01.mp4", "level": "info", "meta": {"source": "video_01.mp4"}}
+{"ts": "2026-02-25T14:28:16.784622+00:00", "category": "benefit", "action": "deleted", "detail": "Bénéfice « Nouveau bénéfice - Convoyeur » supprimé", "level": "warn", "meta": {"benefit_id": "ben-cam_convoyeur-1772028733864", "camera_id": "cam_convoyeur"}}
+{"ts": "2026-02-25T14:29:31.976854+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:29:32.046144+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:29:33.702690+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-25T14:29:36.282061+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}

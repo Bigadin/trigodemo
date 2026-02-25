@@ -1,1 +1,1 @@
-{"_note":"Spec modal creation benefices - voir docs/SPEC_MODAL_CREATION_BENEFICES.md","skills":["detection","counting","heatmap","quality"],"quality_icons":["Yqualitycheck.svg","Yqualitydefect.svg","Yfissure.svg"]}
+{"_note":"Spec modal creation benefices - seul skill supporté: detection_presence / human::silhouette","skills":["detection"]}

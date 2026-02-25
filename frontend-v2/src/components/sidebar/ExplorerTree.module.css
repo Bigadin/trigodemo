@@ -1,0 +1,298 @@
+.tree {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.group {
+  padding: 6px;
+  border-radius: 12px;
+  background: rgba(17, 17, 17, 0.58);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.children {
+  margin-top: 4px;
+}
+
+.childrenSite {
+  margin-top: 2px;
+}
+
+.childrenCam {
+  margin-top: 2px;
+}
+
+.loc {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 6px 10px 4px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.62);
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.loc:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.locSq {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 10px;
+  border-radius: 1px;
+}
+
+.locName {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hierIcon {
+  width: 18px;
+  height: 18px;
+  filter: invert(1);
+  opacity: 0.7;
+  flex: 0 0 auto;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 11px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.66);
+  transition: background 0.12s ease;
+}
+
+.item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.item.active {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.item.active:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.item.site {
+  padding-left: 12px;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.item.site.active {
+  background: transparent;
+}
+
+.item.site.active .itemName {
+  color: #fff;
+  font-weight: 800;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+.item.site.active .hierIcon {
+  opacity: 1;
+}
+
+.item.cam {
+  padding-left: 20px;
+}
+
+.item.cam.active {
+  background: transparent;
+}
+
+.item.cam.active:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.item.cam.active .itemName {
+  color: #fff;
+  font-weight: 800;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+.item.cam.active .hierIcon {
+  opacity: 1;
+}
+
+.itemName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.meta {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.3);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.item.active .meta {
+  color: #fff;
+  font-weight: 800;
+}
+
+.itemBenefit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px 8px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.62);
+  transition: background 0.12s ease;
+}
+
+.itemBenefit:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.itemBenefit.dim {
+  opacity: 0.45;
+}
+
+.itemBenefit.dim:hover {
+  opacity: 0.7;
+}
+
+.itemBenefit.selected {
+  background: #1d5bff;
+}
+
+.itemBenefit.selected .benefitName,
+.itemBenefit.selected .time {
+  color: #fff;
+  font-weight: 700;
+}
+
+.itemBenefit.selected .benefitDot {
+  background: #fff;
+}
+
+.benefitDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 1px;
+  flex: 0 0 8px;
+}
+
+.benefitName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.time {
+  margin-left: auto;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+  color: rgba(255, 255, 255, 0.4);
+  flex-shrink: 0;
+}
+
+.toggle {
+  width: 28px;
+  height: 14px;
+  padding: 0;
+  margin-left: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toggleTrack {
+  display: block;
+  width: 28px;
+  height: 14px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.2);
+  position: relative;
+  transition: background 0.2s;
+}
+
+.toggle:hover .toggleTrack {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.toggle.on .toggleTrack {
+  background: var(--color-success);
+}
+
+.toggleThumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.toggle.on .toggleThumb {
+  transform: translateX(14px);
+}
+
+.addBenefit {
+  padding: 8px 10px 8px 20px;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.addBenefit:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+.addBenefitTitle {
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.64);
+}
+
+.addBenefit:hover .addBenefitTitle {
+  color: #fff;
+}
+
+.empty {
+  color: var(--sidebar-text-subtle);
+  font-size: var(--text-sm);
+  padding: 6px 0;
+}

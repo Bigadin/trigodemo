@@ -1,16 +1,16 @@
 {
-  "lyon": {
-    "name": "Lyon",
-    "address": "Quartier Perrache, Lyon 69002",
-    "description": "Zone logistique principale",
-    "icon": "",
-    "created_at": "2026-02-23T20:00:00+00:00"
+  "usine": {
+    "name": "OG Logistics",
+    "address": "",
+    "description": "Usine logistique",
+    "icon": "/static/assets_youn/OG.jpg",
+    "created_at": "2026-02-24T12:00:00+00:00"
   },
-  "paris": {
-    "name": "Paris",
-    "address": "12 rue Voltaire, Paris 75011",
-    "description": "Galerie commerciale",
-    "icon": "",
-    "created_at": "2026-02-23T20:00:00+00:00"
+  "mall": {
+    "name": "Galerie Westfield",
+    "address": "",
+    "description": "Centre commercial retail",
+    "icon": "/static/assets_youn/westfield.jpg",
+    "created_at": "2026-02-24T12:00:00+00:00"
   }
 }

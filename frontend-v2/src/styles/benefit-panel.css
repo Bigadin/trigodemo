@@ -1,0 +1,1042 @@
+/* Styles vanilla ben-panel — copie exacte de static/css/index.css */
+.benefit-modal-root {
+  --ui-control-height: 40px;
+  --ui-selected-border: rgba(29,91,255,0.35);
+  --ui-selected-bg-soft: rgba(29,91,255,0.08);
+}
+
+.benefit-modal-root .ben-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  color: #eaf2ff;
+  background: rgba(17,17,17,0.42);
+  position: relative;
+  overflow: hidden;
+}
+
+.benefit-modal-root .ben-wizard {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  position: relative;
+  z-index: 2;
+}
+
+.benefit-modal-root .ben-watermark {
+  position: absolute;
+  left: 50%;
+  top: calc(78% + 5rem);
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.07;
+}
+
+.benefit-modal-root .ben-watermark img {
+  width: 88px;
+  height: auto;
+  display: block;
+  filter: saturate(0.82) brightness(0.95);
+}
+
+.benefit-modal-root .ben-stage {
+  padding: 12px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: auto;
+}
+
+.benefit-modal-root .ben-zone-previews {
+  margin-bottom: 4px;
+}
+
+.benefit-modal-root .ben-zone-previews__label {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+
+.benefit-modal-root .ben-zone-previews__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.benefit-modal-root .ben-zone-preview-box {
+  width: 80px;
+  height: 52px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.3);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.benefit-modal-root .ben-zone-preview-box:hover {
+  border-color: rgba(29,91,255,0.5);
+  box-shadow: 0 0 0 1px rgba(29,91,255,0.2);
+}
+
+.benefit-modal-root .ben-zone-preview-box.active {
+  border-color: rgba(29,91,255,0.85);
+  box-shadow: 0 0 0 2px rgba(29,91,255,0.35);
+}
+
+.benefit-modal-root .ben-zone-preview-box--draft {
+  opacity: 0.85;
+  border-style: dashed;
+}
+
+.benefit-modal-root .ben-zone-preview-box span {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.benefit-modal-root .ben-zone-preview-box svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.benefit-modal-root .ben-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 2px;
+  gap: 0;
+  padding: 8px 12px;
+}
+
+.benefit-modal-root .ben-step-wrap {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.benefit-modal-root .ben-step-item {
+  border: none;
+  background: transparent;
+  color: rgba(234,242,255,0.70);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 2px;
+  cursor: pointer;
+  transition: color 0.15s;
+  flex: 0 0 auto;
+}
+
+.benefit-modal-root .ben-step-item:hover {
+  color: #ffffff;
+}
+
+.benefit-modal-root .ben-step-item.is-locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.benefit-modal-root .ben-step-indicator {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.06);
+  color: rgba(234,242,255,0.80);
+}
+
+.benefit-modal-root .ben-step-item[data-state="active"] .ben-step-indicator,
+.benefit-modal-root .ben-step-item[data-state="completed"] .ben-step-indicator {
+  background: rgba(29,91,255,0.90);
+  border-color: rgba(29,91,255,0.95);
+  color: #fff;
+}
+
+.benefit-modal-root .ben-step-spin {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,0.16);
+  border-top-color: #ffffff;
+  border-right-color: rgba(255,255,255,0.85);
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.benefit-modal-root .ben-step-item[data-state="active"] .ben-step-spin {
+  opacity: 1;
+  animation: ben-step-rotate 0.85s linear infinite;
+}
+
+.benefit-modal-root .ben-step-item[data-state="active"] .ben-step-num,
+.benefit-modal-root .ben-step-item[data-state="completed"] .ben-step-num {
+  opacity: 0;
+  transform: scale(0.75);
+}
+
+.benefit-modal-root .ben-step-check {
+  position: absolute;
+  opacity: 0;
+  transform: scale(0.75);
+  transition: opacity 0.15s, transform 0.15s;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.benefit-modal-root .ben-step-item[data-state="completed"] .ben-step-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.benefit-modal-root .ben-step-title {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.benefit-modal-root .ben-step-item[data-state="active"] .ben-step-title,
+.benefit-modal-root .ben-step-item[data-state="completed"] .ben-step-title {
+  color: #fff;
+}
+
+.benefit-modal-root .ben-step-sep {
+  height: 2px;
+  min-width: 24px;
+  flex: 1 1 auto;
+  max-width: 48px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.14);
+  margin: 0 10px;
+  transition: background 0.15s;
+}
+
+.benefit-modal-root .ben-step-sep.is-completed {
+  background: rgba(29,91,255,0.85);
+}
+
+.benefit-modal-root .ben-step-panel {
+  display: none;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.benefit-modal-root .ben-step-panel.active {
+  display: block;
+}
+
+.benefit-modal-root .ben-step-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.benefit-modal-root .ben-step-actions .tool-btn {
+  flex: 1;
+}
+
+.benefit-modal-root .ben-step-btn {
+  height: var(--ui-control-height);
+  border-radius: 2px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(17,17,17,0.58);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: rgba(234,242,255,0.88);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.12s;
+}
+
+.benefit-modal-root .ben-step-btn:hover:not(:disabled) {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.26);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.benefit-modal-root .ben-step-btn--next {
+  border-color: rgba(29,91,255,0.38);
+  background: rgba(29,91,255,0.24);
+  color: #eef8ff;
+}
+
+.benefit-modal-root .ben-step-btn--next:hover:not(:disabled) {
+  border-color: rgba(29,91,255,0.62);
+  background: rgba(29,91,255,0.34);
+}
+
+.benefit-modal-root .ben-block {
+  display: block;
+}
+
+.benefit-modal-root .ben-tree-shell {
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 2px;
+  background: rgba(17,17,17,0.58);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+  padding: 8px;
+}
+
+.benefit-modal-root .ben-skill-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.benefit-modal-root .ben-skill-card {
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 2px;
+  background: rgba(17,17,17,0.50);
+  min-height: 124px;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.12s;
+}
+
+.benefit-modal-root .ben-skill-card:hover {
+  background: rgba(255,255,255,0.10);
+  border-color: rgba(255,255,255,0.22);
+  transform: translateY(-1px);
+}
+
+.benefit-modal-root .ben-skill-card.active {
+  background: rgba(14,165,233,0.16);
+  border-color: rgba(14,165,233,0.45);
+}
+
+.benefit-modal-root .ben-skill-card__ico {
+  width: 56px;
+  height: 56px;
+  filter: invert(95%) sepia(6%) saturate(610%) hue-rotate(184deg) brightness(104%) contrast(98%);
+  opacity: 0.96;
+}
+
+.benefit-modal-root .ben-skill-card__label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #eef3ff;
+  text-align: center;
+}
+
+.benefit-modal-root .ben-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.benefit-modal-root .ben-tree-group {
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 2px;
+  overflow: hidden;
+  background: rgba(17,17,17,0.45);
+}
+
+.benefit-modal-root .ben-tree-group.is-active {
+  border-color: rgba(29,91,255,0.45);
+  background: rgba(29,91,255,0.10);
+}
+
+.benefit-modal-root .ben-tree-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--ui-control-height);
+  padding: 0 10px;
+  border: none;
+  background: transparent;
+  color: #e6edfb;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.benefit-modal-root .ben-tree-toggle.active {
+  background: rgba(29,91,255,0.14);
+  color: #fff;
+}
+
+.benefit-modal-root .ben-tree-chev {
+  margin-left: auto;
+  opacity: 0.7;
+  transition: transform 0.18s ease;
+}
+
+.benefit-modal-root .ben-tree-group.is-open .ben-tree-chev {
+  transform: rotate(90deg);
+}
+
+.benefit-modal-root .ben-tree-leaves {
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 280px;
+  opacity: 1;
+  overflow: hidden;
+  transition: max-height 0.2s ease, opacity 0.2s ease, padding 0.2s ease;
+}
+
+.benefit-modal-root .ben-tree-leaves.collapsed {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-top-color: transparent;
+  pointer-events: none;
+}
+
+.benefit-modal-root .ben-tree-leaf {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: transparent;
+  color: rgba(234,242,255,0.78);
+  min-height: var(--ui-control-height);
+  padding: 0 10px;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.benefit-modal-root .ben-tree-leaf:hover {
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+}
+
+.benefit-modal-root .ben-tree-leaf.active {
+  background: rgba(29,91,255,0.22);
+  border-color: rgba(29,91,255,0.45);
+  color: #fff;
+  font-weight: 700;
+}
+
+.benefit-modal-root .ben-tree-ico {
+  width: 16px;
+  height: 16px;
+  filter: invert(95%) sepia(6%) saturate(610%) hue-rotate(184deg) brightness(104%) contrast(98%);
+  opacity: 0.96;
+  flex: 0 0 16px;
+}
+
+@keyframes ben-step-rotate {
+  to { transform: rotate(360deg); }
+}
+
+.benefit-modal-root .ben-info-card {
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 2px;
+  background: rgba(255,255,255,0.03);
+  padding: 10px;
+}
+
+.benefit-modal-root .ben-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 8px;
+}
+
+.benefit-modal-root .ben-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.benefit-modal-root .ben-field--full {
+  grid-column: 1 / -1;
+}
+
+.benefit-modal-root .ben-field__label {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(234,242,255,0.90);
+  letter-spacing: 0.02em;
+}
+
+.benefit-modal-root .ben-input,
+.benefit-modal-root .ben-textarea {
+  width: 100%;
+  background: rgba(36,40,47,0.88) !important;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 2px;
+  color: #eef3ff;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color-scheme: dark;
+}
+
+.benefit-modal-root .ben-textarea {
+  min-height: 72px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.benefit-modal-root .ben-input:focus,
+.benefit-modal-root .ben-textarea:focus {
+  background: rgba(36,40,47,0.96) !important;
+  border-color: rgba(110,152,255,0.52);
+  outline: none;
+}
+
+.benefit-modal-root .ben-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 0;
+}
+
+.benefit-modal-root .ben-toggle-row__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(234,242,255,0.88);
+}
+
+.benefit-modal-root .ben-schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 8px;
+}
+
+.benefit-modal-root .ben-schedule-grid.hidden {
+  display: none;
+}
+
+.benefit-modal-root .ben-recap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.benefit-modal-root .ben-recap--under-name {
+  margin-top: 2px;
+  margin-bottom: 12px;
+}
+
+.benefit-modal-root .ben-recap-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  vertical-align: middle;
+  border: 1px solid var(--ui-selected-border);
+  border-radius: 0;
+  background: var(--ui-selected-bg-soft);
+  color: #eef3ff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
+  line-height: 1.2;
+}
+
+.benefit-modal-root .ben-recap-chip--icon-only {
+  width: auto;
+  min-width: 0;
+  height: auto;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: 0;
+}
+
+.benefit-modal-root .ben-recap-chip--icon-only .ben-tree-ico {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+}
+
+.benefit-modal-root .ben-recap-chip--solid {
+  border-color: rgba(255,255,255,0.2);
+}
+
+.benefit-modal-root .ben-recap-chip--solid.ben-recap-chip--success {
+  background: rgba(34,197,94,0.22);
+  border-color: rgba(34,197,94,0.4);
+  color: #86efac;
+}
+
+.benefit-modal-root .ben-recap-chip--solid.ben-recap-chip--primary {
+  background: rgba(59,130,246,0.22);
+  border-color: rgba(59,130,246,0.4);
+  color: #93c5fd;
+}
+
+.benefit-modal-root .ben-recap-chip--solid.ben-recap-chip--info {
+  background: rgba(167,139,250,0.22);
+  border-color: rgba(167,139,250,0.4);
+  color: #c4b5fd;
+}
+
+.benefit-modal-root .ben-recap-chip--solid.ben-recap-chip--warning {
+  background: rgba(250,204,21,0.22);
+  border-color: rgba(250,204,21,0.4);
+  color: #fde047;
+}
+
+.benefit-modal-root .ben-recap-chip--ghost {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.12);
+}
+
+.benefit-modal-root .ben-recap-chip--ghost.ben-recap-chip--accent-mint .ben-tree-ico { filter: invert(84%) sepia(21%) saturate(742%) hue-rotate(103deg) brightness(98%) contrast(93%); }
+.benefit-modal-root .ben-recap-chip--ghost.ben-recap-chip--accent-sky .ben-tree-ico { filter: invert(74%) sepia(27%) saturate(1401%) hue-rotate(178deg) brightness(102%) contrast(100%); }
+.benefit-modal-root .ben-recap-chip--ghost.ben-recap-chip--accent-violet .ben-tree-ico { filter: invert(79%) sepia(31%) saturate(786%) hue-rotate(214deg) brightness(102%) contrast(96%); }
+.benefit-modal-root .ben-recap-chip--ghost.ben-recap-chip--accent-peach .ben-tree-ico { filter: invert(87%) sepia(25%) saturate(739%) hue-rotate(331deg) brightness(102%) contrast(101%); }
+.benefit-modal-root .ben-recap-chip--ghost.ben-recap-chip--accent-rose .ben-tree-ico { filter: invert(82%) sepia(17%) saturate(1013%) hue-rotate(296deg) brightness(101%) contrast(99%); }
+.benefit-modal-root .ben-recap-chip--ghost.ben-recap-chip--accent-sand .ben-tree-ico { filter: invert(92%) sepia(24%) saturate(939%) hue-rotate(339deg) brightness(103%) contrast(100%); }
+.benefit-modal-root .ben-recap-chip--ghost.ben-recap-chip--accent-teal .ben-tree-ico { filter: invert(83%) sepia(19%) saturate(877%) hue-rotate(131deg) brightness(97%) contrast(96%); }
+.benefit-modal-root .ben-recap-chip--ghost.ben-recap-chip--accent-slate .ben-tree-ico { filter: invert(83%) sepia(11%) saturate(601%) hue-rotate(186deg) brightness(95%) contrast(93%); }
+.benefit-modal-root .ben-recap-chip--ghost.ben-recap-chip--accent-lime .ben-tree-ico { filter: invert(88%) sepia(31%) saturate(964%) hue-rotate(62deg) brightness(101%) contrast(95%); }
+.benefit-modal-root .ben-recap-chip--ghost.ben-recap-chip--accent-coral .ben-tree-ico { filter: invert(82%) sepia(29%) saturate(1008%) hue-rotate(337deg) brightness(103%) contrast(96%); }
+.benefit-modal-root .ben-recap-chip--ghost.ben-recap-chip--accent-azure .ben-tree-ico { filter: invert(80%) sepia(24%) saturate(1171%) hue-rotate(187deg) brightness(102%) contrast(98%); }
+.benefit-modal-root .ben-recap-chip--ghost.ben-recap-chip--accent-amber .ben-tree-ico { filter: invert(93%) sepia(24%) saturate(1175%) hue-rotate(336deg) brightness(101%) contrast(97%); }
+
+/* tool-btn (vanilla) */
+.benefit-modal-root .tool-btn {
+  padding: 0 16px;
+  height: var(--ui-control-height);
+  border-radius: 2px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.06);
+  color: #F5F7FF;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.benefit-modal-root .tool-btn:hover:not(:disabled) {
+  background: rgba(255,255,255,0.10);
+  border-color: rgba(255,255,255,0.18);
+}
+
+.benefit-modal-root .tool-btn:disabled {
+  opacity: 0.40;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.benefit-modal-root .tool-btn.save {
+  background: #1d5bff;
+  border-color: #1d5bff;
+  color: #fff;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+.benefit-modal-root .tool-btn.save:hover:not(:disabled) {
+  background: #1652e0;
+  border-color: #1652e0;
+}
+
+.benefit-modal-root .hidden {
+  display: none !important;
+}
+
+/* ben-toggle (vanilla) */
+.benefit-modal-root .ben-toggle {
+  --c-active: #275efe;
+  --c-success: #10b981;
+  --c-default: #d2d6e9;
+  --c-default-dark: #c7cbdf;
+  --c-background: var(--c-active);
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  height: 28px;
+  width: 52px;
+}
+
+.benefit-modal-root .ben-toggle--success { --c-background: var(--c-success); }
+
+.benefit-modal-root .ben-toggle__input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  appearance: none;
+  border-radius: 999px;
+  background: var(--c-default);
+  outline: none;
+  transition: background-color 0.45s ease;
+  z-index: 2;
+}
+
+.benefit-modal-root .ben-toggle__input:checked { background: var(--c-background); }
+
+.benefit-modal-root .ben-toggle__track {
+  background: var(--c-default);
+}
+
+.benefit-modal-root .ben-toggle__input:checked ~ .ben-toggle__track {
+  background: var(--c-background);
+}
+
+.benefit-modal-root .ben-toggle__track {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: 999px;
+}
+
+.benefit-modal-root .ben-toggle__dot {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #fff;
+  top: 4px;
+  transition: transform 0.5s ease, opacity 0.5s ease;
+}
+
+.benefit-modal-root .ben-toggle__dot--left { left: 6px; }
+
+.benefit-modal-root .ben-toggle__dot--right {
+  left: 26px;
+  transform: scale(0);
+  opacity: 0;
+}
+
+.benefit-modal-root .ben-toggle__input:checked ~ .ben-toggle__track .ben-toggle__dot--left {
+  transform: translateX(12px) scale(0);
+  opacity: 0;
+}
+
+.benefit-modal-root .ben-toggle__input:checked ~ .ben-toggle__track .ben-toggle__dot--right {
+  transform: translateX(0) scale(1);
+  opacity: 1;
+}
+
+/* Menu 3 points dans la topbar (mode sombre) */
+.editor .editor-topbar .benefit-modal-topbar-menu {
+  display: inline-flex;
+  align-items: center;
+}
+.editor .editor-topbar .benefit-modal-topbar-menu button {
+  color: rgba(255,255,255,0.7);
+  background: transparent;
+  border-radius: 4px;
+}
+.editor .editor-topbar .benefit-modal-topbar-menu button:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.1);
+}
+
+/* Editor layout (vidéo + outils + labels) — vanilla */
+.benefit-modal-root .editor-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 430px;
+  gap: 0;
+  min-height: 0;
+}
+
+.benefit-modal-root .editor-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 0;
+  background: #0a0a0a;
+}
+
+.benefit-modal-root .editor-canvas-wrap {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  background: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.benefit-modal-root .editor-canvas-wrap.is-draw-mode {
+  cursor: crosshair;
+}
+
+.benefit-modal-root .editor-canvas-wrap img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.benefit-modal-root .editor-canvas-wrap canvas {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  touch-action: none;
+}
+
+.benefit-modal-root .editor-shape-labels {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  pointer-events: auto;
+}
+
+.benefit-modal-root .editor-shape-labels.hidden {
+  display: none;
+}
+
+.benefit-modal-root .editor-shape-label {
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 0;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.06);
+  color: #f5f7ff;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.benefit-modal-root .editor-shape-label:hover {
+  background: rgba(29,91,255,0.28);
+  border-color: rgba(29,91,255,0.55);
+}
+
+.benefit-modal-root .editor-shape-label.active {
+  background: rgba(29,91,255,0.28);
+  border-color: rgba(29,91,255,0.55);
+}
+
+.benefit-modal-root .editor-hoverbar {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 0;
+  background: rgba(17,17,17,0.90);
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+  transition: opacity 0.2s ease;
+}
+
+.benefit-modal-root .editor-hoverbar--visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.benefit-modal-root .editor-hoverbar--hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.benefit-modal-root .editor-hoverbtn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 0;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: #F5F7FF;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  pointer-events: auto;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.benefit-modal-root .editor-hoverbtn:hover {
+  background: rgba(29,91,255,0.14);
+  border-color: rgba(29,91,255,0.30);
+}
+
+.benefit-modal-root .editor-hoverbtn.danger:hover {
+  background: rgba(239,68,68,0.15);
+  border-color: rgba(239,68,68,0.30);
+}
+
+.benefit-modal-root .editor-tools {
+  background: rgba(14,14,14,0.95);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  border-radius: 0;
+  padding: 12px 16px;
+  flex: 0 0 auto;
+}
+
+.benefit-modal-root .tool-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.benefit-modal-root .tool-row-left {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  flex: 1 1 auto;
+}
+
+.benefit-modal-root .editor-tools .tool-btn {
+  min-width: auto;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  transition: all 0.15s ease;
+}
+
+.benefit-modal-root .editor-tools .tool-btn.icon {
+  min-width: 110px;
+  gap: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.benefit-modal-root .editor-tools .tool-btn.icon.primary {
+  background: rgba(29,91,255,0.15);
+  border-color: rgba(29,91,255,0.4);
+}
+.benefit-modal-root .editor-tools .tool-btn.icon.primary:hover {
+  background: rgba(29,91,255,0.25);
+  border-color: rgba(29,91,255,0.55);
+}
+.benefit-modal-root .editor-tools .tool-btn.icon.primary.active {
+  background: rgba(29,91,255,0.45);
+  border-color: rgba(29,91,255,0.7);
+  box-shadow: 0 0 0 1px rgba(29,91,255,0.3);
+}
+
+.benefit-modal-root .editor-tools .tool-btn.icon.green {
+  background: rgba(34,197,94,0.12);
+  border-color: rgba(34,197,94,0.35);
+}
+.benefit-modal-root .editor-tools .tool-btn.icon.green:hover {
+  background: rgba(34,197,94,0.2);
+  border-color: rgba(34,197,94,0.5);
+}
+.benefit-modal-root .editor-tools .tool-btn.icon.green.active {
+  background: rgba(34,197,94,0.35);
+  border-color: rgba(34,197,94,0.6);
+  box-shadow: 0 0 0 1px rgba(34,197,94,0.25);
+}
+
+.benefit-modal-root .editor-tools .tool-btn.icon.yellow {
+  background: rgba(245,158,11,0.12);
+  border-color: rgba(245,158,11,0.35);
+}
+.benefit-modal-root .editor-tools .tool-btn.icon.yellow:hover {
+  background: rgba(245,158,11,0.2);
+  border-color: rgba(245,158,11,0.5);
+}
+.benefit-modal-root .editor-tools .tool-btn.icon.yellow.active {
+  background: rgba(245,158,11,0.35);
+  border-color: rgba(245,158,11,0.6);
+  box-shadow: 0 0 0 1px rgba(245,158,11,0.25);
+}
+
+.benefit-modal-root .editor-tools .tool-btn.save {
+  height: 36px;
+  padding: 0 20px;
+  border-radius: 0;
+  background: #1d5bff;
+  border-color: #1d5bff;
+  font-weight: 700;
+  font-size: 12px;
+}
+.benefit-modal-root .editor-tools .tool-btn.save:hover:not(:disabled) {
+  background: #1652e0;
+  border-color: #1652e0;
+  transform: translateY(-1px);
+}
+
+.benefit-modal-root .editor-tools .tool-ico {
+  width: 20px;
+  height: 20px;
+  filter: invert(95%) sepia(6%) saturate(610%) hue-rotate(184deg) brightness(104%) contrast(98%);
+  opacity: 0.95;
+  flex-shrink: 0;
+}
+
+.benefit-modal-root .editor-guide {
+  margin-top: 6px;
+  padding: 4px 0;
+  min-height: 44px;
+  color: rgba(255,255,255,0.5);
+  font-size: 12px;
+  line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+}
+
+.benefit-modal-root .editor-guide-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  padding: 2px 4px;
+  margin: 0 2px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+}

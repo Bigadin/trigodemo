@@ -1,12 +1,17 @@
 /* YRYS Design System Tokens */
 :root {
   --font-sans: "Manrope", system-ui, -apple-system, sans-serif;
+  --color-bg: #E7EBF2;
+  --color-text: #0F172A;
+  --bg-texture-opacity: 0.18;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 24px;
   --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 12px;
@@ -45,6 +50,14 @@
   --color-success: #22c55e;
   --color-danger: #ef4444;
   --bg-texture-opacity: 0.10;
+}
+
+/* Glass cards (sites, list rows) */
+:root {
+  --glass-bg: rgba(17, 17, 17, 0.55);
+  --glass-bg-hover: rgba(17, 17, 17, 0.68);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-hover: rgba(255, 255, 255, 0.12);
 }
 
 /* Sidebar (toujours sombre) */

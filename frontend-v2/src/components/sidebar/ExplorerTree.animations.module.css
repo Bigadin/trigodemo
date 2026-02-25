@@ -1,0 +1,16 @@
+/* Animations de repli/dépli pour l'Explorer */
+
+.collapsible {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease-out;
+}
+
+.collapsible.expanded {
+  grid-template-rows: 1fr;
+}
+
+.collapsibleInner {
+  min-height: 0;
+  overflow: hidden;
+}

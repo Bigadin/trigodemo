@@ -1,35 +1,63 @@
 {
-  "ben_detection_entrepot": {
-    "name": "Détection présence entrepôt",
+  "ben_detection_entree": {
+    "name": "Détection présence entrée",
     "skill": "detection",
     "skill_item": "detection_presence",
     "categories": [
       "human::silhouette"
     ],
-    "camera_id": "cam_entrepot",
+    "camera_id": "cam_entree",
     "zone_polygons": [
       [
         [
-          120,
-          180
+          491.20622568093387,
+          485.36964980544747
         ],
         [
-          520,
-          180
+          943.1906614785993,
+          444.2801556420234
         ],
         [
-          520,
-          480
+          575.2529182879375,
+          188.40466926070044
         ],
         [
-          120,
-          480
+          276.42023346303483,
+          214.55252918287945
+        ]
+      ],
+      [
+        [
+          636.887159533074,
+          647.8599221789883
+        ],
+        [
+          1122.4902723735408,
+          558.2101167315175
+        ],
+        [
+          1802.3346303501944,
+          941.0894941634241
+        ],
+        [
+          1727.626459143969,
+          1075.56420233463
+        ],
+        [
+          1055.2529182879377,
+          1075.56420233463
         ]
       ]
     ],
     "active": true,
     "canvas": {},
-    "created_at": "2026-02-23T20:00:00+00:00"
+    "created_at": "2026-02-24T12:00:00+00:00",
+    "zone_polygon_types": [
+      "include",
+      "include"
+    ],
+    "zone_ref_width": 1920,
+    "zone_ref_height": 1080
   },
   "ben_counting_convoyeur": {
     "name": "Comptage convoyeur",
@@ -42,26 +70,26 @@
     "zone_polygons": [
       [
         [
-          137.64252036005144,
-          614.6656607914409
+          137.64,
+          614.67
         ],
         [
-          166.08452636090868,
-          590.4368698991839
+          166.08,
+          590.44
         ],
         [
-          278.79914273467637,
-          689.4588848501475
+          278.8,
+          689.46
         ],
         [
-          244.03669095585082,
-          729.4890611069201
+          244.04,
+          729.49
         ]
       ]
     ],
     "active": true,
     "canvas": {},
-    "created_at": "2026-02-23T20:00:00+00:00"
+    "created_at": "2026-02-24T12:00:00+00:00"
   },
   "ben_detection_convoyeur": {
     "name": "Détection présence convoyeur",
@@ -75,35 +103,36 @@
     "zone_polygons": [
       [
         [
-          18.60745820831547,
-          96.38022083533366
+          18.61,
+          96.38
         ],
         [
-          190.31290184312044,
-          7.892462794047049
+          190.31,
+          7.89
         ],
         [
-          276.6923274753536,
-          259.6612029353268
+          276.69,
+          259.66
         ],
         [
-          121.84140591513072,
-          347.0955352856457
+          121.84,
+          347.1
         ]
       ]
     ],
-    "active": true,
+    "active": false,
     "canvas": {},
-    "created_at": "2026-02-23T20:00:00+00:00"
+    "created_at": "2026-02-24T12:00:00+00:00"
   },
-  "ben_counting_hall": {
-    "name": "Comptage visiteurs hall",
-    "skill": "counting",
-    "skill_item": "counting_people",
+  "ben_detection_dock": {
+    "name": "Détection présence dock",
+    "skill": "detection",
+    "skill_item": "detection_presence",
     "categories": [
-      "human::silhouette"
+      "human::silhouette",
+      "transport::voiture"
     ],
-    "camera_id": "cam_hall",
+    "camera_id": "cam_dock",
     "zone_polygons": [
       [
         [
@@ -126,6 +155,124 @@
     ],
     "active": true,
     "canvas": {},
-    "created_at": "2026-02-23T20:00:00+00:00"
+    "created_at": "2026-02-24T12:00:00+00:00"
+  },
+  "ben_detection_mall1": {
+    "name": "Détection présence Mall 1",
+    "skill": "detection",
+    "skill_item": "detection_presence",
+    "categories": [
+      "human::silhouette"
+    ],
+    "camera_id": "cam_mall1",
+    "zone_polygons": [
+      [
+        [
+          100,
+          100
+        ],
+        [
+          500,
+          100
+        ],
+        [
+          500,
+          400
+        ],
+        [
+          100,
+          400
+        ]
+      ]
+    ],
+    "active": true,
+    "canvas": {},
+    "created_at": "2026-02-24T12:00:00+00:00"
+  },
+  "ben_detection_mall2": {
+    "name": "Détection présence Mall 2",
+    "skill": "detection",
+    "skill_item": "detection_presence",
+    "categories": [
+      "human::silhouette"
+    ],
+    "camera_id": "cam_mall2",
+    "zone_polygons": [
+      [
+        [
+          738.7548638132296,
+          527.704280155642
+        ],
+        [
+          1055.2529182879377,
+          504.0466926070039
+        ],
+        [
+          1253.2295719844358,
+          1075.5642023346304
+        ],
+        [
+          354.863813229572,
+          1096.1089494163425
+        ]
+      ],
+      [
+        [
+          1174.7859922178989,
+          556.3424124513618
+        ],
+        [
+          1223.3463035019456,
+          418.13229571984436
+        ],
+        [
+          1873.307392996109,
+          477.8988326848249
+        ],
+        [
+          1891.9844357976654,
+          1049.4163424124513
+        ],
+        [
+          1572.6070038910507,
+          1051.284046692607
+        ]
+      ]
+    ],
+    "active": true,
+    "canvas": {},
+    "created_at": "2026-02-24T12:00:00+00:00"
+  },
+  "ben-cam_entree-1771948599075": {
+    "name": "Nouveau bénéfice - Entrée",
+    "skill": "counting",
+    "skill_item": "counting_zone",
+    "categories": [
+      "human::silhouette"
+    ],
+    "camera_id": "cam_entree",
+    "zone_polygons": [
+      [
+        [
+          956.2645914396887,
+          448.01556420233464
+        ],
+        [
+          1111.2840466926073,
+          556.3424124513618
+        ],
+        [
+          620.0778210116731,
+          642.2568093385214
+        ],
+        [
+          496.8093385214008,
+          490.97276264591443
+        ]
+      ]
+    ],
+    "active": true,
+    "canvas": {},
+    "created_at": "2026-02-24T15:56:39.081353+00:00"
   }
 }

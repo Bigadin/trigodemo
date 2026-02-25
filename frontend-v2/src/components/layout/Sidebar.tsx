@@ -1,11 +1,13 @@
 import { NavLink } from 'react-router-dom'
+import ExplorerTree from '@/components/sidebar/ExplorerTree'
+import { icon, img } from '@/utils/theme'
 import styles from './Sidebar.module.css'
 
 const NAV_ITEMS = [
-  { to: '/', end: true, label: 'Sites', icon: 'folder-svgrepo-com.svg' },
-  { to: '/tracker', end: false, label: 'Zone Tracker', icon: 'desktop-svgrepo-com.svg' },
-  { to: '/analytics', end: true, label: 'Analytics', icon: 'chart-line-svgrepo-com.svg' },
-  { to: '/logs', end: true, label: 'Log / Historique', icon: 'terminal-svgrepo-com.svg' },
+  { to: '/', end: true, label: 'Vue d\'ensemble', icon: 'folder' },
+  { to: '/tracker', end: false, label: 'Zone Tracker', icon: 'desktop' },
+  { to: '/analytics', end: true, label: 'Analytics', icon: 'chart' },
+  { to: '/logs', end: true, label: 'Log / Historique', icon: 'terminal' },
 ]
 
 export default function Sidebar() {
@@ -14,7 +16,7 @@ export default function Sidebar() {
       <div className={styles.header}>
         <img
           className={styles.logoImg}
-          src="/static/assets_youn/Arcy icon.png"
+          src={img('arcy-logo')}
           alt="Arcy"
         />
         <span className={styles.logoText}>YRYS</span>
@@ -23,7 +25,7 @@ export default function Sidebar() {
       <div className={styles.sectionNav}>
         <div className={styles.sectionLabel}>Navigation</div>
         <nav className={styles.nav}>
-          {NAV_ITEMS.map(({ to, end, label, icon }) => (
+          {NAV_ITEMS.map(({ to, end, label, icon: iconName }) => (
             <NavLink
               key={to}
               to={to}
@@ -34,7 +36,7 @@ export default function Sidebar() {
             >
               <img
                 className={styles.navIcon}
-                src={`/static/assets_youn/SvIcons/${icon}`}
+                src={icon(iconName)}
                 alt=""
               />
               <span>{label}</span>
@@ -44,9 +46,9 @@ export default function Sidebar() {
       </div>
 
       <div className={styles.sectionTree}>
-        <div className={styles.sectionLabel}>Sites</div>
+        <div className={styles.sectionLabel}>Explorateur</div>
         <div className={styles.treeContent}>
-          <span className={styles.empty}>Chargement…</span>
+          <ExplorerTree />
         </div>
       </div>
 

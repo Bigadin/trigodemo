@@ -83,7 +83,11 @@ BENEFITS_FILE = DATA_DIR / "benefits.json"
 
 GRACE_PERIOD = 0.5
 YOLO_CONFIDENCE = 0.45
-TRACKING_REINFERENCE_INTERVAL = 30  # Réinférence complète toutes les 30 frames
+TRACKING_REINFERENCE_INTERVAL = 30
+
+ALLOWED_SKILL = "detection"
+ALLOWED_SKILL_ITEM = "detection_presence"
+ALLOWED_CATEGORY = "human::silhouette"
 
 # Camera sources storage: {camera_id: {"type": "webcam"|"rtsp", "name": str, ...}}
 cameras = {}
@@ -358,6 +362,55 @@ def get_active_zone_mode(video_name: str) -> str:
 
 load_counting_config()
 cleanup_zones_data()
+
+
+def _get_video_path_for_camera(cam_id: str) -> str | None:
+    """Retourne le video_path utilisé par le frontend (path fichier ou camera:xxx)."""
+    if cam_id not in cameras:
+        return None
+    c = cameras[cam_id]
+    if c.get("type") in ("webcam", "rtsp"):
+        return f"camera:{cam_id}"
+    return c.get("path") or cam_id
+
+
+def _sync_benefit_zones_on_startup():
+    """Sync benefit zones to zones_by_video at startup: detection_presence + counting."""
+    synced_det = 0
+    synced_count = 0
+    for bid, b in benefits.items():
+        polys = b.get("zone_polygons", [])
+        if not polys:
+            continue
+        cam_id = b.get("camera_id", "")
+        if not cam_id:
+            continue
+        video_name = _get_video_path_for_camera(cam_id) or cam_id
+        if video_name not in zones_by_video:
+            zones_by_video[video_name] = {}
+
+        # Detection présence (actifs uniquement)
+        if b.get("skill") == ALLOWED_SKILL and b.get("skill_item") == ALLOWED_SKILL_ITEM:
+            if not b.get("active", True):
+                continue
+            zones_by_video[video_name][bid] = {"polygons": polys}
+            synced_det += 1
+        # Comptage: tous (actifs ou non) pour permettre la sélection de zone
+        elif b.get("skill") == "counting":
+            zones_by_video[video_name][bid] = {"polygons": polys}
+            synced_count += 1
+            types = b.get("zone_polygon_types") or ["include"] * len(polys)
+            for idx, (poly, pt) in enumerate(zip(polys, types)):
+                if pt == "include" and len(poly) >= 3:
+                    zone_key = f"{bid}:{idx}"
+                    zones_by_video[video_name][zone_key] = {"polygons": [poly]}
+                    synced_count += 1
+    if synced_det or synced_count:
+        save_zones()
+        print(f"[STARTUP] Synced {synced_det} detection + {synced_count} counting zone(s) to zones_by_video")
+
+
+_sync_benefit_zones_on_startup()
 
 
 def compute_polygon_direction(all_points):
@@ -1034,31 +1087,124 @@ def _generate_demo_metrics(points: int = 200) -> dict:
     return series
 
 
-# Skills/categories supportés par le backend (YOLO human.pt = détection présence humain)
+# Arbre skills/catégories (modal + spec). Backend actif: detection_presence + human::silhouette.
 SKILLS_CONFIG = {
     "skills": [
-        {"key": "detection", "label": "Détection", "icon": "/static/assets_youn/SvIcons/SVGnew/Yclassify.svg", "items": [{"id": "detection_presence", "label": "Présence / Absence", "icon": "/static/assets_youn/SvIcons/SVGnew/Ysilhouette.svg"}, {"id": "detection_linecross", "label": "Franchissement ligne", "icon": "/static/assets_youn/SvIcons/SVGnew/Ylinecross.svg"}, {"id": "detection_zone", "label": "Détection zone", "icon": "/static/assets_youn/SvIcons/SVGnew/Yzonedetect.svg"}]},
-        {"key": "counting", "label": "Comptage", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycounting.svg", "items": [{"id": "counting_people", "label": "Comptage personnes", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycountingppl.svg"}, {"id": "counting_objects", "label": "Comptage objets", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycounting.svg"}, {"id": "counting_zone", "label": "Comptage zone", "icon": "/static/assets_youn/SvIcons/SVGnew/square-area-svgrepo-com.svg"}]},
-        {"key": "heatmap", "label": "Heatmap", "icon": "/static/assets_youn/SvIcons/SVGnew/Yheatmap.svg", "items": [{"id": "heatmap_density", "label": "Densité de flux", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycrowdfoule.svg"}, {"id": "heatmap_presence", "label": "Heatmap présence", "icon": "/static/assets_youn/SvIcons/SVGnew/Yheatmapdense.svg"}, {"id": "heatmap_trajectory", "label": "Heatmap trajectoires", "icon": "/static/assets_youn/SvIcons/SVGnew/Ytraj.svg"}]},
-        {"key": "quality", "label": "Qualité", "icon": "/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg", "items": [{"id": "quality_fissure", "label": "Fissure", "icon": "/static/assets_youn/SvIcons/SVGnew/Yfissure.svg"}, {"id": "quality_humidity", "label": "Humidité", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumidity.svg"}, {"id": "quality_check", "label": "Qualité générale", "icon": "/static/assets_youn/SvIcons/SVGnew/Yqualitycheck.svg"}]}
+        {
+            "key": "detection",
+            "label": "Detection",
+            "icon": "/static/assets_youn/SvIcons/SVGnew/Yclassify.svg",
+            "items": [
+                {"id": "detection_presence", "label": "Presence / Absence", "icon": "/static/assets_youn/SvIcons/SVGnew/Ysilhouette.svg"},
+                {"id": "detection_linecross", "label": "Franchissement ligne", "icon": "/static/assets_youn/SvIcons/SVGnew/Ylinecross.svg"},
+                {"id": "detection_zone", "label": "Detection zone", "icon": "/static/assets_youn/SvIcons/SVGnew/Yzonedetect.svg"},
+            ],
+        },
+        {
+            "key": "counting",
+            "label": "Comptage",
+            "icon": "/static/assets_youn/SvIcons/SVGnew/Ycounting.svg",
+            "items": [
+                {"id": "counting_people", "label": "Comptage personnes", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycountingppl.svg"},
+                {"id": "counting_objects", "label": "Comptage objets", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycounting.svg"},
+                {"id": "counting_zone", "label": "Comptage zone", "icon": "/static/assets_youn/SvIcons/SVGnew/square-area-svgrepo-com.svg"},
+            ],
+        },
+        {
+            "key": "heatmap",
+            "label": "Heatmap",
+            "icon": "/static/assets_youn/SvIcons/SVGnew/Yheatmap.svg",
+            "items": [
+                {"id": "heatmap_density", "label": "Densite de flux", "icon": "/static/assets_youn/SvIcons/SVGnew/grid-svgrepo-com.svg"},
+                {"id": "heatmap_presence", "label": "Heatmap presence", "icon": "/static/assets_youn/SvIcons/SVGnew/Yheatmapdense.svg"},
+                {"id": "heatmap_trajectory", "label": "Heatmap trajectoires", "icon": "/static/assets_youn/SvIcons/SVGnew/Ytraj.svg"},
+            ],
+        },
+        {
+            "key": "quality",
+            "label": "Qualite",
+            "icon": "/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg",
+            "items": [
+                {"id": "quality_fissure", "label": "Fissure", "icon": "/static/assets_youn/SvIcons/SVGnew/Yfissure.svg"},
+                {"id": "quality_humidity", "label": "Humidite", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumidity.svg"},
+                {"id": "quality_check", "label": "Qualite generale", "icon": "/static/assets_youn/SvIcons/SVGnew/Yqualitycheck.svg"},
+            ],
+        },
     ],
     "categories_by_skill": {
         "detection": [
-            {"key": "human", "label": "Humain", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumancat.svg", "items": [{"id": "silhouette", "label": "Silhouette", "icon": "/static/assets_youn/SvIcons/SVGnew/Ysilhouette.svg"}, {"id": "visage", "label": "Visage", "icon": "/static/assets_youn/SvIcons/SVGnew/Yface.svg"}, {"id": "foule", "label": "Foule", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycrowdfoule.svg"}]},
-            {"key": "transport", "label": "Transport", "icon": "/static/assets_youn/SvIcons/SVGnew/Ytransport2.svg", "items": [{"id": "voiture", "label": "Voiture", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycar.svg"}, {"id": "velo", "label": "Vélo", "icon": "/static/assets_youn/SvIcons/SVGnew/Ybike.svg"}, {"id": "public_transport", "label": "Transport public", "icon": "/static/assets_youn/SvIcons/SVGnew/Ypublic%20transport.svg"}, {"id": "avion", "label": "Avion", "icon": "/static/assets_youn/SvIcons/SVGnew/plane-svgrepo-com.svg"}, {"id": "moto", "label": "Moto", "icon": "/static/assets_youn/SvIcons/SVGnew/motorcycle.svg"}]}
+            {
+                "key": "human", "label": "Humain", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumancat.svg",
+                "items": [
+                    {"id": "silhouette", "label": "Silhouette", "icon": "/static/assets_youn/SvIcons/SVGnew/Ysilhouette.svg"},
+                    {"id": "visage", "label": "Visage", "icon": "/static/assets_youn/SvIcons/SVGnew/Yface.svg"},
+                    {"id": "foule", "label": "Foule", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycrowdfoule.svg"},
+                ],
+            },
+            {
+                "key": "transport", "label": "Transport", "icon": "/static/assets_youn/SvIcons/SVGnew/Ytransport2.svg",
+                "items": [
+                    {"id": "voiture", "label": "Voiture", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycar.svg"},
+                    {"id": "velo", "label": "Velo", "icon": "/static/assets_youn/SvIcons/SVGnew/Ybike.svg"},
+                    {"id": "public_transport", "label": "Transport public", "icon": "/static/assets_youn/SvIcons/SVGnew/Ypublic transport.svg"},
+                    {"id": "avion", "label": "Avion", "icon": "/static/assets_youn/SvIcons/SVGnew/plane-svgrepo-com.svg"},
+                    {"id": "moto", "label": "Moto", "icon": "/static/assets_youn/SvIcons/SVGnew/motorcycle.svg"},
+                ],
+            },
         ],
         "counting": [
-            {"key": "human", "label": "Humain", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumancat.svg", "items": [{"id": "silhouette", "label": "Silhouette", "icon": "/static/assets_youn/SvIcons/SVGnew/Ysilhouette.svg"}]},
-            {"key": "transport", "label": "Transport", "icon": "/static/assets_youn/SvIcons/SVGnew/Ytransport2.svg", "items": [{"id": "voiture", "label": "Voiture", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycar.svg"}, {"id": "velo", "label": "Vélo", "icon": "/static/assets_youn/SvIcons/SVGnew/Ybike.svg"}, {"id": "public_transport", "label": "Transport public", "icon": "/static/assets_youn/SvIcons/SVGnew/Ypublic%20transport.svg"}, {"id": "avion", "label": "Avion", "icon": "/static/assets_youn/SvIcons/SVGnew/plane-svgrepo-com.svg"}, {"id": "moto", "label": "Moto", "icon": "/static/assets_youn/SvIcons/SVGnew/motorcycle.svg"}]}
+            {
+                "key": "human", "label": "Humain", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumancat.svg",
+                "items": [
+                    {"id": "silhouette", "label": "Silhouette", "icon": "/static/assets_youn/SvIcons/SVGnew/Ysilhouette.svg"},
+                    {"id": "visage", "label": "Visage", "icon": "/static/assets_youn/SvIcons/SVGnew/Yface.svg"},
+                    {"id": "foule", "label": "Foule", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycrowdfoule.svg"},
+                ],
+            },
+            {
+                "key": "transport", "label": "Transport", "icon": "/static/assets_youn/SvIcons/SVGnew/Ytransport2.svg",
+                "items": [
+                    {"id": "voiture", "label": "Voiture", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycar.svg"},
+                    {"id": "velo", "label": "Velo", "icon": "/static/assets_youn/SvIcons/SVGnew/Ybike.svg"},
+                    {"id": "public_transport", "label": "Transport public", "icon": "/static/assets_youn/SvIcons/SVGnew/Ypublic transport.svg"},
+                    {"id": "avion", "label": "Avion", "icon": "/static/assets_youn/SvIcons/SVGnew/plane-svgrepo-com.svg"},
+                    {"id": "moto", "label": "Moto", "icon": "/static/assets_youn/SvIcons/SVGnew/motorcycle.svg"},
+                ],
+            },
         ],
         "heatmap": [
-            {"key": "human", "label": "Humain", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumancat.svg", "items": [{"id": "silhouette", "label": "Silhouette", "icon": "/static/assets_youn/SvIcons/SVGnew/Ysilhouette.svg"}]},
-            {"key": "object", "label": "Objet", "icon": "/static/assets_youn/SvIcons/SVGnew/Yobstruction.svg", "items": [{"id": "encombrement", "label": "Encombrement", "icon": "/static/assets_youn/SvIcons/SVGnew/Yobstruction.svg"}, {"id": "zone_encombrée", "label": "Zone encombrée", "icon": "/static/assets_youn/SvIcons/SVGnew/Yobstruction.svg"}]}
+            {
+                "key": "human", "label": "Humain", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumancat.svg",
+                "items": [
+                    {"id": "silhouette", "label": "Silhouette", "icon": "/static/assets_youn/SvIcons/SVGnew/Ysilhouette.svg"},
+                    {"id": "visage", "label": "Visage", "icon": "/static/assets_youn/SvIcons/SVGnew/Yface.svg"},
+                    {"id": "foule", "label": "Foule", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycrowdfoule.svg"},
+                ],
+            },
+            {
+                "key": "object", "label": "Objet", "icon": "/static/assets_youn/SvIcons/SVGnew/Yobstruction.svg",
+                "items": [
+                    {"id": "encombrement", "label": "Encombrement", "icon": "/static/assets_youn/SvIcons/SVGnew/Yobstruction.svg"},
+                    {"id": "zone_encombre", "label": "Zone encombre", "icon": "/static/assets_youn/SvIcons/SVGnew/Yobstruction.svg"},
+                    {"id": "fissure", "label": "Fissure", "icon": "/static/assets_youn/SvIcons/SVGnew/Yfissure.svg"},
+                    {"id": "humidity", "label": "Humidite", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumidity.svg"},
+                    {"id": "qualitycheck", "label": "Qualite generale", "icon": "/static/assets_youn/SvIcons/SVGnew/Yqualitycheck.svg"},
+                ],
+            },
         ],
         "quality": [
-            {"key": "object", "label": "Objet", "icon": "/static/assets_youn/SvIcons/SVGnew/Yobstruction.svg", "items": [{"id": "fissure", "label": "Fissure", "icon": "/static/assets_youn/SvIcons/SVGnew/Yfissure.svg"}, {"id": "humidity", "label": "Humidité", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumidity.svg"}, {"id": "qualitycheck", "label": "Qualité générale", "icon": "/static/assets_youn/SvIcons/SVGnew/Yqualitycheck.svg"}]}
-        ]
-    }
+            {
+                "key": "object", "label": "Objet", "icon": "/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg",
+                "items": [
+                    {"id": "encombrement", "label": "Encombrement", "icon": "/static/assets_youn/SvIcons/SVGnew/Yobstruction.svg"},
+                    {"id": "zone_encombre", "label": "Zone encombre", "icon": "/static/assets_youn/SvIcons/SVGnew/Yobstruction.svg"},
+                    {"id": "fissure", "label": "Fissure", "icon": "/static/assets_youn/SvIcons/SVGnew/Yfissure.svg"},
+                    {"id": "humidity", "label": "Humidite", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumidity.svg"},
+                    {"id": "qualitycheck", "label": "Qualite generale", "icon": "/static/assets_youn/SvIcons/SVGnew/Yqualitycheck.svg"},
+                ],
+            },
+        ],
+    },
 }
 
 
@@ -1518,6 +1664,28 @@ async def get_active_streams():
         }
 
 
+@app.get("/api/detections/{video_name:path}")
+async def get_detections(video_name: str):
+    """Return current YOLO detection bounding boxes for a running stream"""
+    with streams_lock:
+        info = active_streams.get(video_name)
+        if not info or not info["active"]:
+            return {"detections": [], "active": False}
+        dets = info.get("detections", [])
+        return {
+            "detections": [
+                {
+                    "x1": d["x1"], "y1": d["y1"],
+                    "x2": d["x2"], "y2": d["y2"],
+                    "conf": round(d["conf"], 3),
+                    "track_id": d.get("track_id"),
+                }
+                for d in dets
+            ],
+            "active": True,
+        }
+
+
 @app.post("/api/stream/{video_name:path}/stop")
 async def stop_video_stream(video_name: str):
     """Stop a specific video or camera stream"""
@@ -1955,6 +2123,11 @@ async def delete_site(site_id: str):
 
 # ==================== Benefit API Endpoints ====================
 
+def _derive_zone_polygon_types(polygons: list) -> list[str]:
+    """Fallback: tout en include (on ne peut pas deviner)"""
+    return ["include"] * len(polygons)
+
+
 class BenefitCreate(BaseModel):
     benefit_id: str
     name: str
@@ -1963,6 +2136,9 @@ class BenefitCreate(BaseModel):
     categories: list[str] = []
     camera_id: str
     zone_polygons: Optional[list] = None
+    zone_polygon_types: Optional[list[str]] = None  # 'include'|'exclude' par polygone
+    zone_ref_width: Optional[int] = None
+    zone_ref_height: Optional[int] = None
     active: bool = True
     canvas: Optional[dict] = None
 
@@ -1973,6 +2149,9 @@ class BenefitUpdate(BaseModel):
     skill_item: Optional[str] = None
     categories: Optional[list[str]] = None
     zone_polygons: Optional[list] = None
+    zone_polygon_types: Optional[list[str]] = None
+    zone_ref_width: Optional[int] = None
+    zone_ref_height: Optional[int] = None
     active: Optional[bool] = None
     canvas: Optional[dict] = None
 
@@ -2003,6 +2182,11 @@ async def create_benefit(benefit: BenefitCreate):
         raise HTTPException(status_code=400, detail="Benefit ID already exists")
     if benefit.camera_id not in cameras:
         raise HTTPException(status_code=400, detail=f"Camera '{benefit.camera_id}' not found")
+    valid_skills = {"detection", "counting", "heatmap", "quality"}
+    if benefit.skill not in valid_skills:
+        raise HTTPException(status_code=400, detail=f"Skill invalide. Valeurs acceptées: {', '.join(sorted(valid_skills))}")
+    if not benefit.categories:
+        benefit.categories = ["human::silhouette"]
     benefits[benefit.benefit_id] = {
         "name": benefit.name,
         "skill": benefit.skill,
@@ -2010,11 +2194,14 @@ async def create_benefit(benefit: BenefitCreate):
         "categories": benefit.categories,
         "camera_id": benefit.camera_id,
         "zone_polygons": benefit.zone_polygons or [],
+        "zone_polygon_types": benefit.zone_polygon_types or _derive_zone_polygon_types(benefit.zone_polygons or []),
+        "zone_ref_height": benefit.zone_ref_height,
         "active": benefit.active,
         "canvas": benefit.canvas or {},
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     save_benefits()
+    await sync_benefit_zones()
     audit_event("benefit", "created",
                 f"Bénéfice « {benefit.name} » créé (skill={benefit.skill}, camera={benefit.camera_id})",
                 "success",
@@ -2026,11 +2213,12 @@ async def create_benefit(benefit: BenefitCreate):
 async def update_benefit(benefit_id: str, payload: BenefitUpdate):
     if benefit_id not in benefits:
         raise HTTPException(status_code=404, detail="Benefit not found")
-    for field in ("name", "skill", "skill_item", "categories", "zone_polygons", "active", "canvas"):
+    for field in ("name", "skill", "skill_item", "categories", "zone_polygons", "zone_polygon_types", "zone_ref_width", "zone_ref_height", "active", "canvas"):
         val = getattr(payload, field, None)
         if val is not None:
             benefits[benefit_id][field] = val
     save_benefits()
+    await sync_benefit_zones()
     audit_event("benefit", "updated", f"Bénéfice « {benefits[benefit_id]['name']} » modifié", "info",
                 {"benefit_id": benefit_id})
     return {"message": "Benefit updated"}
@@ -2073,23 +2261,35 @@ async def get_hierarchy():
 
 @app.post("/api/benefits/sync-zones")
 async def sync_benefit_zones():
-    """Push all active benefit zone_polygons into zones_by_video for YOLO detection"""
+    """Push detection_presence (actifs) + counting (tous) zone_polygons into zones_by_video."""
     synced = 0
     for bid, b in benefits.items():
-        if not b.get("active", True):
-            continue
         polys = b.get("zone_polygons", [])
         if not polys:
             continue
         cam_id = b.get("camera_id", "")
         if not cam_id:
             continue
-        video_name = f"camera:{cam_id}" if cam_id in cameras else cam_id
+        video_name = _get_video_path_for_camera(cam_id) or cam_id
         if video_name not in zones_by_video:
             zones_by_video[video_name] = {}
-        zone_name = bid
-        zones_by_video[video_name][zone_name] = {"polygons": polys}
-        synced += 1
+
+        # Detection présence (actifs uniquement)
+        if b.get("skill") == ALLOWED_SKILL and b.get("skill_item") == ALLOWED_SKILL_ITEM:
+            if not b.get("active", True):
+                continue
+            zones_by_video[video_name][bid] = {"polygons": polys}
+            synced += 1
+        # Comptage: tous (actifs ou non)
+        elif b.get("skill") == "counting":
+            zones_by_video[video_name][bid] = {"polygons": polys}
+            synced += 1
+            types = b.get("zone_polygon_types") or ["include"] * len(polys)
+            for idx, (poly, pt) in enumerate(zip(polys, types)):
+                if pt == "include" and len(poly) >= 3:
+                    zone_key = f"{bid}:{idx}"
+                    zones_by_video[video_name][zone_key] = {"polygons": [poly]}
+                    synced += 1
     if synced:
         save_zones()
     return {"synced": synced}
@@ -3034,7 +3234,12 @@ async def video_stream(video_name: str, overlay: bool = True):
 
     return StreamingResponse(
         generate_frames(video_name, draw_overlay=draw_overlay),
-        media_type="multipart/x-mixed-replace; boundary=frame"
+        media_type="multipart/x-mixed-replace; boundary=frame",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Connection": "keep-alive",
+        },
     )
 
 

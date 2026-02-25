@@ -1,0 +1,228 @@
+/* LOV Dropdown — trigger base, panel glassmorphism quand déplié, bords sharp */
+.lovDropdown {
+  position: relative;
+  display: inline-flex;
+  min-width: 140px;
+}
+
+.lovDropdown.fullWidth {
+  width: 100%;
+}
+
+/* Variant inline : pas de contour ni flèche, hover discret, taille = contenu */
+.lovDropdown.inline {
+  width: fit-content;
+  min-width: auto;
+}
+
+.lovDropdown.inline .lovTrigger {
+  border: none;
+  background: transparent;
+  padding: 5px 12px;
+  min-height: 28px;
+  width: fit-content;
+  display: inline-flex;
+}
+
+.lovDropdown.inline .lovTriggerText {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.lovDropdown.inline .lovTriggerIcon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+
+.lovDropdown.inline .lovTriggerIcon img {
+  width: 14px;
+  height: 14px;
+  opacity: 0.6;
+}
+
+.lovDropdown.inline .lovTrigger:hover:not(:disabled) {
+  background: var(--color-surface-2);
+  border-radius: 2px;
+}
+
+.lovDropdown.inline .lovTrigger:focus {
+  border-color: transparent;
+}
+
+/* Variant form : harmonie avec les champs input */
+.lovDropdown.form .lovTrigger {
+  padding: 10px 36px 10px 14px;
+  border-radius: 2px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--color-text);
+  min-height: 40px;
+}
+
+.lovDropdown.form .lovTrigger:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(15, 23, 42, 0.18);
+}
+
+.lovDropdown.form .lovTriggerText.placeholder {
+  color: rgba(15, 23, 42, 0.35);
+}
+
+.lovDropdown.form .lovChevron {
+  color: rgba(15, 23, 42, 0.5);
+}
+
+/* Trigger — style de base (fermé), bords sharp */
+.lovTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  text-align: left;
+  min-height: 36px;
+}
+
+.lovTrigger:hover:not(:disabled) {
+  background: var(--color-surface-2);
+  border-color: var(--color-border-hover, rgba(15, 23, 42, 0.18));
+}
+
+.lovTrigger:focus {
+  outline: none;
+  border-color: rgba(29, 91, 255, 0.45);
+}
+
+.lovTrigger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.lovTriggerText {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lovTriggerText.placeholder {
+  color: var(--color-text-subtle);
+}
+
+.lovChevron {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  color: var(--color-text-muted);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.lovDropdown.isOpen .lovChevron {
+  transform: rotate(180deg);
+}
+
+/* Panel — style glassmorphism UNIQUEMENT quand déplié, bords sharp */
+.lovPanel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: max(100%, 180px);
+  width: max-content;
+  z-index: 150;
+  padding: 6px;
+  border-radius: 2px;
+  background: rgba(17, 17, 17, 0.6);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 260px;
+  overflow-y: auto;
+
+  opacity: 0;
+  transform: translateY(-5px) scale(0.95);
+  filter: blur(10px);
+  pointer-events: none;
+  transition:
+    opacity 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+    transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+    filter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.lovDropdown.isOpen .lovPanel {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+  pointer-events: auto;
+}
+
+/* Option — bords sharp, stagger, hover #11111140 */
+.lovOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 2px;
+  background: transparent;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.4s ease, transform 0.2s ease;
+
+  opacity: 0;
+  transform: translateX(10px) scale(0.95);
+  filter: blur(10px);
+}
+
+.lovDropdown.isOpen .lovOption {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+  filter: blur(0);
+  transition:
+    opacity 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+    transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+    filter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background 0.4s ease;
+}
+
+.lovDropdown.isOpen .lovOption {
+  transition-delay: calc(var(--i, 0) * 0.1s);
+}
+
+.lovOption:hover {
+  background: rgba(17, 17, 17, 0.25);
+}
+
+.lovOption:active {
+  transform: scale(0.95);
+}
+
+.lovOption.isSelected {
+  background: rgba(29, 91, 255, 0.25);
+  color: #fff;
+}
+
+.lovOptionEmpty {
+  padding: 10px 12px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+}

@@ -12,8 +12,7 @@ export default defineConfig({
     proxy: {
       '/api': { target: 'http://localhost:8000', changeOrigin: true },
       '/static': { target: 'http://localhost:8000', changeOrigin: true },
-      '/video_feed': { target: 'http://localhost:8000', changeOrigin: true },
-      '/frame': { target: 'http://localhost:8000', changeOrigin: true },
+      '/videos': { target: 'http://localhost:8000', changeOrigin: true },
     },
   },
 })

@@ -1,0 +1,68 @@
+.svgFilter {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.switch {
+  --c-active: #275efe;
+  --c-success: #10b981;
+  --c-warning: #f59e0b;
+  --c-danger: #ef4444;
+  --c-default: #d2d6e9;
+  --c-default-dark: #c7cbdf;
+  position: relative;
+  display: block;
+  cursor: pointer;
+  height: 32px;
+  width: 52px;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+.input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+  appearance: none;
+  border-radius: 9999px;
+  background: var(--c-default);
+  outline: none;
+  transition: background-color 0.5s;
+  border: none;
+}
+
+.input:hover {
+  background: var(--c-default-dark);
+}
+
+.input:checked {
+  background: var(--c-background);
+}
+
+.svg {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  fill: white;
+  transform: translate3d(0, 0, 0);
+}
+
+.circle {
+  transform-origin: center;
+  transition: transform 0.5s ease;
+}
+
+.dropCircle {
+  transition: transform 0.7s ease;
+}
+
+.variantDefault { --c-background: var(--c-active); }
+.variantSuccess { --c-background: var(--c-success); }
+.variantWarning { --c-background: var(--c-warning); }
+.variantDanger { --c-background: var(--c-danger); }
+.variantPrimary { --c-background: #1d5bff; }

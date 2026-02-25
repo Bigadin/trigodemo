@@ -16,3 +16,37 @@ body {
   font-size: var(--text-md);
   line-height: 1.5;
 }
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 360px;
+  background-image: url("/static/assets_youn/YrysUIPackage/UI_Jatin/Light%20Texture.png");
+  background-size: 720px auto;
+  background-position: top center;
+  background-repeat: repeat-x;
+  opacity: var(--bg-texture-opacity);
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.75) 45%, rgba(0,0,0,0) 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 260px;
+  background-image: url("/static/assets_youn/YrysUIPackage/UI_Jatin/Light%20Texture.png");
+  background-size: 720px auto;
+  background-position: bottom center;
+  background-repeat: repeat-x;
+  opacity: calc(var(--bg-texture-opacity) * 0.85);
+  mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.65) 45%, rgba(0,0,0,0) 100%);
+  pointer-events: none;
+  z-index: 0;
+}

@@ -142,3 +142,9 @@ Pour **quality**, les sous-types (défauts) sont :
 
 > **Note** : Le modal de création utilise toujours `DEFAULT_SKILLS_CONFIG` du skills-adapter pour afficher les 4 skills, toutes les catégories et tous les sous-types.
 
+---
+
+## 10. Logique des canvas (zones)
+
+Pour le détail du modèle de données et de la logique des zones (polygones, include/exclude, `zone_ref`, ratio modal ↔ preview), voir **[SPEC_CANVAS_BENEFICES.md](./SPEC_CANVAS_BENEFICES.md)**.
+

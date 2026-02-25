@@ -15,7 +15,7 @@
     "total_time": 51.49583888053894
   },
   "de": {
-    "total_time": 19.49824833869934
+    "total_time": 1580.5936193466187
   },
   "cmp": {
     "total_time": 0
@@ -36,6 +36,12 @@
     "total_time": 344.7037215232849
   },
   "Zon1": {
+    "total_time": 0
+  },
+  "ben_detection_entree": {
+    "total_time": 1638.6881937980652
+  },
+  "ben_detection_dock": {
     "total_time": 0
   }
 }

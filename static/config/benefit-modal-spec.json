@@ -45,54 +45,76 @@
   ],
   "categories_by_skill": {
     "detection": [
-      { "key": "human", "label": "Humain", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumancat.svg", "items": [
-        { "id": "silhouette", "label": "Silhouette", "icon": "/static/assets_youn/SvIcons/SVGnew/Ysilhouette.svg" },
-        { "id": "visage", "label": "Visage", "icon": "/static/assets_youn/SvIcons/SVGnew/Yface.svg" },
-        { "id": "foule", "label": "Foule", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycrowdfoule.svg" }
-      ]},
-      { "key": "transport", "label": "Transport", "icon": "/static/assets_youn/SvIcons/SVGnew/Ytransport2.svg", "items": [
-        { "id": "voiture", "label": "Voiture", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycar.svg" },
-        { "id": "velo", "label": "Velo", "icon": "/static/assets_youn/SvIcons/SVGnew/Ybike.svg" },
-        { "id": "public_transport", "label": "Transport public", "icon": "/static/assets_youn/SvIcons/SVGnew/Ypublic transport.svg" },
-        { "id": "avion", "label": "Avion", "icon": "/static/assets_youn/SvIcons/SVGnew/plane-svgrepo-com.svg" },
-        { "id": "moto", "label": "Moto", "icon": "/static/assets_youn/SvIcons/SVGnew/motorcycle.svg" }
-      ]}
+      {
+        "key": "human", "label": "Humain", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumancat.svg",
+        "items": [
+          { "id": "silhouette", "label": "Silhouette", "icon": "/static/assets_youn/SvIcons/SVGnew/Ysilhouette.svg" },
+          { "id": "visage", "label": "Visage", "icon": "/static/assets_youn/SvIcons/SVGnew/Yface.svg" },
+          { "id": "foule", "label": "Foule", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycrowdfoule.svg" }
+        ]
+      },
+      {
+        "key": "transport", "label": "Transport", "icon": "/static/assets_youn/SvIcons/SVGnew/Ytransport2.svg",
+        "items": [
+          { "id": "voiture", "label": "Voiture", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycar.svg" },
+          { "id": "velo", "label": "Velo", "icon": "/static/assets_youn/SvIcons/SVGnew/Ybike.svg" },
+          { "id": "public_transport", "label": "Transport public", "icon": "/static/assets_youn/SvIcons/SVGnew/Ypublic transport.svg" },
+          { "id": "avion", "label": "Avion", "icon": "/static/assets_youn/SvIcons/SVGnew/plane-svgrepo-com.svg" },
+          { "id": "moto", "label": "Moto", "icon": "/static/assets_youn/SvIcons/SVGnew/motorcycle.svg" }
+        ]
+      }
     ],
     "counting": [
-      { "key": "human", "label": "Humain", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumancat.svg", "items": [
-        { "id": "silhouette", "label": "Silhouette", "icon": "/static/assets_youn/SvIcons/SVGnew/Ysilhouette.svg" },
-        { "id": "visage", "label": "Visage", "icon": "/static/assets_youn/SvIcons/SVGnew/Yface.svg" },
-        { "id": "foule", "label": "Foule", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycrowdfoule.svg" }
-      ]},
-      { "key": "transport", "label": "Transport", "icon": "/static/assets_youn/SvIcons/SVGnew/Ytransport2.svg", "items": [
-        { "id": "voiture", "label": "Voiture", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycar.svg" },
-        { "id": "velo", "label": "Velo", "icon": "/static/assets_youn/SvIcons/SVGnew/Ybike.svg" },
-        { "id": "public_transport", "label": "Transport public", "icon": "/static/assets_youn/SvIcons/SVGnew/Ypublic transport.svg" },
-        { "id": "avion", "label": "Avion", "icon": "/static/assets_youn/SvIcons/SVGnew/plane-svgrepo-com.svg" },
-        { "id": "moto", "label": "Moto", "icon": "/static/assets_youn/SvIcons/SVGnew/motorcycle.svg" }
-      ]}
+      {
+        "key": "human", "label": "Humain", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumancat.svg",
+        "items": [
+          { "id": "silhouette", "label": "Silhouette", "icon": "/static/assets_youn/SvIcons/SVGnew/Ysilhouette.svg" },
+          { "id": "visage", "label": "Visage", "icon": "/static/assets_youn/SvIcons/SVGnew/Yface.svg" },
+          { "id": "foule", "label": "Foule", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycrowdfoule.svg" }
+        ]
+      },
+      {
+        "key": "transport", "label": "Transport", "icon": "/static/assets_youn/SvIcons/SVGnew/Ytransport2.svg",
+        "items": [
+          { "id": "voiture", "label": "Voiture", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycar.svg" },
+          { "id": "velo", "label": "Velo", "icon": "/static/assets_youn/SvIcons/SVGnew/Ybike.svg" },
+          { "id": "public_transport", "label": "Transport public", "icon": "/static/assets_youn/SvIcons/SVGnew/Ypublic transport.svg" },
+          { "id": "avion", "label": "Avion", "icon": "/static/assets_youn/SvIcons/SVGnew/plane-svgrepo-com.svg" },
+          { "id": "moto", "label": "Moto", "icon": "/static/assets_youn/SvIcons/SVGnew/motorcycle.svg" }
+        ]
+      }
     ],
     "heatmap": [
-      { "key": "human", "label": "Humain", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumancat.svg", "items": [
-        { "id": "silhouette", "label": "Silhouette", "icon": "/static/assets_youn/SvIcons/SVGnew/Ysilhouette.svg" },
-        { "id": "visage", "label": "Visage", "icon": "/static/assets_youn/SvIcons/SVGnew/Yface.svg" },
-        { "id": "foule", "label": "Foule", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycrowdfoule.svg" }
-      ]},
-      { "key": "object", "label": "Objet", "icon": "/static/assets_youn/SvIcons/SVGnew/Yobstruction.svg", "items": [
-        { "id": "encombrement", "label": "Encombrement", "icon": "/static/assets_youn/SvIcons/SVGnew/Yobstruction.svg" },
-        { "id": "zone_encombre", "label": "Zone encombre", "icon": "/static/assets_youn/SvIcons/SVGnew/Yobstruction.svg" }
-      ]}
+      {
+        "key": "human", "label": "Humain", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumancat.svg",
+        "items": [
+          { "id": "silhouette", "label": "Silhouette", "icon": "/static/assets_youn/SvIcons/SVGnew/Ysilhouette.svg" },
+          { "id": "visage", "label": "Visage", "icon": "/static/assets_youn/SvIcons/SVGnew/Yface.svg" },
+          { "id": "foule", "label": "Foule", "icon": "/static/assets_youn/SvIcons/SVGnew/Ycrowdfoule.svg" }
+        ]
+      },
+      {
+        "key": "object", "label": "Objet", "icon": "/static/assets_youn/SvIcons/SVGnew/Yobstruction.svg",
+        "items": [
+          { "id": "encombrement", "label": "Encombrement", "icon": "/static/assets_youn/SvIcons/SVGnew/Yobstruction.svg" },
+          { "id": "zone_encombre", "label": "Zone encombre", "icon": "/static/assets_youn/SvIcons/SVGnew/Yobstruction.svg" },
+          { "id": "fissure", "label": "Fissure", "icon": "/static/assets_youn/SvIcons/SVGnew/Yfissure.svg" },
+          { "id": "humidity", "label": "Humidite", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumidity.svg" },
+          { "id": "qualitycheck", "label": "Qualite generale", "icon": "/static/assets_youn/SvIcons/SVGnew/Yqualitycheck.svg" }
+        ]
+      }
     ],
     "quality": [
-      { "key": "object", "label": "Objet", "icon": "/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg", "items": [
-        { "id": "fissure", "label": "Fissure", "icon": "/static/assets_youn/SvIcons/SVGnew/Yfissure.svg" },
-        { "id": "humidity", "label": "Humidite", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumidity.svg" },
-        { "id": "qualitycheck", "label": "Qualite generale", "icon": "/static/assets_youn/SvIcons/SVGnew/Yqualitycheck.svg" }
-      ]}
+      {
+        "key": "object", "label": "Objet", "icon": "/static/assets_youn/SvIcons/SVGnew/Yqualitydefect.svg",
+        "items": [
+          { "id": "encombrement", "label": "Encombrement", "icon": "/static/assets_youn/SvIcons/SVGnew/Yobstruction.svg" },
+          { "id": "zone_encombre", "label": "Zone encombre", "icon": "/static/assets_youn/SvIcons/SVGnew/Yobstruction.svg" },
+          { "id": "fissure", "label": "Fissure", "icon": "/static/assets_youn/SvIcons/SVGnew/Yfissure.svg" },
+          { "id": "humidity", "label": "Humidite", "icon": "/static/assets_youn/SvIcons/SVGnew/Yhumidity.svg" },
+          { "id": "qualitycheck", "label": "Qualite generale", "icon": "/static/assets_youn/SvIcons/SVGnew/Yqualitycheck.svg" }
+        ]
+      }
     ]
-  },
-  "icon_rules": {
-    "quality_uses": "Yqualitydefect.svg / Yfissure.svg / Yhumidity.svg / Yqualitycheck.svg (PAS les icones standard SVTG)",
-    "fallback": "Yqualitydefect.svg"
   }
 }
