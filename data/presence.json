@@ -15,7 +15,7 @@
     "total_time": 51.49583888053894
   },
   "de": {
-    "total_time": 1968.5057604312897
+    "total_time": 1976.7558572292328
   },
   "cmp": {
     "total_time": 0
@@ -27,7 +27,7 @@
     "total_time": 0.541391134262085
   },
   "Counting": {
-    "total_time": 2600.0935146808624
+    "total_time": 3690.69345331192
   },
   "Counting Car": {
     "total_time": 0
@@ -39,7 +39,7 @@
     "total_time": 0
   },
   "ben_detection_entree": {
-    "total_time": 683.7128491401672
+    "total_time": 787.0154676437378
   },
   "ben_detection_dock": {
     "total_time": 0
@@ -51,18 +51,18 @@
     "total_time": 0
   },
   "ben-cam_entree-1772049529251": {
-    "total_time": 30.126084327697754
+    "total_time": 40.8824257850647
   },
   "ben-cam_entree-1772049529251:0": {
-    "total_time": 30.126084327697754
+    "total_time": 40.8824257850647
   },
   "ben_detection_mall1": {
-    "total_time": 171.26711058616638
+    "total_time": 856.6586101055145
   },
   "ben-cam_mall1-1772103083357": {
-    "total_time": 244.3515362739563
+    "total_time": 15207.51099228859
   },
   "ben-cam_mall1-1772103146628": {
-    "total_time": 26.978172302246094
+    "total_time": 83.00379180908203
   }
 }

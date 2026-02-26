@@ -254,26 +254,29 @@
     "skill": "counting",
     "skill_item": "counting_zone",
     "categories": [
-      "human::silhouette"
+      "human::silhouette",
+      "transport::voiture",
+      "transport::velo",
+      "transport::public_transport"
     ],
     "camera_id": "cam_entree",
     "zone_polygons": [
       [
         [
-          341.78988326848247,
-          733.7743190661479
+          1131.8287937743191,
+          588.0933852140078
         ],
         [
-          328.715953307393,
-          687.0817120622568
+          907.704280155642,
+          457.3540856031128
         ],
         [
-          597.6653696498055,
-          625.4474708171206
+          1014.1634241245137,
+          102.49027237354086
         ],
         [
-          623.8132295719845,
-          672.1400778210117
+          1273.7743190661479,
+          173.46303501945525
         ]
       ]
     ],
@@ -291,7 +294,8 @@
     "skill": "detection",
     "skill_item": "detection_presence",
     "categories": [
-      "human::silhouette"
+      "human::silhouette",
+      "transport::voiture"
     ],
     "camera_id": "cam_mall1",
     "zone_polygons": [
