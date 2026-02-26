@@ -186,8 +186,8 @@ export default function VideoPlayer({ videoPath, isStreaming, resetTrigger, onSt
         </svg>
       )}
 
-      {/* YOLO detection bounding boxes overlay — hors stream caméra (backend les dessine) ; affiché pour vidéo fichier en stream */}
-      {hasDetections && (!isStreaming || !isCamera) && (
+      {/* YOLO detection bounding boxes overlay — toujours affiché quand on a des détections (human.pt) */}
+      {hasDetections && (
         <svg
           className={styles.zoneOverlay}
           viewBox={`0 0 ${vidW} ${vidH}`}

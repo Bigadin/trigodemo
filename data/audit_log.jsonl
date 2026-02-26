@@ -730,3 +730,15 @@
 {"ts": "2026-02-26T10:42:42.801663+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Porte Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1772049529251"}}
 {"ts": "2026-02-26T10:42:43.706136+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Zone A et B » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
 {"ts": "2026-02-26T10:42:52.216523+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Zone A et B » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-26T10:50:28.840389+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_01.mp4", "level": "success", "meta": {"source": "video_01.mp4"}}
+{"ts": "2026-02-26T10:50:35.950147+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : Mall1.mp4", "level": "success", "meta": {"source": "Mall1.mp4"}}
+{"ts": "2026-02-26T10:51:23.510567+00:00", "entity": "benefit", "action": "created", "detail": "Bénéfice « Nouveau bénéfice - Mall 1 » créé (skill=detection, camera=cam_mall1)", "level": "success", "meta": {"benefit_id": "ben-cam_mall1-1772103083357", "skill": "detection", "camera_id": "cam_mall1"}}
+{"ts": "2026-02-26T10:51:47.018163+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : Mall1.mp4", "level": "info", "meta": {"source": "Mall1.mp4"}}
+{"ts": "2026-02-26T10:51:47.073724+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (3)", "level": "warn", "meta": {"count": 3}}
+{"ts": "2026-02-26T10:51:59.769941+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : Mall1.mp4", "level": "info", "meta": {"source": "Mall1.mp4"}}
+{"ts": "2026-02-26T10:52:08.287115+00:00", "entity": "benefit", "action": "deleted", "detail": "Bénéfice « Nouveau bénéfice - Mall 1 » supprimé", "level": "warn", "meta": {"benefit_id": "ben-cam_mall1-1772103083357", "camera_id": "cam_mall1"}}
+{"ts": "2026-02-26T10:52:26.633686+00:00", "entity": "benefit", "action": "created", "detail": "Bénéfice « Nouveau bénéfice - Mall 1 » créé (skill=detection, camera=cam_mall1)", "level": "success", "meta": {"benefit_id": "ben-cam_mall1-1772103146628", "skill": "detection", "camera_id": "cam_mall1"}}
+{"ts": "2026-02-26T10:56:06.664373+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : Mall1.mp4", "level": "success", "meta": {"source": "Mall1.mp4"}}
+{"ts": "2026-02-26T10:56:40.014039+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Nouveau bénéfice - Mall 1 » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_mall1-1772103146628"}}
+{"ts": "2026-02-26T10:59:58.470721+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : Mall1.mp4", "level": "info", "meta": {"source": "Mall1.mp4"}}
+{"ts": "2026-02-26T11:00:36.602016+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Nouveau bénéfice - Mall 1 » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_mall1-1772103146628"}}

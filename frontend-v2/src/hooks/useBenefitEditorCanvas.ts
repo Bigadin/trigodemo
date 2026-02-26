@@ -56,6 +56,30 @@ function pointToSegmentDistanceSquared(p: Point, a: Point, b: Point): number {
   return dist2(p, proj)
 }
 
+const EDGE_INSERT_THRESHOLD_SQ = 32 * 32  // distance² max pour insérer sur une arête (32px)
+
+function findNearestEdge(polygons: Polygon[], p: Point): { polyIdx: number; insertAfter: number } | null {
+  let bestPolyIdx = -1
+  let bestInsertAfter = -1
+  let bestD = Infinity
+  for (let idx = 0; idx < polygons.length; idx++) {
+    const poly = polygons[idx]
+    if (!poly || poly.length < 3) continue
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i]
+      const b = poly[(i + 1) % poly.length]
+      const d = pointToSegmentDistanceSquared(p, a, b)
+      if (d < bestD) {
+        bestD = d
+        bestPolyIdx = idx
+        bestInsertAfter = i
+      }
+    }
+  }
+  if (bestPolyIdx < 0 || bestD > EDGE_INSERT_THRESHOLD_SQ) return null
+  return { polyIdx: bestPolyIdx, insertAfter: bestInsertAfter }
+}
+
 function insertPointOnEdge(poly: Polygon, p: Point): boolean {
   if (!poly || poly.length < 3) return false
   let bestIdx = -1
@@ -69,7 +93,7 @@ function insertPointOnEdge(poly: Polygon, p: Point): boolean {
       bestIdx = i
     }
   }
-  if (bestIdx < 0 || bestD > 18 * 18) return false
+  if (bestIdx < 0 || bestD > EDGE_INSERT_THRESHOLD_SQ) return false
   poly.splice(bestIdx + 1, 0, [p[0], p[1]])
   return true
 }
@@ -189,6 +213,21 @@ export function useBenefitEditorCanvas({
         return
       }
       if (tool === 'select') {
+        // Shift+clic : insérer un point sur l'arête la plus proche (même si pas près d'un sommet)
+        if (e.shiftKey && polygons.length > 0) {
+          const edge = findNearestEdge(polygons, p)
+          if (edge) {
+            const polyCopy = [...polygons[edge.polyIdx]]
+            polyCopy.splice(edge.insertAfter + 1, 0, [p[0], p[1]])
+            pushUndo()
+            const next = polygons.map((poly, i) => (i === edge.polyIdx ? polyCopy : poly))
+            setPolygons(next)
+            setPolygonIdx(edge.polyIdx)
+            hideHoverBar()
+            return
+          }
+        }
+
         const target = pickTarget(p)
         if (!target) {
           setPolygonIdx(null)

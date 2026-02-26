@@ -571,7 +571,17 @@ export default function TrackerView() {
               ? benefits.find((b) => b.benefit_id === benefitModalBenefitId) ?? null
               : null
           }
-          onSaved={() => refetchHierarchy()}
+          onSaved={(createdBenefitId) => {
+            refetchHierarchy()
+            if (createdBenefitId && effectiveCamId) {
+              setSearchParams((p) => {
+                const next = new URLSearchParams(p)
+                next.set('benefit', createdBenefitId)
+                next.set('cam', effectiveCamId)
+                return next
+              })
+            }
+          }}
           onSaveError={(msg) => {
             refetchHierarchy()
             alert(`Erreur lors de l'enregistrement : ${msg}`)

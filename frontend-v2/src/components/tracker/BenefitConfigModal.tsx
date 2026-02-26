@@ -42,7 +42,8 @@ export interface BenefitConfigModalProps {
   cameraName: string
   videoPath: string
   benefit?: HierarchyBenefit | null
-  onSaved: () => void
+  /** Appelé après sauvegarde. En création, reçoit le benefit_id du nouveau bénéfice. */
+  onSaved: (createdBenefitId?: string) => void
   /** Appelé si l'enregistrement en arrière-plan échoue */
   onSaveError?: (message: string) => void
 }
@@ -271,7 +272,7 @@ export default function BenefitConfigModal({
               zone_ref_height: refH,
               active: enabled,
             }),
-      onSuccess: () => onSaved(),
+      onSuccess: () => onSaved(isEdit ? undefined : benefitId),
       onError: (err) => {
         refetch()
         onSaveError?.(err.message)
