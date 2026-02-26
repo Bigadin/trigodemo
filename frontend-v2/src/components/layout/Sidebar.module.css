@@ -39,6 +39,11 @@
   flex: 0 0 auto;
 }
 
+.sectionGpu {
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
 .sectionTree {
   padding: var(--space-3);
   flex: 1;

@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import ExplorerTree from '@/components/sidebar/ExplorerTree'
+import GpuUsageBar from '@/components/sidebar/GpuUsageBar'
 import { icon, img } from '@/utils/theme'
 import styles from './Sidebar.module.css'
 
@@ -43,6 +44,10 @@ export default function Sidebar() {
             </NavLink>
           ))}
         </nav>
+      </div>
+
+      <div className={styles.sectionGpu}>
+        <GpuUsageBar />
       </div>
 
       <div className={styles.sectionTree}>

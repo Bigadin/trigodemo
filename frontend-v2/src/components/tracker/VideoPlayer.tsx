@@ -1,8 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import type { Detection } from '@/api/tracker'
 import { getStreamUrl, getFrameUrl } from '@/api/tracker'
 import { computeZoneOccupancy } from '@/utils/zoneOccupancy'
 import styles from './VideoPlayer.module.css'
+
+export interface ZoneHoverStat {
+  label: string
+  isInclude: boolean
+  isOccupied: boolean
+  presenceTimeSec: number
+  pct: number
+}
 
 interface VideoPlayerProps {
   videoPath: string | null
@@ -17,6 +25,7 @@ interface VideoPlayerProps {
   zoneRefHeight?: number
   zoneActive?: boolean
   detections?: Detection[]
+  zoneHoverStats?: (ZoneHoverStat | null)[] | null
 }
 
 const ZONE_COLORS = {
@@ -26,7 +35,28 @@ const ZONE_COLORS = {
   inactive:      { fill: 'rgba(148,163,184,0.22)', stroke: 'rgba(148,163,184,0.7)' },
 } as const
 
-export default function VideoPlayer({ videoPath, isStreaming, resetTrigger, onStreamStart, zonePolygons, zonePolygonTypes, videoWidth, videoHeight, zoneRefWidth, zoneRefHeight, zoneActive = true, detections }: VideoPlayerProps) {
+function formatTime(seconds: number): string {
+  const n = Math.max(0, Math.floor(seconds))
+  const h = Math.floor(n / 3600)
+  const m = Math.floor((n % 3600) / 60)
+  const s = n % 60
+  return [h, m, s].map((v) => v.toString().padStart(2, '0')).join(':')
+}
+
+function clampPct(value: number): number {
+  return Math.min(100, Math.max(0, value))
+}
+
+function getPctColor(pct: number): string {
+  const p = clampPct(pct) / 100
+  // Interpole bleu GPU -> violet/magenta en gardant une bonne lisibilité.
+  const hue = 216 + (300 - 216) * p
+  const sat = 88
+  const light = 68
+  return `hsl(${hue} ${sat}% ${light}%)`
+}
+
+export default function VideoPlayer({ videoPath, isStreaming, resetTrigger, onStreamStart, zonePolygons, zonePolygonTypes, videoWidth, videoHeight, zoneRefWidth, zoneRefHeight, zoneActive = true, detections, zoneHoverStats }: VideoPlayerProps) {
   // Mirror the same coordinate logic as BenefitConfigModal:
   // zone_ref_width/height → videoWidth/height → 1280/720 fallback
   const viewW = (zoneRefWidth != null && zoneRefWidth > 0) ? zoneRefWidth
@@ -36,6 +66,7 @@ export default function VideoPlayer({ videoPath, isStreaming, resetTrigger, onSt
   const vidW = (videoWidth != null && videoWidth > 0) ? videoWidth : 1920
   const vidH = (videoHeight != null && videoHeight > 0) ? videoHeight : 1080
   const [error, setError] = useState<string | null>(null)
+  const [hoverState, setHoverState] = useState<{ x: number; y: number; stat: ZoneHoverStat } | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => { setError(null) }, [videoPath, isStreaming])
@@ -136,7 +167,7 @@ export default function VideoPlayer({ videoPath, isStreaming, resetTrigger, onSt
       {/* Zone polygons overlay — affiché pour le bénéfice sélectionné */}
       {hasZones && (
         <svg
-          className={styles.zoneOverlay}
+          className={`${styles.zoneOverlay} ${styles.zoneOverlayInteractive}`}
           viewBox={`0 0 ${overlayViewW} ${overlayViewH}`}
           preserveAspectRatio="xMidYMid meet"
         >
@@ -162,6 +193,19 @@ export default function VideoPlayer({ videoPath, isStreaming, resetTrigger, onSt
               colors = ZONE_COLORS.includeIdle
             }
 
+            const stat = zoneHoverStats?.[idx] ?? null
+
+            const handleZoneHover = (e: MouseEvent<SVGPolygonElement>) => {
+              if (!stat || !stat.isInclude) return
+              const box = e.currentTarget.ownerSVGElement?.getBoundingClientRect()
+              if (!box) return
+              setHoverState({
+                x: e.clientX - box.left,
+                y: e.clientY - box.top,
+                stat,
+              })
+            }
+
             return (
               <g key={idx}>
                 <polygon
@@ -170,7 +214,20 @@ export default function VideoPlayer({ videoPath, isStreaming, resetTrigger, onSt
                   stroke={colors.stroke}
                   strokeWidth={occupied && isInclude && zoneActive ? 3 : 2.5}
                   className={styles.zonePolygon}
+                  style={stat?.isInclude ? { pointerEvents: 'none' } : undefined}
                 />
+                {/* Zone de hit élargie (stroke 24px) au-dessus : formes modifiées / auto-intersectantes */}
+                {stat?.isInclude && (
+                  <polygon
+                    points={pts}
+                    fill="none"
+                    stroke="rgba(0,0,0,0.001)"
+                    strokeWidth={24}
+                    style={{ pointerEvents: 'all' }}
+                    onMouseMove={handleZoneHover}
+                    onMouseLeave={() => setHoverState(null)}
+                  />
+                )}
                 {occupied && isInclude && zoneActive && (
                   <polygon
                     points={pts}
@@ -231,6 +288,46 @@ export default function VideoPlayer({ videoPath, isStreaming, resetTrigger, onSt
       )}
       {isStreaming && (
         <span className={styles.liveBadge}>LIVE</span>
+      )}
+      {hoverState && (
+        <div
+          className={styles.zoneHoverTip}
+          style={{
+            left: `${Math.min(Math.max(hoverState.x + 12, 8), 260)}px`,
+            top: `${Math.max(hoverState.y - 12, 8)}px`,
+          }}
+        >
+          {(() => {
+            const pct = clampPct(hoverState.stat.pct)
+            const color = getPctColor(pct)
+            const bgSize = pct > 0 ? `${(100 / pct) * 100}% 100%` : '100% 100%'
+            return (
+              <>
+          <div className={styles.zoneHoverTitle}>{hoverState.stat.label}</div>
+          <div className={styles.zoneHoverRow}>
+            <span className={styles.zoneHoverKey}>Etat</span>
+            <span className={styles.zoneHoverValue}>{hoverState.stat.isOccupied ? 'Présent' : 'Absent'}</span>
+          </div>
+          <div className={styles.zoneHoverRow}>
+            <span className={styles.zoneHoverKey}>Temps</span>
+            <span className={styles.zoneHoverValue}>{formatTime(hoverState.stat.presenceTimeSec)}</span>
+          </div>
+          <div className={styles.zoneHoverBarBlock}>
+            <div className={styles.zoneHoverRow}>
+              <span className={styles.zoneHoverKey}>Présence</span>
+              <span className={styles.zoneHoverValue} style={{ color }}>{pct}%</span>
+            </div>
+            <div className={styles.zoneHoverBarTrack}>
+              <div
+                className={styles.zoneHoverBarFill}
+                style={{ width: `${pct}%`, backgroundSize: bgSize }}
+              />
+            </div>
+          </div>
+              </>
+            )
+          })()}
+        </div>
       )}
     </div>
   )

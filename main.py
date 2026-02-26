@@ -392,12 +392,20 @@ def _sync_benefit_zones_on_startup():
         if video_name not in zones_by_video:
             zones_by_video[video_name] = {}
 
-        # Detection présence (actifs uniquement)
+        # Detection présence (actifs uniquement) : toujours par forme include (bid:idx)
         if b.get("skill") == ALLOWED_SKILL and b.get("skill_item") == ALLOWED_SKILL_ITEM:
             if not b.get("active", True):
                 continue
-            zones_by_video[video_name][bid] = {"polygons": polys}
-            synced_det += 1
+            types = b.get("zone_polygon_types") or ["include"] * len(polys)
+            # Nettoie les anciennes clés de ce bénéfice (bid + bid:*)
+            for existing_key in [k for k in list(zones_by_video[video_name].keys()) if k == bid or k.startswith(f"{bid}:")]:
+                del zones_by_video[video_name][existing_key]
+
+            for idx, (poly, pt) in enumerate(zip(polys, types)):
+                if pt == "include" and len(poly) >= 3:
+                    zone_key = f"{bid}:{idx}"
+                    zones_by_video[video_name][zone_key] = {"polygons": [poly]}
+                    synced_det += 1
         # Comptage: tous (actifs ou non) pour permettre la sélection de zone
         elif b.get("skill") == "counting":
             zones_by_video[video_name][bid] = {"polygons": polys}
@@ -2214,12 +2222,20 @@ async def sync_benefit_zones():
         if video_name not in zones_by_video:
             zones_by_video[video_name] = {}
 
-        # Detection présence (actifs uniquement)
+        # Detection présence (actifs uniquement) : toujours par forme include (bid:idx)
         if b.get("skill") == ALLOWED_SKILL and b.get("skill_item") == ALLOWED_SKILL_ITEM:
             if not b.get("active", True):
                 continue
-            zones_by_video[video_name][bid] = {"polygons": polys}
-            synced += 1
+            types = b.get("zone_polygon_types") or ["include"] * len(polys)
+            # Nettoie les anciennes clés de ce bénéfice (bid + bid:*)
+            for existing_key in [k for k in list(zones_by_video[video_name].keys()) if k == bid or k.startswith(f"{bid}:")]:
+                del zones_by_video[video_name][existing_key]
+
+            for idx, (poly, pt) in enumerate(zip(polys, types)):
+                if pt == "include" and len(poly) >= 3:
+                    zone_key = f"{bid}:{idx}"
+                    zones_by_video[video_name][zone_key] = {"polygons": [poly]}
+                    synced += 1
         # Comptage: tous (actifs ou non)
         elif b.get("skill") == "counting":
             zones_by_video[video_name][bid] = {"polygons": polys}

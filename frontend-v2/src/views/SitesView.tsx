@@ -9,6 +9,7 @@ import { getFrameUrl } from '@/api/tracker'
 import { createLieu } from '@/api/lieux'
 import CardMenu from '@/components/ui/CardMenu'
 import { MessageLoading } from '@/components/ui/MessageLoading'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/Tooltip'
 import styles from './SitesView.module.css'
 
 const CAM_THUMB_SLOTS = 2
@@ -18,6 +19,11 @@ function CameraThumb({ cam }: { cam: HierarchyCamera }) {
   const [src] = useState(() => getFrameUrl(videoPath))
   const [loaded, setLoaded] = useState(false)
   const [failed, setFailed] = useState(false)
+  const benefitList = Object.entries(cam.benefits || {}).map(([bid, b]) => ({
+    name: b.name || bid,
+    active: b.active !== false,
+  }))
+  const benefitCount = benefitList.length
 
   return (
     <div className={styles.camThumbWrap}>
@@ -35,6 +41,22 @@ function CameraThumb({ cam }: { cam: HierarchyCamera }) {
           onLoad={() => setLoaded(true)}
           onError={() => setFailed(true)}
         />
+      )}
+      {benefitCount > 0 && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className={styles.camThumbBadge}>{benefitCount}</span>
+          </TooltipTrigger>
+          <TooltipContent sideOffset={6}>
+            <ul className={styles.tooltipBenefitList}>
+              {benefitList.map(({ name, active }, i) => (
+                <li key={i}>
+                  {name} — {active ? 'Actif' : 'Inactif'}
+                </li>
+              ))}
+            </ul>
+          </TooltipContent>
+        </Tooltip>
       )}
     </div>
   )
@@ -224,6 +246,13 @@ export default function SitesView() {
                     }}
                     title="Voir le lieu"
                   >
+                    {lieuIconSrc ? (
+                      <img src={lieuIconSrc} alt="" className={styles.locGroupThumb} />
+                    ) : (
+                      <div className={styles.locGroupThumbFallback} style={{ background: locColor }}>
+                        <img src={icon('location')} alt="" />
+                      </div>
+                    )}
                     <span className={styles.locSq} style={{ background: locColor }} />
                     <span className={styles.locName}>{lieu.name}</span>
                     <span className={styles.locBadges}>
@@ -242,7 +271,6 @@ export default function SitesView() {
                   <div className={styles.locCards}>
                     {sites.map(([siteId, site]) => {
                       const cams = Object.values(site.cameras || {})
-                      const forms = countForms(site)
 
                       return (
                         <button
@@ -266,14 +294,6 @@ export default function SitesView() {
                                 <img src={icon('site')} className={styles.hierIcon} alt="" />
                                 {site.name}
                               </div>
-                              <div className={styles.cardLocation}>
-                                {lieuIconSrc ? (
-                                  <img src={lieuIconSrc} alt="" className={styles.cardLocThumb} />
-                                ) : (
-                                  <img src={icon('location')} className={styles.hierIcon} alt="" />
-                                )}
-                                {lieu.name}
-                              </div>
                             </div>
                             <CardMenu
                               className={styles.menuBtn}
@@ -284,16 +304,6 @@ export default function SitesView() {
                               ]}
                               title="Options"
                             />
-                          </div>
-                          <div className={styles.cardStats}>
-                            {[
-                              [cams.length, 'cam'],
-                              [forms, 'zone'],
-                            ].map(([n, label]) => (
-                              <span key={label} className={styles.stat}>
-                                <strong>{n}</strong> {label}{(n as number) > 1 ? 's' : ''}
-                              </span>
-                            ))}
                           </div>
                         </button>
                       )
@@ -310,6 +320,7 @@ export default function SitesView() {
               const totalCams = sites.reduce((n, [, s]) => n + Object.keys(s.cameras || {}).length, 0)
               const totalForms = sites.reduce((n, [, s]) => n + countForms(s), 0)
               const locColor = getLocColor(lieu.name)
+              const lieuIconSrc = getLieuIcon(lieuId, lieu.icon)
 
               return (
                 <div key={lieuId} className={styles.locGroupList}>
@@ -326,6 +337,13 @@ export default function SitesView() {
                     }}
                     title="Voir le lieu"
                   >
+                    {lieuIconSrc ? (
+                      <img src={lieuIconSrc} alt="" className={styles.listLocThumb} />
+                    ) : (
+                      <div className={styles.listLocThumbFallback} style={{ background: locColor }}>
+                        <img src={icon('location')} alt="" />
+                      </div>
+                    )}
                     <span className={styles.listLocSq} style={{ background: locColor }} />
                     <span>{lieu.name}</span>
                     <span className={styles.listCount}>{sites.length} site{sites.length > 1 ? 's' : ''}</span>

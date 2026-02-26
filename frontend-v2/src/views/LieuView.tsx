@@ -9,6 +9,7 @@ import type { StreamInfo } from '@/api/tracker'
 import { createSite } from '@/api/sites'
 import { getLocColor, getLieuIcon, icon } from '@/utils/theme'
 import { MessageLoading } from '@/components/ui/MessageLoading'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/Tooltip'
 import {
   loadSkillsConfig,
   getSkillGroups,
@@ -63,38 +64,40 @@ function SiteBenefitsCard({
   }
   return (
     <div className={className}>
-      {canScroll && (
       <div className={styles.siteBenefitsScrollBtns}>
-      <button
-        type="button"
-        className={styles.siteBenefitsScrollBtn}
-        onClick={(e) => {
-          e.stopPropagation()
-          scroll(-48)
-        }}
-          title="Défiler vers le haut"
-          aria-label="Défiler vers le haut"
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M18 15l-6-6-6 6" />
-          </svg>
-        </button>
-      <button
-        type="button"
-        className={styles.siteBenefitsScrollBtn}
-        onClick={(e) => {
-          e.stopPropagation()
-          scroll(48)
-        }}
-          title="Défiler vers le bas"
-          aria-label="Défiler vers le bas"
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-                        </button>
+        {canScroll ? (
+          <>
+            <button
+              type="button"
+              className={styles.siteBenefitsScrollBtn}
+              onClick={(e) => {
+                e.stopPropagation()
+                scroll(-48)
+              }}
+              title="Défiler vers le haut"
+              aria-label="Défiler vers le haut"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 15l-6-6-6 6" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className={styles.siteBenefitsScrollBtn}
+              onClick={(e) => {
+                e.stopPropagation()
+                scroll(48)
+              }}
+              title="Défiler vers le bas"
+              aria-label="Défiler vers le bas"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+          </>
+        ) : null}
       </div>
-      )}
       <div ref={scrollRef} className={styles.siteBenefitsScrollArea}>
         {children}
       </div>
@@ -109,12 +112,14 @@ function CameraCell({
   name,
   videoPath,
   isStreaming,
+  benefitList = [],
   onOpen,
 }: {
   cameraId: string
   name: string
   videoPath: string
   isStreaming: boolean
+  benefitList?: Array<{ name: string; active: boolean }>
   onOpen: (e?: React.MouseEvent) => void
 }) {
   const src = isStreaming ? getStreamUrl(videoPath, false) : getFrameUrl(videoPath)
@@ -143,6 +148,22 @@ function CameraCell({
       <div className={`${styles.camPlaceholder} ${loaded || failed ? styles.camPlaceholderHidden : styles.camPlaceholderVisible}`}>
         {!loaded && !failed && <MessageLoading className={styles.camPlaceholderLoading} />}
       </div>
+      {benefitList.length > 0 && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className={styles.camThumbBadge}>{benefitList.length}</span>
+          </TooltipTrigger>
+          <TooltipContent sideOffset={6}>
+            <ul className={styles.tooltipBenefitList}>
+              {benefitList.map(({ name: benefitName, active }, i) => (
+                <li key={i}>
+                  {benefitName} — {active ? 'Actif' : 'Inactif'}
+                </li>
+              ))}
+            </ul>
+          </TooltipContent>
+        </Tooltip>
+      )}
       <span className={styles.camLabel}>{name || cameraId}</span>
     </button>
   )
@@ -544,6 +565,9 @@ export default function LieuView() {
                   return (
                     <>
                       {hasBenefits && (
+                        <div className={styles.siteExtraSection} />
+                      )}
+                      {hasBenefits && (
                         <SiteBenefitsCard className={styles.siteBenefitsCard}>
                           <div className={styles.siteBenefitsList}>
                               {benefits.map((b) => {
@@ -605,7 +629,16 @@ export default function LieuView() {
                             </div>
                         </SiteBenefitsCard>
                       )}
-                      <div className={styles.camGridWrap} style={hasBenefits ? { marginLeft: 292 } : undefined}>
+                      <div
+                        className={styles.camGridWrap}
+                        style={
+                          hasBenefits
+                            ? {
+                                marginLeft: 'calc(var(--site-extra-width) + var(--site-extra-gap) + var(--site-benefits-margin-left) + 280px + var(--site-extra-gap))',
+                              }
+                            : undefined
+                        }
+                      >
                   {canExpand && (
                     <button
                       type="button"
@@ -633,6 +666,10 @@ export default function LieuView() {
                           name={camera.name || camId}
                           videoPath={videoPath}
                           isStreaming={isStreaming}
+                          benefitList={Object.entries(camera.benefits || {}).map(([bid, b]) => ({
+                            name: b.name || bid,
+                            active: b.active !== false,
+                          }))}
                           onOpen={() => navigate(`/tracker/${siteId}?cam=${camId}`)}
                         />
                       )

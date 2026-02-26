@@ -12,5 +12,19 @@
     "description": "Centre commercial retail",
     "icon": "/static/assets_youn/westfield.jpg",
     "created_at": "2026-02-24T12:00:00+00:00"
+  },
+  "autoroute_vinci": {
+    "name": "Sorties Autoroute Vinci",
+    "address": "",
+    "description": "Caméras sur sorties d'autoroute",
+    "icon": "/static/assets_youn/Autoroute.jpg",
+    "created_at": "2026-02-24T12:00:00+00:00"
+  },
+  "ligne_flacons": {
+    "name": "Ligne assemblage flacons",
+    "address": "",
+    "description": "Contrôle qualité ligne d'assemblage",
+    "icon": "/static/assets_youn/LineFacotry.jpg",
+    "created_at": "2026-02-24T12:00:00+00:00"
   }
 }

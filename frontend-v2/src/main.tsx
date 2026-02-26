@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { HierarchyProvider } from '@/context/HierarchyContext'
 import { SessionProvider } from '@/context/SessionContext'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { TooltipProvider } from '@/components/ui/Tooltip'
 import App from './App'
 import './styles/tokens.css'
 import './styles/reset.css'
@@ -18,7 +19,9 @@ if (!root) {
         <BrowserRouter>
           <HierarchyProvider>
             <SessionProvider>
-              <App />
+              <TooltipProvider delayDuration={300}>
+                <App />
+              </TooltipProvider>
             </SessionProvider>
           </HierarchyProvider>
         </BrowserRouter>

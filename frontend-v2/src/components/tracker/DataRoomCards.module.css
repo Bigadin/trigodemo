@@ -41,42 +41,287 @@
 
 .card {
   width: 280px;
-  min-height: 240px;
+  min-height: 200px;
   max-height: 320px;
   border: 1px solid var(--color-border);
   border-radius: 0;
   background: var(--color-surface-2);
-  padding: var(--space-4);
+  padding: var(--space-3);
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
+.cardWide {
+  grid-column: span 2;
+  width: 100%;
+  min-width: 0;
+}
+
+.chartControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chartIntervalSelect {
+  font-size: 11px;
+  padding: 4px 8px;
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  border-radius: 0;
+}
+
+.presenceChartWrap {
+  flex: 1;
+  min-height: 140px;
+  position: relative;
+}
+
+.presenceChartWrap canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.chartHoverTip {
+  position: absolute;
+  top: 8px;
+  min-width: 150px;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--color-surface-2) 94%, black);
+  border: 1px solid var(--color-border);
+  border-radius: 0;
+  padding: 6px 8px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+  z-index: 2;
+}
+
+.chartHoverTime {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-subtle);
+  margin-bottom: 4px;
+}
+
+.chartHoverRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.chartHoverDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.chartHoverLabel {
+  color: var(--color-text-muted);
+  flex: 1;
+}
+
+.chartHoverValue {
+  color: var(--color-text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.chartTimeBadge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--color-surface-1);
+  color: var(--color-text-muted);
+  margin-left: var(--space-2);
+}
+
+.chartLegend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-5);
+  padding-top: var(--space-2);
+  flex-shrink: 0;
+}
+
+.chartLegendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chartLegendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.chartLegendLabel {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+/* Rapport d'activité — sous-cartes par zone (style dark = hover zone tracker) */
+.activityZoneCards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.activityZoneCard {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: rgba(10, 14, 22, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  border-radius: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.activityZoneCardShape {
+  flex-shrink: 0;
+  width: 72px;
+  min-width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.zoneShapeSvg {
+  width: 100%;
+  height: 100%;
+}
+
+.activityZoneCardPlaceholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
+  opacity: 0.4;
+}
+
+.activityZoneCardContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.activityZoneCardTitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 4px;
+}
+
+.activityZoneCardRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.activityZoneCardKey {
+  color: #94a3b8;
+}
+
+.activityZoneCardValue {
+  color: #f8fafc;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.activityZoneCardBarBlock {
+  margin-top: 4px;
+}
+
+.activityZoneCardBarTrack {
+  margin-top: 4px;
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.activityZoneCardBarFill {
+  height: 100%;
+  transition: width 0.2s ease-out;
+}
+
+.chartSyncHint {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-2);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
+  border-radius: 4px;
+}
+
+.chartSyncHintText {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  flex: 1;
+}
+
+.chartSyncBtn {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--color-primary);
+  border-radius: 4px;
+  background: var(--color-primary);
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.chartSyncBtn:hover:not(:disabled) {
+  background: var(--color-primary-hover, #2563eb);
+  border-color: var(--color-primary-hover, #2563eb);
+}
+
+.chartSyncBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .cardMain {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .cardTop {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding-bottom: var(--space-3);
-  margin-bottom: var(--space-3);
+  gap: 6px;
+  padding-bottom: var(--space-2);
+  margin-bottom: var(--space-2);
   border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
 
 .cardTopLeft {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
+  overflow: hidden;
 }
 
 .dot {
@@ -88,22 +333,26 @@
 
 .cardTitle {
   color: var(--color-text);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 6px;
-  font-size: 10px;
+  gap: 3px;
+  padding: 2px 5px;
+  font-size: 9px;
   font-weight: 600;
   background: rgba(15, 23, 42, 0.06);
   color: var(--color-text);
@@ -120,7 +369,9 @@
 .presenceRows {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-2);
+  min-height: 0;
+  overflow: hidden;
 }
 
 .presenceRow {
@@ -133,16 +384,25 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
 }
 
 .presenceLabel {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 4px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--color-text-muted);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.presenceLabel span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .presenceIco {
@@ -170,8 +430,9 @@
 }
 
 .presenceBar {
-  height: 12px;
-  min-width: 120px;
+  height: 10px;
+  width: 100%;
+  min-width: 0;
   background: color-mix(in srgb, var(--color-text) 8%, transparent);
   border-radius: 0;
   overflow: hidden;
@@ -209,7 +470,7 @@
 }
 
 .presenceTime {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
@@ -217,16 +478,11 @@
 }
 
 .presencePct {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--color-text-muted);
 }
 
-.presenceActions {
-  margin-top: var(--space-2);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--color-border);
-}
 
 .emptyRow {
   font-size: 12px;
@@ -237,7 +493,7 @@
 .counters {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .counterWrap {
@@ -253,18 +509,18 @@
 }
 
 .counterValue {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 800;
   color: var(--color-primary);
 }
 
 .counterLabel {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--color-text-muted);
 }
 
 .counterSub {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--color-text-subtle);
 }
 
@@ -272,30 +528,36 @@
 .countingControls {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
+  min-height: 0;
+  overflow: hidden;
 }
 
 .countingRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
 }
 
 .countingLabel {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--color-text-muted);
-  min-width: 48px;
+  min-width: 40px;
+  flex-shrink: 0;
 }
 
 .countingSelect {
   flex: 1;
-  padding: 6px 8px;
-  font-size: 12px;
+  min-width: 0;
+  padding: 5px 6px;
+  font-size: 11px;
   border: 1px solid var(--color-border);
   border-radius: 0;
   background: var(--color-surface-2);
   color: var(--color-text);
+  max-width: 100%;
 }
 
 .countingActions {
@@ -305,8 +567,8 @@
 }
 
 .countingBtn {
-  padding: 6px 12px;
-  font-size: 12px;
+  padding: 5px 10px;
+  font-size: 11px;
   font-weight: 600;
   border: 1px solid var(--color-border);
   border-radius: 0;
@@ -349,13 +611,13 @@
 }
 
 .countingParams {
-  margin-top: var(--space-2);
-  padding-top: var(--space-3);
+  margin-top: var(--space-1);
+  padding-top: var(--space-2);
   border-top: 1px solid var(--color-border);
 }
 
 .countingParamsToggle {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--color-text-muted);
   background: none;
@@ -382,9 +644,9 @@
 }
 
 .countingParamsRow label {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--color-text-muted);
-  min-width: 100px;
+  min-width: 90px;
 }
 
 .countingParamsRow input[type="range"] {
@@ -398,5 +660,12 @@
   .card {
     width: 100%;
     max-width: none;
+    min-height: 180px;
+  }
+  .cardMain {
+    gap: var(--space-1);
+  }
+  .countingControls {
+    gap: var(--space-1);
   }
 }

@@ -30,5 +30,21 @@
     "description": "Espace commercial",
     "icon": "",
     "created_at": "2026-02-24T12:00:00+00:00"
+  },
+  "autoroute_sortie_a1": {
+    "name": "Sortie A1 - Porte 12",
+    "lieu_id": "autoroute_vinci",
+    "address": "",
+    "description": "Caméra sortie autoroute Vinci",
+    "icon": "",
+    "created_at": "2026-02-24T12:00:00+00:00"
+  },
+  "ligne_controle_qualite": {
+    "name": "Contrôle qualité",
+    "lieu_id": "ligne_flacons",
+    "address": "",
+    "description": "Ligne d'assemblage flacons",
+    "icon": "",
+    "created_at": "2026-02-24T12:00:00+00:00"
   }
 }

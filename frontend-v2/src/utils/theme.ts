@@ -28,6 +28,8 @@ const ICON_MAP: Record<string, string> = {
 export const LOC_COLORS: Record<string, string> = {
   'og logistics': '#5a8fb8',
   'galerie westfield': '#8b7fb5',
+  'sorties autoroute vinci': '#e67e22',
+  'ligne assemblage flacons': '#06b6d4',
   default: '#6b9b7a',
 }
 
@@ -38,6 +40,8 @@ export const getLocColor = (loc: string) =>
 export const LIEU_ICONS: Record<string, string> = {
   usine: '/static/assets_youn/OG.jpg',
   mall: '/static/assets_youn/westfield.jpg',
+  autoroute_vinci: '/static/assets_youn/Autoroute.jpg',
+  ligne_flacons: '/static/assets_youn/LineFacotry.jpg',
 }
 
 export const getLieuIcon = (lieuId: string, iconFromApi?: string) =>

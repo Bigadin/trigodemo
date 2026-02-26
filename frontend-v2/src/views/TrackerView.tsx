@@ -1,5 +1,5 @@
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
-import { useMemo, useState, useEffect, useRef } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useSession, benefitElapsedKey } from '@/context/SessionContext'
 import { useHierarchy } from '@/context/HierarchyContext'
 import {
@@ -17,12 +17,13 @@ import type { ZonesResponse, StreamsResponse, CountingResponse, Detection } from
 import { findSiteById, getCameraVideoPath } from '@/utils/hierarchy'
 import { icon } from '@/utils/theme'
 import VideoPlayer from '@/components/tracker/VideoPlayer'
+import type { ZoneHoverStat } from '@/components/tracker/VideoPlayer'
 import CameraGrid, { type CameraWithStatus } from '@/components/tracker/CameraGrid'
 import BenefitsOverview from '@/components/tracker/BenefitsOverview'
 import BenefitConfigModal from '@/components/tracker/BenefitConfigModal'
 import { toggleBenefit, deleteBenefit, syncBenefitZones } from '@/api/benefits'
 import { resetCounting } from '@/api/counting'
-import DataRoomCards from '@/components/tracker/DataRoomCards'
+import DataRoomCards, { getDetectionZoneKeys } from '@/components/tracker/DataRoomCards'
 import LovDropdown from '@/components/ui/LovDropdown'
 import styles from './TrackerView.module.css'
 
@@ -83,10 +84,9 @@ export default function TrackerView() {
   const [zones, setZones] = useState<ZonesResponse['zones'] | null>(null)
   const [streams, setStreams] = useState<StreamsResponse['streams']>([])
   const [counting, setCounting] = useState<CountingResponse | null>(null)
-  const [isStreaming, setIsStreaming] = useState(false)
   const [detections, setDetections] = useState<Detection[]>([])
   const [videoInfo, setVideoInfo] = useState<{ width: number; height: number } | null>(null)
-  const presenceAtStartRef = useRef<number>(0)
+  const [presenceAtStart, setPresenceAtStart] = useState<Record<string, number>>({})
   const [videoResetTrigger, setVideoResetTrigger] = useState(0)
   const [optimisticBenefitActive, setOptimisticBenefitActive] = useState<Record<string, boolean>>({})
   const { benefitElapsed, setStreaming, tickBenefitTimers, resetBenefitTimers } = useSession()
@@ -97,6 +97,11 @@ export default function TrackerView() {
       isActive: streams.some((s) => s.video === c.videoPath && s.active),
     }))
   }, [camerasWithStatus, streams])
+
+  const isStreaming = useMemo(
+    () => !!videoPath && streams.some((s) => s.video === videoPath && s.active),
+    [streams, videoPath]
+  )
 
   const loadData = async () => {
     if (!videoPath) return
@@ -131,22 +136,6 @@ export default function TrackerView() {
       if (intervalId) clearInterval(intervalId)
     }
   }, [videoPath])
-
-  // Start/stop backend processing when video plays/pauses
-  useEffect(() => {
-    if (!videoPath) return
-    if (isStreaming) {
-      // Capture presence_time at session start to compute delta later
-      const detBenefit = benefits.find((b) => String(b.skill || '').toLowerCase() === 'detection')
-      const zoneId = detBenefit?.benefit_id
-      const startPresence = zoneId && zones ? (zones[zoneId]?.total_time ?? 0) : 0
-      presenceAtStartRef.current = startPresence
-      startStream(videoPath).catch(() => {})
-    } else {
-      stopStream(videoPath).catch(() => {})
-      setDetections([])
-    }
-  }, [isStreaming, videoPath])
 
   // Poll detections at high frequency when streaming
   useEffect(() => {
@@ -185,13 +174,31 @@ export default function TrackerView() {
     })
   }
 
-  const handleStreamToggle = () => {
+  const handleStreamToggle = async () => {
     if (!videoPath) return
-    setIsStreaming((prev) => !prev)
+    try {
+      if (isStreaming) {
+        await stopStream(videoPath)
+        setDetections([])
+        setPresenceAtStart({})
+      } else {
+        const detBenefit = benefits.find((b) => String(b.skill || '').toLowerCase() === 'detection')
+        const zoneItems = detBenefit ? getDetectionZoneKeys(detBenefit, zones) : []
+        const startRecord: Record<string, number> = {}
+        for (const { zoneKey } of zoneItems) {
+          startRecord[zoneKey] = zones?.[zoneKey]?.total_time ?? 0
+        }
+        setPresenceAtStart(startRecord)
+        await startStream(videoPath)
+      }
+      const sRes = await fetchStreams()
+      setStreams(sRes.streams || [])
+    } catch (err) {
+      console.warn('Toggle stream failed', err)
+    }
   }
 
   const handleStopAll = async () => {
-    setIsStreaming(false)
     try {
       if (videoPath) {
         await resetCounting(videoPath)
@@ -205,6 +212,8 @@ export default function TrackerView() {
       await stopAllStreams()
       const sRes = await fetchStreams()
       setStreams(sRes.streams || [])
+      setDetections([])
+      setPresenceAtStart({})
     } catch (err) {
       console.warn('Stop all failed', err)
     }
@@ -241,10 +250,69 @@ export default function TrackerView() {
     return Object.values(selectedCam.benefits)
   }, [selectedCam?.benefits])
 
+  const activeStreamingCamIds = useMemo(() => {
+    if (!site?.cameras) return []
+    const ids: string[] = []
+    for (const [cid, cam] of Object.entries(site.cameras)) {
+      const camVideoPath = getCameraVideoPath(cam)
+      if (streams.some((s) => s.video === camVideoPath && s.active)) ids.push(cid)
+    }
+    return ids
+  }, [site?.cameras, streams])
+
+  const activeBenefitTimerKeys = useMemo(() => {
+    if (!siteId || !site?.cameras) return []
+    const keys: string[] = []
+    for (const [cid, cam] of Object.entries(site.cameras)) {
+      const camVideoPath = getCameraVideoPath(cam)
+      const camIsStreaming = streams.some((s) => s.video === camVideoPath && s.active)
+      if (!camIsStreaming) continue
+      for (const b of Object.values(cam.benefits || {})) {
+        const isActive = cid === effectiveCamId && b.benefit_id in optimisticBenefitActive
+          ? optimisticBenefitActive[b.benefit_id]
+          : b.active !== false
+        if (isActive) keys.push(benefitElapsedKey(siteId, cid, b.benefit_id))
+      }
+    }
+    return keys
+  }, [siteId, site?.cameras, streams, effectiveCamId, optimisticBenefitActive])
+
   const selectedBenefit = useMemo(() => {
     if (!selectedBenefitId) return null
     return benefits.find((b) => b.benefit_id === selectedBenefitId) ?? null
   }, [benefits, selectedBenefitId])
+
+  const selectedBenefitElapsed = useMemo(() => {
+    if (!siteId || !effectiveCamId || !selectedBenefit) return 0
+    return benefitElapsed[benefitElapsedKey(siteId, effectiveCamId, selectedBenefit.benefit_id)] ?? 0
+  }, [benefitElapsed, siteId, effectiveCamId, selectedBenefit])
+
+  const zoneHoverStats = useMemo<(ZoneHoverStat | null)[] | null>(() => {
+    if (!selectedBenefit || String(selectedBenefit.skill || '').toLowerCase() !== 'detection') return null
+    const polys = selectedBenefit.zone_polygons ?? []
+    if (polys.length === 0) return null
+    const types = selectedBenefit.zone_polygon_types ?? polys.map(() => 'include' as const)
+    const startMap = presenceAtStart || {}
+    let includeNumber = 0
+    return polys.map((_, idx) => {
+      const isInclude = (types[idx] ?? 'include') === 'include'
+      if (!isInclude) return null
+      includeNumber += 1
+      const zoneKey = `${selectedBenefit.benefit_id}:${idx}`
+      const zone = zones?.[zoneKey] ?? zones?.[selectedBenefit.benefit_id]
+      const totalPresence = zone?.total_time ?? 0
+      const start = startMap[zoneKey] ?? startMap[selectedBenefit.benefit_id] ?? 0
+      const presenceTime = Math.max(0, totalPresence - start)
+      const pct = selectedBenefitElapsed > 0 ? Math.min(100, Math.round((presenceTime / selectedBenefitElapsed) * 100)) : 0
+      return {
+        label: `Forme ${includeNumber}`,
+        isInclude: true,
+        isOccupied: zone?.is_occupied ?? false,
+        presenceTimeSec: presenceTime,
+        pct,
+      }
+    })
+  }, [selectedBenefit, zones, presenceAtStart, selectedBenefitElapsed])
 
   /* Optimistic: griser les zones dès le toggle off, sans attendre le refetch */
   const [zoneActiveOptimistic, setZoneActiveOptimistic] = useState<boolean | null>(null)
@@ -258,21 +326,18 @@ export default function TrackerView() {
 
   /* Timer par bénéfice : ne s'incrémente que quand le bénéfice est actif (vidéo continue même si désactivé) */
   useEffect(() => {
-    if (!isStreaming || !siteId || !effectiveCamId) {
+    if (!siteId || activeStreamingCamIds.length === 0) {
       setStreaming(null, null)
       return
     }
-    setStreaming(siteId, effectiveCamId)
-  }, [isStreaming, siteId, effectiveCamId, setStreaming])
+    setStreaming(siteId, activeStreamingCamIds[0])
+  }, [siteId, activeStreamingCamIds, setStreaming])
 
   useEffect(() => {
-    if (!isStreaming || !siteId || !effectiveCamId || benefits.length === 0) return
-    const activeKeys = benefits
-      .filter((b) => (b.benefit_id in optimisticBenefitActive ? optimisticBenefitActive[b.benefit_id] : b.active !== false))
-      .map((b) => benefitElapsedKey(siteId, effectiveCamId, b.benefit_id))
-    const interval = setInterval(() => tickBenefitTimers(activeKeys), 1000)
+    if (!siteId || activeBenefitTimerKeys.length === 0) return
+    const interval = setInterval(() => tickBenefitTimers(activeBenefitTimerKeys), 1000)
     return () => clearInterval(interval)
-  }, [isStreaming, siteId, effectiveCamId, benefits, optimisticBenefitActive, tickBenefitTimers])
+  }, [siteId, activeBenefitTimerKeys, tickBenefitTimers])
 
   useEffect(() => () => setStreaming(null, null), [setStreaming])
 
@@ -417,6 +482,7 @@ export default function TrackerView() {
                   zoneRefHeight={selectedBenefit?.zone_ref_height}
                   zoneActive={zoneActive}
                   detections={detections}
+                  zoneHoverStats={zoneHoverStats}
                 />
               </div>
 
@@ -527,9 +593,13 @@ export default function TrackerView() {
                   benefitElapsed={benefitElapsed}
                   siteId={siteId ?? ''}
                   camId={effectiveCamId ?? ''}
-                  presenceAtStart={presenceAtStartRef.current}
+                  presenceAtStart={presenceAtStart}
                   onRefreshCounting={loadData}
                   onRefreshDetection={loadData}
+                  onSyncZones={async () => {
+                    await syncBenefitZones()
+                    await loadData()
+                  }}
                   onAddBenefit={() => {
                     setBenefitModalBenefitId(null)
                     setBenefitModalMode('create')

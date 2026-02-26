@@ -34,15 +34,15 @@
   border-color: var(--color-border-hover);
 }
 
-/* Carte sélectionnée = mode dark (pas bleu) */
+/* Carte sélectionnée = même noir que Forme 1/2 (Rapport d'activité) */
 .row.selected {
-  background: #111825;
-  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(10, 14, 22, 0.92);
+  border-color: rgba(148, 163, 184, 0.4);
 }
 
 .row.selected:hover {
-  background: #1a2332;
-  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(10, 14, 22, 0.96);
+  border-color: rgba(148, 163, 184, 0.5);
 }
 
 .skill {
@@ -59,8 +59,8 @@
 }
 
 .row.selected .skill {
-  background: #0E141F;
-  border-right-color: rgba(255, 255, 255, 0.12);
+  background: rgba(10, 14, 22, 0.95);
+  border-right-color: rgba(148, 163, 184, 0.4);
 }
 
 .skillIcon {

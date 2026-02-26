@@ -1,5 +1,5 @@
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useHierarchy } from '@/context/HierarchyContext'
 import { useSession, benefitElapsedKey } from '@/context/SessionContext'
 import { toggleBenefit } from '@/api/benefits'
@@ -8,6 +8,20 @@ import styles from './ExplorerTree.module.css'
 import animStyles from './ExplorerTree.animations.module.css'
 
 const getBenefitColor = () => '#c47b5a'
+
+/** Lieu actif : soit depuis /lieu/:lieuId, soit le lieu contenant le site actuel (Tracker) */
+function getActiveLieuId(
+  hierarchy: Record<string, { sites?: Record<string, unknown> }>,
+  lieuIdFromParams: string | undefined,
+  siteIdFromParams: string | undefined
+): string | null {
+  if (lieuIdFromParams) return lieuIdFromParams
+  if (!siteIdFromParams) return null
+  for (const [lid, lieu] of Object.entries(hierarchy)) {
+    if (lieu.sites?.[siteIdFromParams]) return lid
+  }
+  return null
+}
 
 function formatTime(seconds: number): string {
   const n = Math.max(0, Number(seconds) || 0)
@@ -21,7 +35,7 @@ export default function ExplorerTree() {
   const { hierarchy, loading, refetch } = useHierarchy()
   const { benefitElapsed, streamingSiteId, streamingCamId } = useSession()
   const navigate = useNavigate()
-  const { siteId } = useParams<{ siteId?: string; lieuId?: string }>()
+  const { siteId, lieuId: lieuIdFromParams } = useParams<{ siteId?: string; lieuId?: string }>()
   const [searchParams] = useSearchParams()
   const selectedCamId = searchParams.get('cam') ?? null
   const selectedSiteFromLieu = searchParams.get('site') ?? null
@@ -30,6 +44,22 @@ export default function ExplorerTree() {
 
   const [collapsedSites, setCollapsedSites] = useState<Record<string, boolean>>({})
   const [collapsedCams, setCollapsedCams] = useState<Record<string, boolean>>({})
+  const [collapsedLieux, setCollapsedLieux] = useState<Record<string, boolean>>({})
+
+  const activeLieuId = useMemo(
+    () => getActiveLieuId(hierarchy, lieuIdFromParams, siteId),
+    [hierarchy, lieuIdFromParams, siteId]
+  )
+
+  /* Quand on navigue vers un lieu, le déplier */
+  useEffect(() => {
+    if (!activeLieuId) return
+    setCollapsedLieux((p) => {
+      const isCollapsed = p[activeLieuId] ?? true
+      if (isCollapsed) return { ...p, [activeLieuId]: false }
+      return p
+    })
+  }, [activeLieuId])
 
   /* Quand on sélectionne un site : déplier le site. En Vue Tracker, déplier aussi les caméras. En Vue Lieu, garder les caméras repliées (bénéfices masqués). */
   useEffect(() => {
@@ -98,21 +128,52 @@ export default function ExplorerTree() {
       {lieux.map(([lieuId, lieu]) => {
         const sites = Object.entries(lieu.sites || {})
         const locColor = getLocColor(lieu.name)
+        const isLocActive = activeLieuId === lieuId
+        const isOnLieuView = lieuIdFromParams === lieuId
+        const isLieuCollapsed = collapsedLieux[lieuId] ?? true
+        /* Replier au re-clic uniquement quand on est déjà sur la vue Lieu ; sinon toujours naviguer */
+        const canToggleCollapse = isLocActive && isOnLieuView
 
         return (
           <div key={lieuId} className={styles.group} style={{ ['--sb-loc-color' as string]: locColor }}>
             <div
-              className={styles.loc}
+              className={`${styles.loc} ${isLocActive ? styles.active : ''}`}
               role="button"
               tabIndex={0}
-              onClick={() => navigate(`/lieu/${lieuId}`)}
+              onClick={() => {
+                if (canToggleCollapse) {
+                  const willCollapse = !isLieuCollapsed
+                  setCollapsedLieux((p) => ({ ...p, [lieuId]: willCollapse }))
+                  if (willCollapse) {
+                    setCollapsedSites((p) => {
+                      const next = { ...p }
+                      sites.forEach(([sid]) => { next[sid] = true })
+                      return next
+                    })
+                    setCollapsedCams((p) => {
+                      const next = { ...p }
+                      sites.forEach(([, site]) => {
+                        Object.keys(site.cameras || {}).forEach((cid) => { next[cid] = true })
+                      })
+                      return next
+                    })
+                  }
+                } else {
+                  navigate(`/lieu/${lieuId}`)
+                  setCollapsedLieux((p) => ({ ...p, [lieuId]: false }))
+                }
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault()
-                  navigate(`/lieu/${lieuId}`)
+                  if (canToggleCollapse) {
+                    setCollapsedLieux((p) => ({ ...p, [lieuId]: !isLieuCollapsed }))
+                  } else {
+                    navigate(`/lieu/${lieuId}`)
+                  }
                 }
               }}
-              title="Voir le lieu"
+              title={canToggleCollapse ? (isLieuCollapsed ? 'Déplier les sites' : 'Replier les sites') : 'Voir le lieu'}
             >
               <span className={styles.locSq} style={{ background: locColor }} />
               <span className={styles.locName}>
@@ -122,7 +183,8 @@ export default function ExplorerTree() {
               </span>
             </div>
 
-            <div className={styles.children}>
+            <div className={`${animStyles.collapsible} ${!isLieuCollapsed ? animStyles.expanded : ''}`}>
+              <div className={`${animStyles.collapsibleInner} ${styles.children}`}>
               {sites.map(([sid, site]) => {
                 const cams = Object.entries(site.cameras || {})
                 const isSiteActive = (!!lieuId && selectedSiteFromLieu === sid) || siteId === sid
@@ -247,6 +309,7 @@ export default function ExplorerTree() {
                   </div>
                 )
               })}
+              </div>
             </div>
           </div>
         )

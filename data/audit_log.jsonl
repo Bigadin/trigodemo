@@ -794,3 +794,122 @@
 {"ts": "2026-02-26T12:56:28.936592+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
 {"ts": "2026-02-26T12:58:51.421590+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
 {"ts": "2026-02-26T12:58:51.438042+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T17:22:36.040874+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T17:28:47.540297+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T17:28:47.548984+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T17:29:08.771282+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_01.mp4", "level": "info", "meta": {"source": "video_01.mp4"}}
+{"ts": "2026-02-26T17:29:13.795629+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_convoyeur"}}
+{"ts": "2026-02-26T17:29:17.432597+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_02.mp4", "level": "info", "meta": {"source": "video_02.mp4"}}
+{"ts": "2026-02-26T17:29:17.479529+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_02.mp4", "level": "info", "meta": {"source": "video_02.mp4"}}
+{"ts": "2026-02-26T17:48:21.150036+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T17:48:21.180592+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T18:00:10.600995+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Zone A et B » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-26T18:00:11.368104+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Zone A et B » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-26T18:07:05.254203+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T18:07:05.259154+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T18:07:07.195852+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_01.mp4", "level": "info", "meta": {"source": "video_01.mp4"}}
+{"ts": "2026-02-26T18:07:10.712880+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T18:12:50.438516+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_01.mp4", "level": "info", "meta": {"source": "video_01.mp4"}}
+{"ts": "2026-02-26T18:12:50.450803+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_01.mp4", "level": "info", "meta": {"source": "video_01.mp4"}}
+{"ts": "2026-02-26T18:12:52.898445+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_02.mp4", "level": "info", "meta": {"source": "video_02.mp4"}}
+{"ts": "2026-02-26T18:12:52.925094+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_02.mp4", "level": "info", "meta": {"source": "video_02.mp4"}}
+{"ts": "2026-02-26T18:13:07.399810+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_02.mp4", "level": "info", "meta": {"source": "video_02.mp4"}}
+{"ts": "2026-02-26T18:13:07.412767+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_02.mp4", "level": "info", "meta": {"source": "video_02.mp4"}}
+{"ts": "2026-02-26T18:13:16.315191+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T18:13:16.321556+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T18:13:21.476175+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T18:13:21.485710+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T18:13:28.329660+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_01.mp4", "level": "info", "meta": {"source": "video_01.mp4"}}
+{"ts": "2026-02-26T18:13:30.542161+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T18:13:45.864871+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T18:13:45.877448+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T19:03:05.408391+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : Mall1.mp4", "level": "info", "meta": {"source": "Mall1.mp4"}}
+{"ts": "2026-02-26T19:03:05.450894+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : Mall1.mp4", "level": "info", "meta": {"source": "Mall1.mp4"}}
+{"ts": "2026-02-26T19:26:02.365125+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T19:26:02.372456+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T20:46:35.515160+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T20:46:35.546315+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T20:51:14.565535+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T20:51:14.572348+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T20:54:30.628227+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T20:56:36.664218+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T20:56:59.071066+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T20:57:12.540091+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T20:57:12.570121+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-26T20:58:27.578982+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T20:59:02.123094+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T20:59:02.132313+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:00:21.327611+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:00:55.249739+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:00:55.307746+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-26T21:00:56.883184+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-26T21:01:08.846608+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:02:14.027298+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:02:30.091547+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:05:21.623140+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:05:25.542610+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:10:50.901727+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:13:39.890917+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:17:14.822259+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:17:39.723811+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:20:40.801677+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:21:32.853674+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:21:42.489002+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:23:38.472129+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:23:40.463428+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:26:38.139834+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:26:53.652868+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:26:56.622280+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:37:42.593418+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:38:00.704695+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:38:07.286550+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:38:47.534830+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:39:00.496626+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:39:08.652030+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:39:12.669931+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:42:20.924561+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:42:23.932279+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:47:08.704629+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:47:08.742509+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:47:11.731754+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:51:39.455355+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:53:28.760556+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:53:28.787232+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:53:32.923285+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:59:37.668407+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:59:37.695707+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T21:59:39.651297+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T22:00:04.227748+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T22:00:22.555142+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Zone A et B » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-26T22:00:22.941005+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T22:07:09.077396+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T22:07:09.087962+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T22:07:14.295372+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T22:07:21.673665+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T22:07:21.682704+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T22:07:23.471239+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T22:09:17.775855+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-26T22:09:22.721363+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-26T22:09:23.353106+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T22:45:18.607742+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-26T22:45:30.888398+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T22:46:18.531102+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-26T22:46:19.145110+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-26T22:46:20.043723+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-26T22:46:20.891051+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T22:47:15.283131+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_01.mp4", "level": "success", "meta": {"source": "video_01.mp4"}}
+{"ts": "2026-02-26T22:58:17.658251+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_convoyeur"}}
+{"ts": "2026-02-26T22:58:18.499646+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-26T22:58:23.113814+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_convoyeur"}}
+{"ts": "2026-02-26T22:58:23.806126+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Comptage convoyeur » modifié", "level": "info", "meta": {"benefit_id": "ben_counting_convoyeur"}}
+{"ts": "2026-02-26T23:01:02.834578+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Porte Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1772049529251"}}
+{"ts": "2026-02-26T23:01:04.527741+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Porte Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1772049529251"}}
+{"ts": "2026-02-26T23:01:07.501131+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Porte Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1772049529251"}}
+{"ts": "2026-02-26T23:01:08.116375+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Porte Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1772049529251"}}
+{"ts": "2026-02-26T23:08:50.787649+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (2)", "level": "warn", "meta": {"count": 2}}
+{"ts": "2026-02-26T23:08:51.071307+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (2)", "level": "warn", "meta": {"count": 2}}
+{"ts": "2026-02-26T23:08:53.653376+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T23:27:31.526181+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (2)", "level": "warn", "meta": {"count": 2}}
+{"ts": "2026-02-26T23:27:32.158365+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (2)", "level": "warn", "meta": {"count": 2}}
+{"ts": "2026-02-26T23:27:43.698497+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Zone A et B » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-26T23:31:26.347333+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
