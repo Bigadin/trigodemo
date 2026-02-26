@@ -11,6 +11,7 @@ import {
   updateCountingParams,
 } from '@/api/counting'
 import CardMenu from '@/components/ui/CardMenu'
+import { benefitElapsedKey } from '@/context/SessionContext'
 import styles from './DataRoomCards.module.css'
 
 const CAT_ICONS: Record<string, string> = {
@@ -490,7 +491,9 @@ interface DataRoomCardsProps {
   zones: Record<string, ZoneData> | null
   counting: CountingResponse | null
   videoPath: string | null
-  sessionElapsed?: number
+  benefitElapsed?: Record<string, number>
+  siteId?: string
+  camId?: string
   presenceAtStart?: number
   onAddBenefit?: () => void
   onEditBenefit?: (benefitId: string) => void
@@ -503,7 +506,9 @@ export default function DataRoomCards({
   zones,
   counting,
   videoPath,
-  sessionElapsed = 0,
+  benefitElapsed = {},
+  siteId = '',
+  camId = '',
   presenceAtStart = 0,
   onAddBenefit,
   onEditBenefit,
@@ -531,7 +536,7 @@ export default function DataRoomCards({
             key={benefit.benefit_id}
             benefit={benefit}
             zones={zones}
-            sessionElapsed={sessionElapsed}
+            sessionElapsed={benefitElapsed[benefitElapsedKey(siteId, camId, benefit.benefit_id)] ?? 0}
             presenceAtStart={presenceAtStart}
             onEditBenefit={onEditBenefit}
             onDeleteBenefit={onDeleteBenefit}

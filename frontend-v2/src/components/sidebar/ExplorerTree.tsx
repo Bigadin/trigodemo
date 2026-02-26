@@ -1,6 +1,7 @@
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useHierarchy } from '@/context/HierarchyContext'
+import { useSession, benefitElapsedKey } from '@/context/SessionContext'
 import { toggleBenefit } from '@/api/benefits'
 import { getLocColor, icon } from '@/utils/theme'
 import styles from './ExplorerTree.module.css'
@@ -8,8 +9,17 @@ import animStyles from './ExplorerTree.animations.module.css'
 
 const getBenefitColor = () => '#c47b5a'
 
+function formatTime(seconds: number): string {
+  const n = Math.max(0, Number(seconds) || 0)
+  const h = Math.floor(n / 3600)
+  const m = Math.floor((n % 3600) / 60)
+  const s = Math.floor(n % 60)
+  return [h, m, s].map((v) => v.toString().padStart(2, '0')).join(':')
+}
+
 export default function ExplorerTree() {
   const { hierarchy, loading, refetch } = useHierarchy()
+  const { benefitElapsed, streamingSiteId, streamingCamId } = useSession()
   const navigate = useNavigate()
   const { siteId } = useParams<{ siteId?: string; lieuId?: string }>()
   const [searchParams] = useSearchParams()
@@ -184,6 +194,9 @@ export default function ExplorerTree() {
                                 const isSelected =
                                   selectedBenefit?.camId === camId && selectedBenefit?.benId === benId
                                 const benEnabled = ben.active !== false
+                                const isStreamingThisCam = streamingSiteId === sid && streamingCamId === camId
+                                const key = benefitElapsedKey(sid, camId, benId)
+                                const timerText = isStreamingThisCam ? formatTime(benefitElapsed[key] ?? 0) : '00:00:00'
 
                                 return (
                                   <div
@@ -204,7 +217,7 @@ export default function ExplorerTree() {
                                         ? (ben.name || benId).slice(0, 10) + '…'
                                         : ben.name || benId}
                                     </span>
-                                    <span className={styles.time}>00:00:00</span>
+                                    <span className={styles.time}>{timerText}</span>
                                     <button
                                       type="button"
                                       className={`${styles.toggle} ${benEnabled ? styles.on : ''}`}

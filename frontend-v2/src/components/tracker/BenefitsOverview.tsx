@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { HierarchyBenefit } from '@/types/hierarchy'
+import { useSession, benefitElapsedKey } from '@/context/SessionContext'
 import type { ZoneData } from '@/api/tracker'
 import { Toggle } from '@/components/ui/Toggle'
 import { getSkillGroups, getCategoryGroupsBySkill } from '@/api/skills'
@@ -55,7 +56,8 @@ function getBenefitColor(benefitId: string): string {
 interface BenefitsOverviewProps {
   benefits: HierarchyBenefit[]
   zones: Record<string, ZoneData> | null
-  sessionElapsed?: number
+  siteId: string
+  camId: string
   selectedBenefitId: string | null
   onSelectBenefit: (benId: string | null) => void
   onToggleBenefit: (benId: string, active: boolean) => Promise<void>
@@ -65,12 +67,14 @@ interface BenefitsOverviewProps {
 export default function BenefitsOverview({
   benefits,
   zones: _zones,
-  sessionElapsed = 0,
+  siteId,
+  camId,
   selectedBenefitId,
   onSelectBenefit,
   onToggleBenefit,
   onEditBenefit,
 }: BenefitsOverviewProps) {
+  const { benefitElapsed } = useSession()
   /* Optimistic update: évite le re-render immédiat qui coupe l'animation goo (comme vanilla) */
   const [optimisticActive, setOptimisticActive] = useState<Record<string, boolean>>({})
 
@@ -96,7 +100,8 @@ export default function BenefitsOverview({
   return (
     <div className={styles.list}>
       {benefits.map((ben) => {
-        const timerText = formatTime(sessionElapsed)
+        const key = benefitElapsedKey(siteId, camId, ben.benefit_id)
+        const timerText = formatTime(benefitElapsed[key] ?? 0)
         const enabled =
           ben.benefit_id in optimisticActive ? optimisticActive[ben.benefit_id] : ben.active !== false
         const isSelected = selectedBenefitId === ben.benefit_id

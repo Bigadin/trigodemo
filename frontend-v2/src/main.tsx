@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { HierarchyProvider } from '@/context/HierarchyContext'
+import { SessionProvider } from '@/context/SessionContext'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import App from './App'
 import './styles/tokens.css'
@@ -16,7 +17,9 @@ if (!root) {
       <ErrorBoundary>
         <BrowserRouter>
           <HierarchyProvider>
-            <App />
+            <SessionProvider>
+              <App />
+            </SessionProvider>
           </HierarchyProvider>
         </BrowserRouter>
       </ErrorBoundary>

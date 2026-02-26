@@ -1,6 +1,6 @@
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { useMemo, useState, useEffect, useRef } from 'react'
-import { useSessionTimer } from '@/hooks/useSessionTimer'
+import { useSession, benefitElapsedKey } from '@/context/SessionContext'
 import { useHierarchy } from '@/context/HierarchyContext'
 import {
   fetchZones,
@@ -21,6 +21,7 @@ import CameraGrid, { type CameraWithStatus } from '@/components/tracker/CameraGr
 import BenefitsOverview from '@/components/tracker/BenefitsOverview'
 import BenefitConfigModal from '@/components/tracker/BenefitConfigModal'
 import { toggleBenefit, deleteBenefit, syncBenefitZones } from '@/api/benefits'
+import { resetCounting } from '@/api/counting'
 import DataRoomCards from '@/components/tracker/DataRoomCards'
 import LovDropdown from '@/components/ui/LovDropdown'
 import styles from './TrackerView.module.css'
@@ -86,6 +87,9 @@ export default function TrackerView() {
   const [detections, setDetections] = useState<Detection[]>([])
   const [videoInfo, setVideoInfo] = useState<{ width: number; height: number } | null>(null)
   const presenceAtStartRef = useRef<number>(0)
+  const [videoResetTrigger, setVideoResetTrigger] = useState(0)
+  const [optimisticBenefitActive, setOptimisticBenefitActive] = useState<Record<string, boolean>>({})
+  const { benefitElapsed, setStreaming, tickBenefitTimers, resetBenefitTimers } = useSession()
 
   const camerasWithActive = useMemo(() => {
     return camerasWithStatus.map((c) => ({
@@ -189,8 +193,16 @@ export default function TrackerView() {
   const handleStopAll = async () => {
     setIsStreaming(false)
     try {
+      if (videoPath) {
+        await resetCounting(videoPath)
+        const cRes = await fetchCounting(videoPath).catch(() => null)
+        if (cRes) setCounting(cRes)
+        setVideoResetTrigger((t) => t + 1)
+        if (siteId && effectiveCamId && benefits.length > 0) {
+          resetBenefitTimers(benefits.map((b) => benefitElapsedKey(siteId, effectiveCamId, b.benefit_id)))
+        }
+      }
       await stopAllStreams()
-      setIsStreaming(false)
       const sRes = await fetchStreams()
       setStreams(sRes.streams || [])
     } catch (err) {
@@ -239,11 +251,30 @@ export default function TrackerView() {
   useEffect(() => {
     setZoneActiveOptimistic(null)
   }, [selectedBenefitId])
+  useEffect(() => {
+    setOptimisticBenefitActive({})
+  }, [effectiveCamId, siteId])
   const zoneActive = zoneActiveOptimistic ?? (selectedBenefit?.active !== false)
 
-  /* Timer: s'arrête quand le bénéfice est désactivé (toggle off) */
-  const timerActive = isStreaming && zoneActive
-  const sessionElapsed = useSessionTimer(timerActive)
+  /* Timer par bénéfice : ne s'incrémente que quand le bénéfice est actif (vidéo continue même si désactivé) */
+  useEffect(() => {
+    if (!isStreaming || !siteId || !effectiveCamId) {
+      setStreaming(null, null)
+      return
+    }
+    setStreaming(siteId, effectiveCamId)
+  }, [isStreaming, siteId, effectiveCamId, setStreaming])
+
+  useEffect(() => {
+    if (!isStreaming || !siteId || !effectiveCamId || benefits.length === 0) return
+    const activeKeys = benefits
+      .filter((b) => (b.benefit_id in optimisticBenefitActive ? optimisticBenefitActive[b.benefit_id] : b.active !== false))
+      .map((b) => benefitElapsedKey(siteId, effectiveCamId, b.benefit_id))
+    const interval = setInterval(() => tickBenefitTimers(activeKeys), 1000)
+    return () => clearInterval(interval)
+  }, [isStreaming, siteId, effectiveCamId, benefits, optimisticBenefitActive, tickBenefitTimers])
+
+  useEffect(() => () => setStreaming(null, null), [setStreaming])
 
   if (hierarchyLoading) {
     return (
@@ -254,7 +285,6 @@ export default function TrackerView() {
   }
 
   const showPlaceholder = !siteId || !site
-  const hasActiveStreams = streams.some((s) => s.active)
 
   return (
     <div className={styles.page}>
@@ -277,7 +307,7 @@ export default function TrackerView() {
                 <img src={icon('zone')} className={styles.stepIcon} alt="" />
                 <span className={styles.stepNum}>{zoneCount}</span>
               </div>
-              <div className={styles.step} title="Lancer">
+              <div className={`${styles.step} ${styles.stepPct}`} title="Lancer">
                 <img src={icon('check')} className={styles.stepIcon} alt="" />
                 <span className={styles.stepNum}>{avgOcc}%</span>
               </div>
@@ -304,7 +334,7 @@ export default function TrackerView() {
                 type="button"
                 className={styles.actionBtn}
                 onClick={handleStopAll}
-                disabled={!hasActiveStreams}
+                disabled={!videoPath}
                 title="Tout arrêter"
               >
                 <img src={icon('stop')} className={styles.actionIcon} alt="" />
@@ -377,6 +407,7 @@ export default function TrackerView() {
                 <VideoPlayer
                   videoPath={videoPath}
                   isStreaming={isStreaming}
+                  resetTrigger={videoResetTrigger}
                   onStreamStart={handleStreamToggle}
                   zonePolygons={selectedBenefit?.zone_polygons}
                   zonePolygonTypes={selectedBenefit?.zone_polygon_types}
@@ -420,7 +451,8 @@ export default function TrackerView() {
                       <BenefitsOverview
                         benefits={benefits}
                         zones={zones}
-                        sessionElapsed={sessionElapsed}
+                        siteId={siteId ?? ''}
+                        camId={effectiveCamId ?? ''}
                         selectedBenefitId={selectedBenefitId}
                         onSelectBenefit={(benId) => {
                           setSearchParams((p) => {
@@ -432,6 +464,7 @@ export default function TrackerView() {
                           })
                         }}
                         onToggleBenefit={async (benId, active) => {
+                          setOptimisticBenefitActive((p) => ({ ...p, [benId]: active }))
                           if (benId === selectedBenefitId) setZoneActiveOptimistic(active)
                           await toggleBenefit(benId, active)
                           refetchHierarchy()
@@ -491,7 +524,9 @@ export default function TrackerView() {
                   zones={zones}
                   counting={counting}
                   videoPath={videoPath}
-                  sessionElapsed={sessionElapsed}
+                  benefitElapsed={benefitElapsed}
+                  siteId={siteId ?? ''}
+                  camId={effectiveCamId ?? ''}
                   presenceAtStart={presenceAtStartRef.current}
                   onRefreshCounting={loadData}
                   onAddBenefit={() => {

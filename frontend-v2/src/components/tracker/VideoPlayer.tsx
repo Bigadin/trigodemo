@@ -6,6 +6,7 @@ import styles from './VideoPlayer.module.css'
 interface VideoPlayerProps {
   videoPath: string | null
   isStreaming: boolean
+  resetTrigger?: number
   onStreamStart?: () => void
   zonePolygons?: number[][][]
   zonePolygonTypes?: ('include' | 'exclude')[]
@@ -24,7 +25,7 @@ const ZONE_COLORS = {
   inactive:      { fill: 'rgba(148,163,184,0.12)', stroke: 'rgba(148,163,184,0.5)' },
 } as const
 
-export default function VideoPlayer({ videoPath, isStreaming, onStreamStart, zonePolygons, zonePolygonTypes, videoWidth, videoHeight, zoneRefWidth, zoneRefHeight, zoneActive = true, detections }: VideoPlayerProps) {
+export default function VideoPlayer({ videoPath, isStreaming, resetTrigger, onStreamStart, zonePolygons, zonePolygonTypes, videoWidth, videoHeight, zoneRefWidth, zoneRefHeight, zoneActive = true, detections }: VideoPlayerProps) {
   // Mirror the same coordinate logic as BenefitConfigModal:
   // zone_ref_width/height → videoWidth/height → 1280/720 fallback
   const viewW = (zoneRefWidth != null && zoneRefWidth > 0) ? zoneRefWidth
@@ -47,6 +48,12 @@ export default function VideoPlayer({ videoPath, isStreaming, onStreamStart, zon
       el.pause()
     }
   }, [isStreaming])
+
+  useEffect(() => {
+    const el = videoRef.current
+    if (!el || resetTrigger == null || resetTrigger < 1) return
+    el.currentTime = 0
+  }, [resetTrigger])
 
   // Compute zone occupancy from detections (frontend logic).
   // Both zone polygons and YOLO detections are in video-pixel coords,

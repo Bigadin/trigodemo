@@ -15,7 +15,7 @@
     "total_time": 51.49583888053894
   },
   "de": {
-    "total_time": 1805.5650367736816
+    "total_time": 1808.517814874649
   },
   "cmp": {
     "total_time": 0
@@ -39,9 +39,21 @@
     "total_time": 0
   },
   "ben_detection_entree": {
-    "total_time": 2205.1623363494873
+    "total_time": 2296.0718433856964
   },
   "ben_detection_dock": {
+    "total_time": 0
+  },
+  "ben_counting_convoyeur": {
+    "total_time": 0
+  },
+  "ben_counting_convoyeur:0": {
+    "total_time": 0
+  },
+  "ben-cam_entree-1772049529251": {
+    "total_time": 0
+  },
+  "ben-cam_entree-1772049529251:0": {
     "total_time": 0
   }
 }

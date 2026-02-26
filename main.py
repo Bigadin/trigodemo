@@ -16,8 +16,9 @@ from ultralytics import YOLO
 import torch
 
 from datetime import datetime, timezone
-from collections import deque
 from typing import Optional
+
+from store import persist, audit_event, append_event, load_audit_log, get_audit_entries, clear_audit_log, init as store_init
 
 app = FastAPI(title="Zone Presence Tracker")
 
@@ -43,6 +44,7 @@ STATIC_DIR = BASE_DIR / "static"
 VIDEOS_DIR.mkdir(exist_ok=True)
 DATA_DIR.mkdir(exist_ok=True)
 STATIC_DIR.mkdir(exist_ok=True)
+store_init(DATA_DIR)
 
 # Load YOLO model
 print("Loading YOLO model...")
@@ -784,65 +786,13 @@ def update_counting_simple(video_name: str, frame: np.ndarray):
 
 
 # ==================== Audit / Event Log System ====================
-
-AUDIT_LOG_FILE = DATA_DIR / "audit_log.jsonl"
-_audit_log: deque = deque(maxlen=2000)  # In-memory ring buffer
-_audit_lock = threading.Lock()
-
-
-def _load_audit_log():
-    """Load existing audit log from disk on startup."""
-    if AUDIT_LOG_FILE.exists():
-        try:
-            with open(AUDIT_LOG_FILE, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if line:
-                        _audit_log.append(json.loads(line))
-        except Exception:
-            pass  # corrupted file — start fresh
-
-
-def audit_event(
-    category: str,
-    action: str,
-    detail: str = "",
-    level: str = "info",
-    meta: Optional[dict] = None,
-):
-    """
-    Record an audit event.
-    - category: zone | stream | camera | system | detection | blur | video
-    - action: short verb (created, deleted, started, stopped, edited, reset, upload, error…)
-    - detail: human-readable description
-    - level: info | warn | error | success
-    - meta: optional dict with extra structured data
-    """
-    entry = {
-        "ts": datetime.now(timezone.utc).isoformat(),
-        "category": category,
-        "action": action,
-        "detail": detail,
-        "level": level,
-    }
-    if meta:
-        entry["meta"] = meta
-    with _audit_lock:
-        _audit_log.append(entry)
-        # Append to file (one JSON line per event)
-        try:
-            with open(AUDIT_LOG_FILE, "a", encoding="utf-8") as f:
-                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-        except Exception:
-            pass
-
-
-_load_audit_log()
+# Journal centralisé dans store.py — load_audit_log au démarrage
 
 
 def _seed_demo_events():
     """Seed historical demo events if the log is empty or very small (< 5 entries)."""
-    if len(_audit_log) > 5:
+    entries = get_audit_entries()
+    if len(entries) > 5:
         return  # Already has data, skip
 
     from datetime import timedelta
@@ -944,16 +894,10 @@ def _seed_demo_events():
         }
         if meta:
             ev["meta"] = meta
-
-        with _audit_lock:
-            _audit_log.append(ev)
-            try:
-                with open(AUDIT_LOG_FILE, "a", encoding="utf-8") as f:
-                    f.write(json.dumps(ev, ensure_ascii=False) + "\n")
-            except Exception:
-                pass
+        append_event(ev)
 
 
+load_audit_log()
 _seed_demo_events()
 
 
@@ -1233,12 +1177,11 @@ async def get_metrics(points: int = 120):
 @app.get("/api/logs")
 async def get_audit_logs(limit: int = 200, offset: int = 0, category: str = ""):
     """Return recent audit log entries (newest first)."""
-    with _audit_lock:
-        entries = list(_audit_log)
-    # Filter by category if provided
+    entries = get_audit_entries()
+    # Filter by category/entity if provided
     if category:
         cats = set(c.strip() for c in category.split(","))
-        entries = [e for e in entries if e.get("category") in cats]
+        entries = [e for e in entries if e.get("category") in cats or e.get("entity") in cats]
     # Newest first
     entries.reverse()
     total = len(entries)
@@ -1249,12 +1192,7 @@ async def get_audit_logs(limit: int = 200, offset: int = 0, category: str = ""):
 @app.delete("/api/logs")
 async def clear_audit_logs():
     """Clear the audit log."""
-    with _audit_lock:
-        _audit_log.clear()
-        try:
-            AUDIT_LOG_FILE.write_text("")
-        except Exception:
-            pass
+    clear_audit_log()
     audit_event("system", "logs_cleared", "Journal d'audit effacé", "warn")
     return {"message": "Logs cleared"}
 
@@ -1493,10 +1431,8 @@ async def create_zone(zone: ZoneCreate):
         if zone_name not in zone_timers:
             zone_timers[zone_name] = {"total_time": 0, "occupy_start": None, "last_seen": None}
 
-    save_zones()
-    poly_count = len(zone.polygons)
-    audit_event("zone", "created", f"Zone « {zone_name} » créée sur {video_name} ({poly_count} forme(s))", "success",
-                {"zone": zone_name, "video": video_name, "polygons": poly_count})
+    persist(save_zones, "zone", "created", f"Zone « {zone_name} » créée sur {video_name} ({poly_count} forme(s))", "success",
+            meta={"zone": zone_name, "video": video_name, "polygons": len(zone.polygons)})
     return {"message": "Zone created", "name": zone_name}
 
 
@@ -1514,10 +1450,8 @@ async def update_zone(video_name: str, zone_name: str, update: ZoneUpdate):
 
         zones_by_video[video_name][zone_name]["polygons"] = update.polygons
 
-    save_zones()
-    poly_count = len(update.polygons)
-    audit_event("zone", "edited", f"Zone « {zone_name} » éditée sur {video_name} ({poly_count} forme(s))", "info",
-                {"zone": zone_name, "video": video_name, "polygons": poly_count})
+    persist(save_zones, "zone", "updated", f"Zone « {zone_name} » éditée sur {video_name} ({len(update.polygons)} forme(s))", "info",
+            meta={"zone": zone_name, "video": video_name, "polygons": len(update.polygons)})
     return {"message": "Zone updated", "name": zone_name, "video": video_name}
 
 
@@ -1555,10 +1489,11 @@ async def delete_zone(video_name: str, zone_name: str):
                 if not counting_bg_models[video_name]:
                     del counting_bg_models[video_name]
 
-    save_zones()
-    save_presence()
-    audit_event("zone", "deleted", f"Zone « {zone_name} » supprimée de {video_name}", "warn",
-                {"zone": zone_name, "video": video_name})
+    def _save():
+        save_zones()
+        save_presence()
+    persist(_save, "zone", "deleted", f"Zone « {zone_name} » supprimée de {video_name}", "warn",
+            meta={"zone": zone_name, "video": video_name})
     return {"message": "Zone deleted"}
 
 
@@ -1585,10 +1520,11 @@ async def delete_all_zones_for_video(video_name: str):
                 if video_name in counting_bg_models:
                     del counting_bg_models[video_name]
 
-    save_zones()
-    save_presence()
-    audit_event("zone", "deleted_all", f"Toutes les zones supprimées pour {video_name}", "warn",
-                {"video": video_name})
+    def _save():
+        save_zones()
+        save_presence()
+    persist(_save, "zone", "deleted", f"Toutes les zones supprimées pour {video_name}", "warn",
+            meta={"video": video_name})
     return {"message": "All zones deleted for video"}
 
 
@@ -1606,8 +1542,7 @@ async def reset_all_timers():
             zone_timers[zone_name]["total_time"] = 0
             zone_timers[zone_name]["occupy_start"] = None
             zone_timers[zone_name]["last_seen"] = None
-    save_presence()
-    audit_event("zone", "reset_all", "Tous les timers de zones réinitialisés", "warn")
+    persist(save_presence, "presence", "reset", "Tous les timers de zones réinitialisés", "warn")
     return {"message": "All timers reset"}
 
 
@@ -1618,8 +1553,8 @@ async def reset_zone_timer(zone_name: str):
             zone_timers[zone_name]["total_time"] = 0
             zone_timers[zone_name]["occupy_start"] = None
             zone_timers[zone_name]["last_seen"] = None
-    save_presence()
-    audit_event("zone", "reset", f"Timer de « {zone_name} » réinitialisé", "info", {"zone": zone_name})
+    persist(save_presence, "presence", "reset", f"Timer de « {zone_name} » réinitialisé", "info",
+            meta={"zone": zone_name})
     return {"message": f"Timer reset for {zone_name}"}
 
 
@@ -2000,8 +1935,7 @@ async def create_lieu(lieu: LieuCreate):
         "icon": lieu.icon or "",
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
-    save_lieux()
-    audit_event("lieu", "created", f"Lieu « {lieu.name} » créé", "success",
+    persist(save_lieux, "lieu", "created", f"Lieu « {lieu.name} » créé", "success",
                 {"lieu_id": lieu.lieu_id, "name": lieu.name})
     return {"message": "Lieu created", "lieu_id": lieu.lieu_id}
 
@@ -2014,9 +1948,8 @@ async def update_lieu(lieu_id: str, payload: LieuUpdate):
         val = getattr(payload, field, None)
         if val is not None:
             lieux[lieu_id][field] = val
-    save_lieux()
-    audit_event("lieu", "updated", f"Lieu « {lieux[lieu_id]['name']} » modifié", "info",
-                {"lieu_id": lieu_id})
+    persist(save_lieux, "lieu", "updated", f"Lieu « {lieux[lieu_id]['name']} » modifié", "info",
+            meta={"lieu_id": lieu_id})
     return {"message": "Lieu updated"}
 
 
@@ -2030,9 +1963,8 @@ async def delete_lieu(lieu_id: str):
                             detail=f"Cannot delete: {len(child_sites)} site(s) still attached")
     lieu_name = lieux[lieu_id].get("name", lieu_id)
     del lieux[lieu_id]
-    save_lieux()
-    audit_event("lieu", "deleted", f"Lieu « {lieu_name} » supprimé", "warn",
-                {"lieu_id": lieu_id})
+    persist(save_lieux, "lieu", "deleted", f"Lieu « {lieu_name} » supprimé", "warn",
+            meta={"lieu_id": lieu_id})
     return {"message": "Lieu deleted"}
 
 
@@ -2083,9 +2015,8 @@ async def create_site(site: SiteCreate):
         "icon": site.icon or "",
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
-    save_sites()
-    audit_event("site", "created", f"Site « {site.name} » créé dans lieu « {site.lieu_id} »", "success",
-                {"site_id": site.site_id, "name": site.name, "lieu_id": site.lieu_id})
+    persist(save_sites, "site", "created", f"Site « {site.name} » créé dans lieu « {site.lieu_id} »", "success",
+            meta={"site_id": site.site_id, "name": site.name, "lieu_id": site.lieu_id})
     return {"message": "Site created", "site_id": site.site_id}
 
 
@@ -2099,9 +2030,8 @@ async def update_site(site_id: str, payload: SiteUpdate):
         val = getattr(payload, field, None)
         if val is not None:
             sites[site_id][field] = val
-    save_sites()
-    audit_event("site", "updated", f"Site « {sites[site_id]['name']} » modifié", "info",
-                {"site_id": site_id})
+    persist(save_sites, "site", "updated", f"Site « {sites[site_id]['name']} » modifié", "info",
+            meta={"site_id": site_id})
     return {"message": "Site updated"}
 
 
@@ -2115,9 +2045,8 @@ async def delete_site(site_id: str):
                             detail=f"Cannot delete: {len(child_cams)} camera(s) still attached")
     site_name = sites[site_id].get("name", site_id)
     del sites[site_id]
-    save_sites()
-    audit_event("site", "deleted", f"Site « {site_name} » supprimé", "warn",
-                {"site_id": site_id})
+    persist(save_sites, "site", "deleted", f"Site « {site_name} » supprimé", "warn",
+            meta={"site_id": site_id})
     return {"message": "Site deleted"}
 
 
@@ -2200,12 +2129,10 @@ async def create_benefit(benefit: BenefitCreate):
         "canvas": benefit.canvas or {},
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
-    save_benefits()
+    persist(save_benefits, "benefit", "created",
+           f"Bénéfice « {benefit.name} » créé (skill={benefit.skill}, camera={benefit.camera_id})",
+           "success", meta={"benefit_id": benefit.benefit_id, "skill": benefit.skill, "camera_id": benefit.camera_id})
     await sync_benefit_zones()
-    audit_event("benefit", "created",
-                f"Bénéfice « {benefit.name} » créé (skill={benefit.skill}, camera={benefit.camera_id})",
-                "success",
-                {"benefit_id": benefit.benefit_id, "skill": benefit.skill, "camera_id": benefit.camera_id})
     return {"message": "Benefit created", "benefit_id": benefit.benefit_id}
 
 
@@ -2217,10 +2144,9 @@ async def update_benefit(benefit_id: str, payload: BenefitUpdate):
         val = getattr(payload, field, None)
         if val is not None:
             benefits[benefit_id][field] = val
-    save_benefits()
+    persist(save_benefits, "benefit", "updated", f"Bénéfice « {benefits[benefit_id]['name']} » modifié", "info",
+            meta={"benefit_id": benefit_id})
     await sync_benefit_zones()
-    audit_event("benefit", "updated", f"Bénéfice « {benefits[benefit_id]['name']} » modifié", "info",
-                {"benefit_id": benefit_id})
     return {"message": "Benefit updated"}
 
 
@@ -2231,9 +2157,8 @@ async def delete_benefit(benefit_id: str):
     b_name = benefits[benefit_id].get("name", benefit_id)
     b_camera = benefits[benefit_id].get("camera_id", "")
     del benefits[benefit_id]
-    save_benefits()
-    audit_event("benefit", "deleted", f"Bénéfice « {b_name} » supprimé", "warn",
-                {"benefit_id": benefit_id, "camera_id": b_camera})
+    persist(save_benefits, "benefit", "deleted", f"Bénéfice « {b_name} » supprimé", "warn",
+            meta={"benefit_id": benefit_id, "camera_id": b_camera})
     return {"message": "Benefit deleted"}
 
 
@@ -2342,9 +2267,8 @@ async def add_camera(camera: CameraCreate):
     else:
         raise HTTPException(status_code=400, detail="Invalid camera type")
 
-    save_cameras()
-    audit_event("camera", "added", f"Caméra « {camera.name} » ajoutée ({camera.type})", "success",
-                {"camera_id": camera.camera_id, "name": camera.name, "type": camera.type})
+    persist(save_cameras, "camera", "created", f"Caméra « {camera.name} » ajoutée ({camera.type})", "success",
+            meta={"camera_id": camera.camera_id, "name": camera.name, "type": camera.type})
     return {"message": "Camera added", "camera_id": camera.camera_id}
 
 
@@ -2367,10 +2291,9 @@ async def delete_camera(camera_id: str):
     if orphan_benefits:
         save_benefits()
     del cameras[camera_id]
-    save_cameras()
-    audit_event("camera", "deleted",
-                f"Caméra « {cam_name} » supprimée ({len(orphan_benefits)} bénéfice(s) cascade)",
-                "warn", {"camera_id": camera_id, "benefits_removed": orphan_benefits})
+    persist(save_cameras, "camera", "deleted",
+            f"Caméra « {cam_name} » supprimée ({len(orphan_benefits)} bénéfice(s) cascade)",
+            "warn", meta={"camera_id": camera_id, "benefits_removed": orphan_benefits})
     return {"message": "Camera deleted", "benefits_removed": len(orphan_benefits)}
 
 

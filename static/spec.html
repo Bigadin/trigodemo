@@ -26,16 +26,13 @@
 
     /* ─── TOPBAR ─── */
     #topbar {
-      display: flex; align-items: center; gap: 0.5rem;
+      display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem;
       padding: 0.5rem 1rem;
       background: var(--surface);
       border-bottom: 1px solid var(--border);
-      position: sticky; top: 0; z-index: 100;
-      overflow-x: auto;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
+      position: sticky; top: 0; z-index: 1000;
+      overflow: visible;
     }
-    #topbar::-webkit-scrollbar { display: none; }
     #topbar .logo { color: var(--acc); font-weight: 700; font-size: 13px; letter-spacing: 0.04em; white-space: nowrap; flex-shrink: 0; }
     #topbar .sep { color: var(--border); padding: 0; flex-shrink: 0; font-size: 11px; }
     .topbar-label { font-size: 8px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); padding: 0.1rem 0.3rem; border: 1px solid var(--border); border-radius: 3px; white-space: nowrap; flex-shrink: 0; }
@@ -58,6 +55,16 @@
     .tab-btn.active-archi { color: #cf5820; border-color: #cf5820; background: rgba(207,88,32,0.08); }
     .tab-btn.active-live { color: #f0883e; border-color: #f0883e; background: rgba(240,136,62,0.08); animation: live-pulse 2s ease-in-out infinite; }
     @keyframes live-pulse { 0%,100% { box-shadow: none; } 50% { box-shadow: 0 0 8px rgba(240,136,62,0.3); } }
+    .topbar-dropdown { position: relative; display: inline-flex; }
+    .topbar-dropdown-content {
+      display: none; position: absolute; top: 100%; left: 0; margin-top: 2px;
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 4px; min-width: 140px;
+      z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .topbar-dropdown:hover .topbar-dropdown-content { display: block; }
+    .topbar-dropdown:hover .topbar-dropdown-content { display: block; }
+    .topbar-dropdown .tab-btn { display: block; width: 100%; text-align: left; padding: 0.35rem 0.6rem; margin: 1px 0; border-radius: 4px; }
+    .topbar-dropdown.dropdown-active .topbar-label { color: var(--acc); border-color: var(--acc); }
 
     /* ─── LAYOUT ─── */
     .tab-pane { display: none; padding: 1.5rem; }
@@ -531,26 +538,33 @@
   <button class="tab-btn active" onclick="showTab('overview')">overview</button>
   <span class="sep">│</span>
   <span class="topbar-label">SPEC</span>
-  <button class="tab-btn" onclick="showTab('site-lieux')">lieu &amp; site</button>
-  <button class="tab-btn" onclick="showTab('camera')">camera</button>
-  <button class="tab-btn" onclick="showTab('benefice')">benefice</button>
-  <button class="tab-btn" onclick="showTab('skills')">skills &amp; cats</button>
+  <button class="tab-btn" onclick="showTab('site-lieux')">Lieu &amp; site</button>
+  <button class="tab-btn" onclick="showTab('camera')">Camera</button>
+  <button class="tab-btn" onclick="showTab('benefice')">Bénéfice</button>
+  <button class="tab-btn" onclick="showTab('skills')">Skills</button>
   <span class="sep">│</span>
-  <span class="topbar-label">DDD</span>
-  <button class="tab-btn" onclick="showTab('lov')">LOV &amp; Data</button>
+  <button class="tab-btn" onclick="showTab('lov')">LOV</button>
   <span class="sep">│</span>
-  <span class="topbar-label">ARCHI</span>
-  <button class="tab-btn" onclick="showTab('archi')">Technique</button>
-  <button class="tab-btn" onclick="showTab('archi-ux')">Parcours UX</button>
+  <div class="topbar-dropdown" data-tabs="archi,archi-ux">
+    <span class="topbar-label" style="cursor:pointer;user-select:none">ARCHI ▾</span>
+    <div class="topbar-dropdown-content">
+      <button class="tab-btn" onclick="showTab('archi')">Technique</button>
+      <button class="tab-btn" onclick="showTab('archi-ux')">Parcours UX</button>
+    </div>
+  </div>
   <span class="sep">│</span>
-  <span class="topbar-label">FEATURES</span>
-  <button class="tab-btn" onclick="showTab('feat-video')">Video &amp; Upload</button>
+  <button class="tab-btn" onclick="showTab('feat-video')">Video</button>
   <button class="tab-btn" onclick="showTab('feat-counting')">Counting</button>
-  <button class="tab-btn" onclick="showTab('feat-blur')">Blur</button>
-  <button class="tab-btn" onclick="showTab('feat-metrics')">Metrics &amp; Logs</button>
+  <div class="topbar-dropdown" data-tabs="feat-data-room,feat-blur,feat-metrics">
+    <span class="topbar-label" style="cursor:pointer;user-select:none">+ ▾</span>
+    <div class="topbar-dropdown-content">
+      <button class="tab-btn" onclick="showTab('feat-data-room')">Data Room</button>
+      <button class="tab-btn" onclick="showTab('feat-blur')">Blur</button>
+      <button class="tab-btn" onclick="showTab('feat-metrics')">Metrics &amp; Logs</button>
+    </div>
+  </div>
   <span class="sep">│</span>
-  <span class="topbar-label">API</span>
-  <button class="tab-btn" onclick="showTab('api-ref')">Contrats API</button>
+  <button class="tab-btn" onclick="showTab('api-ref')">API</button>
   <span class="sep">│</span>
   <button class="tab-btn" onclick="showTab('listener')" id="btn-listener">Live</button>
   <span style="margin-left:auto;color:var(--dim);font-size:11px">v0.2 · 2026-02</span>
@@ -1515,6 +1529,109 @@
 </div>
 
 <!-- ════════════════════════════════════════════
+     TAB : DATA ROOM CARDS
+════════════════════════════════════════════ -->
+<div id="tab-feat-data-room" class="tab-pane">
+  <h2 style="color:var(--acc)">Data Room — Cartes par skill / sous-skill</h2>
+  <p style="color:var(--muted);margin-bottom:1rem">Chaque bénéfice est associé à une carte Data Room selon son skill et skill_item. Les cartes affichent les métriques temps réel et les contrôles spécifiques.</p>
+
+  <div class="sh">Correspondance skill → carte</div>
+  <table class="ftable"><thead><tr>
+    <th>Skill</th><th>Sous-skill (skill_item)</th><th>Type de carte</th><th>Description</th>
+  </tr></thead><tbody>
+    <tr><td><code>detection</code></td><td><code>detection_presence</code></td><td><span class="tag-benef">Présence / Absence</span></td><td>Détection de présence dans les zones, temps cumulé, barre de progression</td></tr>
+    <tr><td><code>counting</code></td><td><code>comptage_zone</code></td><td><span class="tag-benef">Comptage zone</span></td><td>Comptage d'objets traversant une ligne, sélecteur de zone, mode simple/complex</td></tr>
+  </tbody></table>
+
+  <div class="sh" style="margin-top:1.5rem">Design des cartes (2 types actuels)</div>
+  <div class="g2">
+    <!-- Carte 1 : Detection + Présence / Absence -->
+    <div class="panel" style="max-width:320px">
+      <div class="panel-head" style="display:flex;align-items:center;justify-content:space-between">
+        <span style="display:flex;align-items:center;gap:8px">
+          <span style="width:8px;height:8px;border-radius:2px;background:#5a8fb8"></span>
+          <span style="font-weight:700;font-size:12px">DÉTECTION PRÉSENCE</span>
+        </span>
+        <span style="font-size:10px;color:var(--muted)">⋯</span>
+      </div>
+      <div style="padding:1rem;border-top:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:4px;padding:2px 6px;font-size:10px;font-weight:600;background:rgba(15,23,42,0.06);border:1px solid var(--border);border-radius:4px;width:fit-content;margin-bottom:1rem">
+          <img src="/static/assets_youn/SvIcons/SVGnew/Yclassify.svg" alt="" style="width:14px;height:14px;filter:brightness(0) opacity(0.6)">
+          Présence / Absence
+        </div>
+        <div style="display:flex;flex-direction:column;gap:1rem">
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+              <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)">
+                <img src="/static/assets_youn/SvIcons/SVGnew/Yhumancat.svg" alt="" style="width:20px;height:20px;filter:brightness(0) opacity(0.6)">
+                Humain
+              </span>
+              <span style="font-size:10px;font-weight:700;padding:1px 8px;border-radius:4px;background:rgba(34,197,94,0.18);color:#22c55e">Présent</span>
+            </div>
+            <div style="height:5px;background:rgba(15,23,42,0.1);border-radius:4px;overflow:hidden">
+              <div style="height:100%;width:67%;background:linear-gradient(90deg,#22c55e,#16a34a);border-radius:4px"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:4px">
+              <span>00:02:15</span>
+              <span>67%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Carte 2 : Counting + Comptage zone -->
+    <div class="panel" style="max-width:320px">
+      <div class="panel-head" style="display:flex;align-items:center;justify-content:space-between">
+        <span style="display:flex;align-items:center;gap:8px">
+          <span style="width:8px;height:8px;border-radius:2px;background:#4d9d8a"></span>
+          <span style="font-weight:700;font-size:12px">COMPTAGE ZONE</span>
+        </span>
+        <span style="font-size:10px;color:var(--muted)">⋯</span>
+      </div>
+      <div style="padding:1rem;border-top:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:4px;padding:2px 6px;font-size:10px;font-weight:600;background:rgba(15,23,42,0.06);border:1px solid var(--border);border-radius:4px;width:fit-content;margin-bottom:1rem">
+          <img src="/static/assets_youn/SvIcons/SVGnew/Ycounting.svg" alt="" style="width:14px;height:14px;filter:brightness(0) opacity(0.6)">
+          Comptage
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.75rem">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;color:var(--muted);min-width:48px">Zone</span>
+            <select style="flex:1;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text)">
+              <option>Entrée principale</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;color:var(--muted);min-width:48px">Mode</span>
+            <select style="flex:1;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text)">
+              <option>Simple (gradient)</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:0.5rem 0">
+            <img src="/static/assets_youn/SvIcons/SVGnew/Yhumancat.svg" alt="" style="width:28px;height:28px;filter:brightness(0) opacity(0.6)">
+            <span style="font-size:24px;font-weight:800;color:var(--blue)">42</span>
+            <span style="font-size:12px;color:var(--muted)">Personnes</span>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button style="padding:6px 12px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--text);cursor:pointer">▶ Démarrer</button>
+            <button style="padding:6px 12px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--text);cursor:pointer">↻ Flip</button>
+            <button style="padding:6px 12px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--text);cursor:pointer">↺ Reset</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sh" style="margin-top:1.5rem">Règles</div>
+  <ul style="color:var(--text);margin:0;padding-left:1.2rem;line-height:1.8">
+    <li>Une carte par bénéfice de type <code>detection</code> (présence) ou <code>counting</code> (comptage zone)</li>
+    <li>La carte Présence affiche : état (Présent/Absent), temps cumulé, % du temps de session</li>
+    <li>La carte Comptage affiche : zone sélectionnée, mode, compteur, boutons Démarrer/Flip/Reset</li>
+    <li>Données temps réel via API <code>/api/zones/{video}</code>, <code>/api/counting/{video}</code></li>
+  </ul>
+</div>
+
+<!-- ════════════════════════════════════════════
      TAB : BLUR
 ════════════════════════════════════════════ -->
 <div id="tab-feat-blur" class="tab-pane">
@@ -1581,12 +1698,33 @@
     <th>Champ</th><th>Type</th><th>Description</th>
   </tr></thead><tbody>
     <tr><td><code>ts</code></td><td>str (ISO)</td><td>Timestamp UTC</td></tr>
-    <tr><td><code>category</code></td><td>str</td><td><code>zone | stream | camera | system | detection | blur | video | lieu | site | benefit</code></td></tr>
-    <tr><td><code>action</code></td><td>str</td><td><code>created | deleted | started | stopped | edited | reset | upload | error</code></td></tr>
+    <tr><td><code>category</code></td><td>str</td><td>Événements non-CRUD : <code>zone | stream | camera | system | detection | blur | video</code></td></tr>
+    <tr><td><code>entity</code></td><td>str</td><td>Événements CRUD : <code>lieu | site | camera | benefit | zone | presence | counting</code></td></tr>
+    <tr><td><code>action</code></td><td>str</td><td><code>created | updated | deleted | reset | started | stopped | upload | error</code></td></tr>
     <tr><td><code>detail</code></td><td>str</td><td>Description humaine de l'événement</td></tr>
     <tr><td><code>level</code></td><td>str</td><td><code>info | warn | error | success</code></td></tr>
-    <tr><td><code>meta</code></td><td>dict?</td><td>Données structurées supplémentaires</td></tr>
+    <tr><td><code>meta</code></td><td>dict?</td><td>Identifiants et contexte (id, ids, etc.)</td></tr>
+    <tr><td><code>payload</code></td><td>dict?</td><td>Données pour traçabilité (événements CRUD)</td></tr>
   </tbody></table>
+
+  <div class="sh" style="margin-top:1.5rem">Persistance centralisée — CRUD et journal</div>
+  <p style="color:var(--muted);margin-bottom:0.75rem">Toutes les écritures passent par le module <code>store.py</code>. Chaque modification CRUD est enregistrée dans <code>data/audit_log.jsonl</code> (append-only).</p>
+  <table class="ftable"><thead><tr>
+    <th>Entité</th><th>Fichier JSON</th><th>Actions</th>
+  </tr></thead><tbody>
+    <tr><td><code>lieu</code></td><td><code>data/lieux.json</code></td><td>created, updated, deleted</td></tr>
+    <tr><td><code>site</code></td><td><code>data/sites.json</code></td><td>created, updated, deleted</td></tr>
+    <tr><td><code>camera</code></td><td><code>data/cameras.json</code></td><td>created, deleted</td></tr>
+    <tr><td><code>benefit</code></td><td><code>data/benefits.json</code></td><td>created, updated, deleted</td></tr>
+    <tr><td><code>zone</code></td><td><code>data/zones.json</code></td><td>created, updated, deleted</td></tr>
+    <tr><td><code>presence</code></td><td><code>data/presence.json</code></td><td>reset</td></tr>
+    <tr><td><code>counting</code></td><td><code>data/counting.json</code></td><td>config (via API)</td></tr>
+  </tbody></table>
+  <ul style="color:var(--text);margin:0.5rem 0 0 1.2rem;line-height:1.7;font-size:12px">
+    <li><strong>store.persist(save_fn, entity, action, detail, level, meta?, payload?)</strong> — Sauvegarde + enregistrement dans le journal</li>
+    <li><strong>store.audit_event(category, action, detail, level, meta?)</strong> — Événements non-CRUD (stream, detection, blur, video, system)</li>
+    <li>Format journal : une ligne JSON par événement (JSONL), ordre chronologique</li>
+  </ul>
 </div>
 
 <!-- ════════════════════════════════════════════
@@ -1736,11 +1874,12 @@
   var DDD_TABS = ['lov'];
   var ARCHI_TABS = ['archi','archi-ux'];
   var LIVE_TABS = ['listener'];
-  var FEAT_TABS = ['feat-video','feat-counting','feat-blur','feat-metrics'];
+  var FEAT_TABS = ['feat-video','feat-counting','feat-data-room','feat-blur','feat-metrics'];
   var API_TABS = ['api-ref'];
   function showTab(id) {
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.classList.remove('active-ddd'); b.classList.remove('active-archi'); b.classList.remove('active-live'); });
+    document.querySelectorAll('.topbar-dropdown').forEach(d => d.classList.remove('dropdown-active'));
     document.getElementById('tab-' + id).classList.add('active');
     var isDDD = DDD_TABS.indexOf(id) !== -1;
     var isArchi = ARCHI_TABS.indexOf(id) !== -1;
@@ -1750,6 +1889,9 @@
     var cls = isDDD ? 'active-ddd' : isArchi ? 'active-archi' : isLive ? 'active-live' : isFeat ? 'active-archi' : isApi ? 'active-ddd' : 'active';
     document.querySelectorAll('.tab-btn').forEach(b => {
       if (b.getAttribute('onclick') === "showTab('" + id + "')") b.classList.add(cls);
+    });
+    document.querySelectorAll('.topbar-dropdown[data-tabs]').forEach(d => {
+      if ((d.getAttribute('data-tabs') || '').split(',').indexOf(id) !== -1) d.classList.add('dropdown-active');
     });
     if (isLive) startListener(); else stopListener();
     if (id === 'skills' && !window._skillsLoaded) loadSkills();

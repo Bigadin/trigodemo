@@ -1,1 +1,11 @@
-{}
+{
+  "video_01.mp4": {
+    "zone_name": "ben_counting_convoyeur",
+    "zone_settings": {
+      "ben_counting_convoyeur": {
+        "mode": "simple",
+        "flip_count": 0
+      }
+    }
+  }
+}
