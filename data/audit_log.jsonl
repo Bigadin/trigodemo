@@ -742,3 +742,20 @@
 {"ts": "2026-02-26T10:56:40.014039+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Nouveau bénéfice - Mall 1 » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_mall1-1772103146628"}}
 {"ts": "2026-02-26T10:59:58.470721+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : Mall1.mp4", "level": "info", "meta": {"source": "Mall1.mp4"}}
 {"ts": "2026-02-26T11:00:36.602016+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Nouveau bénéfice - Mall 1 » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_mall1-1772103146628"}}
+{"ts": "2026-02-26T11:02:20.086897+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : Mall1.mp4", "level": "success", "meta": {"source": "Mall1.mp4"}}
+{"ts": "2026-02-26T11:02:57.474539+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Détection présence Mall 1 » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_mall1"}}
+{"ts": "2026-02-26T11:03:05.052916+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Nouveau bénéfice - Mall 1 » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_mall1-1772103146628"}}
+{"ts": "2026-02-26T11:03:06.492101+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Nouveau bénéfice - Mall 1 » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_mall1-1772103146628"}}
+{"ts": "2026-02-26T11:03:07.283739+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Nouveau bénéfice - Mall 1 » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_mall1-1772103146628"}}
+{"ts": "2026-02-26T11:03:07.917727+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Nouveau bénéfice - Mall 1 » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_mall1-1772103146628"}}
+{"ts": "2026-02-26T11:03:10.801535+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : Mall1.mp4", "level": "info", "meta": {"source": "Mall1.mp4"}}
+{"ts": "2026-02-26T11:03:10.844445+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (3)", "level": "warn", "meta": {"count": 3}}
+{"ts": "2026-02-26T11:07:53.890916+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T11:07:53.915025+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T11:09:44.401497+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T11:10:19.092067+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T11:10:24.329304+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T11:11:06.230743+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T11:11:06.232485+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T11:11:10.069043+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-26T11:11:10.072422+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_04.mp4", "level": "info", "meta": {"source": "video_04.mp4"}}

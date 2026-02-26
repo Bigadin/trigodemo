@@ -1,0 +1,222 @@
+/* Log / Historique — design repris du vanilla */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  font-size: var(--text-xl);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin-top: var(--space-1);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.logCard {
+  border: 1px solid var(--color-border);
+  border-radius: 0;
+  background: var(--color-surface-2);
+  overflow: hidden;
+}
+
+.cardHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cardHeaderLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cardSubtitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.cardTitle {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.cardHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.logFilters {
+  display: flex;
+  gap: 2px;
+  background: var(--color-surface);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.logFilterBtn {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.logFilterBtn:hover {
+  color: var(--color-text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.logFilterBtn.active {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.iconBtn {
+  padding: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 0;
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.iconBtn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text);
+}
+
+.logConsole {
+  background: #0a0e13;
+  min-height: 500px;
+  max-height: calc(100vh - 260px);
+  overflow-y: auto;
+  font-family: 'Courier New', 'Fira Code', monospace;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.logConsoleInner {
+  padding: 16px 20px;
+}
+
+.logEmpty {
+  color: rgba(245, 247, 255, 0.3);
+  text-align: center;
+  padding: var(--space-7);
+}
+
+.logEntry {
+  display: flex;
+  gap: 10px;
+  padding: 3px 0;
+  align-items: flex-start;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  animation: logSlideIn 0.25s ease-out;
+}
+
+@keyframes logSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.logTs {
+  color: rgba(245, 247, 255, 0.28);
+  white-space: nowrap;
+  flex: 0 0 auto;
+  font-size: 11px;
+  min-width: 155px;
+}
+
+.logLevel {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 5px;
+}
+
+.logLevelInfo { background: #3b82f6; }
+.logLevelSuccess { background: #22c55e; }
+.logLevelWarn { background: #f59e0b; }
+.logLevelError { background: #ef4444; }
+
+.logCat {
+  flex: 0 0 auto;
+  min-width: 70px;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.logCatZone { color: #22c55e; }
+.logCatStream { color: #3b82f6; }
+.logCatCamera { color: #a855f7; }
+.logCatSystem { color: #6b7280; }
+.logCatVideo { color: #f59e0b; }
+.logCatBlur { color: #ec4899; }
+.logCatDetection { color: #06b6d4; }
+
+.logAction {
+  flex: 0 0 auto;
+  min-width: 90px;
+  color: rgba(245, 247, 255, 0.55);
+  font-size: 11px;
+}
+
+.logDetail {
+  flex: 1;
+  color: rgba(245, 247, 255, 0.82);
+  word-break: break-word;
+}
+
+.logStatusbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 20px;
+  background: #070a0f;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: rgba(245, 247, 255, 0.35);
+}

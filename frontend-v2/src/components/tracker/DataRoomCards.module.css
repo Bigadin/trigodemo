@@ -30,24 +30,32 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(200px, 280px));
+  grid-template-columns: repeat(auto-fill, 280px);
   gap: var(--space-4);
   justify-content: start;
 }
 
 .card {
+  width: 280px;
+  min-height: 240px;
+  max-height: 320px;
   border: 1px solid var(--color-border);
   border-radius: 0;
   background: var(--color-surface-2);
   padding: var(--space-4);
-  min-height: 200px;
   position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .cardMain {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .cardTop {
@@ -379,8 +387,12 @@
   flex: 1;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .grid {
     grid-template-columns: 1fr;
+  }
+  .card {
+    width: 100%;
+    max-width: none;
   }
 }

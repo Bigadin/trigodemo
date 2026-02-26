@@ -1,0 +1,84 @@
+.perfCard {
+  padding: 0;
+  overflow: hidden;
+  background: #0a0e13;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0;
+}
+
+.perfHeader {
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.perfLegends {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.perfLegend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.2s ease;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+}
+
+.perfLegend:hover {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.perfLegend.isOff {
+  opacity: 0.3;
+}
+
+.perfLegendCheck {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 2px solid currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.perfLegend:not(.isOff) .perfLegendCheck::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+.perfLegendLabel {
+  color: rgba(245, 247, 255, 0.75);
+}
+
+.perfCanvasWrap {
+  position: relative;
+  height: 160px;
+  width: 100%;
+}
+
+.perfCanvasWrap canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
