@@ -210,6 +210,12 @@ __marimo__/
 data/*.json
 data/*.jsonl
 
+# Vidéos volumineuses (chaque dev a ses propres assets)
+videos/
+
+# Poids YOLO (.pt) — chaque dev peut avoir ses propres modèles
+weights/*.pt
+
 # Build output
 dist/
 

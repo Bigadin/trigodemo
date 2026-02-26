@@ -1,0 +1,57 @@
+{
+  "description": "Bibliothèque des poids YOLO par classe. Chaque entrée décrit un modèle .pt utilisable pour la détection.",
+  "updated_at": "2026-02-24",
+  "weights": [
+    {
+      "id": "human",
+      "class": "human",
+      "label": "Humain",
+      "file": "human.pt",
+      "version": "1.0.0",
+      "updated_at": "2026-02-01",
+      "status": "active",
+      "performance": {
+        "mAP50": 0.92,
+        "mAP50-95": 0.78,
+        "precision": 0.89,
+        "recall": 0.85,
+        "inference_ms": 12,
+        "dataset": "COCO person (classe 0)"
+      },
+      "notes": "Modèle par défaut — détection présence"
+    },
+    {
+      "id": "voiture",
+      "class": "voiture",
+      "label": "Voiture",
+      "file": "voiture.pt",
+      "version": null,
+      "updated_at": null,
+      "status": "preparation",
+      "performance": null,
+      "notes": "En préparation — bbox et .pt à venir"
+    },
+    {
+      "id": "velo",
+      "class": "velo",
+      "label": "Vélo",
+      "file": "velo.pt",
+      "version": null,
+      "updated_at": null,
+      "status": "preparation",
+      "performance": null,
+      "notes": "En préparation — bbox et .pt à venir"
+    },
+    {
+      "id": "camion",
+      "class": "camion",
+      "label": "Camion",
+      "file": "camion.pt",
+      "version": null,
+      "updated_at": null,
+      "status": "preparation",
+      "performance": null,
+      "notes": "En préparation — bbox et .pt à venir"
+    }
+  ]
+}

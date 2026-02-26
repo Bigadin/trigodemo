@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from store import persist, audit_event, append_event, load_audit_log, get_audit_entries, clear_audit_log, init as store_init
+from weights_registry import get_weights_registry
 
 app = FastAPI(title="Zone Presence Tracker")
 
@@ -1158,6 +1159,20 @@ SKILLS_CONFIG = {
 async def get_skills():
     """Retourne les skills et catégories supportés par le backend (détection présence humain)."""
     return SKILLS_CONFIG
+
+
+@app.get("/api/weights")
+async def get_weights():
+    """Retourne le registry des poids YOLO (classe, version, date, performances)."""
+    try:
+        return get_weights_registry()
+    except Exception:
+        fallback = STATIC_DIR / "config" / "weights-registry.json"
+        if fallback.exists():
+            with open(fallback, encoding="utf-8") as f:
+                return json.load(f)
+        raise HTTPException(status_code=404, detail="weights registry not found")
+
 
 @app.get("/api/solution-spec")
 async def get_solution_spec():
@@ -2912,35 +2927,45 @@ def generate_frames(video_name: str, draw_overlay: bool = True):
                 cv2.putText(frame, label, (x1, y1 - 5),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-            # Draw zones
-            video_zones = zones_by_video.get(video_name, {})
-            for zone_name, zone_data in video_zones.items():
-                timer = zone_timers.get(zone_name, {})
-                is_occupied = timer.get("occupy_start") is not None
-                color = (0, 0, 255) if is_occupied else (255, 165, 0)
+            # Draw zones — uniquement la zone de comptage active (pas les autres bénéfices)
+            config = counting_config.get(video_name)
+            active_zone_name = config.get("zone_name") if config else None
+            frame_h, frame_w = frame.shape[:2]
 
-                for polygon_points in zone_data["polygons"]:
-                    if len(polygon_points) >= 3:
-                        pts = np.array(polygon_points, np.int32).reshape((-1, 1, 2))
+            if active_zone_name:
+                video_zones = zones_by_video.get(video_name, {})
+                zone_data = video_zones.get(active_zone_name)
+                if zone_data and zone_data.get("polygons"):
+                    # Récupérer zone_ref du bénéfice pour scaler correctement
+                    benefit_id = active_zone_name.split(":")[0]
+                    ref_w = benefits.get(benefit_id, {}).get("zone_ref_width") or frame_w
+                    ref_h = benefits.get(benefit_id, {}).get("zone_ref_height") or frame_h
+                    scale_x = frame_w / ref_w if ref_w > 0 else 1.0
+                    scale_y = frame_h / ref_h if ref_h > 0 else 1.0
 
-                        zone_overlay = frame.copy()
-                        cv2.fillPoly(zone_overlay, [pts], color)
-                        cv2.addWeighted(zone_overlay, 0.3, frame, 0.7, 0, frame)
-                        cv2.polylines(frame, [pts], True, color, 3)
+                    for polygon_points in zone_data["polygons"]:
+                        if len(polygon_points) >= 3:
+                            pts_scaled = np.array(
+                                [[int(p[0] * scale_x), int(p[1] * scale_y)] for p in polygon_points],
+                                dtype=np.int32
+                            ).reshape((-1, 1, 2))
 
-                if zone_data["polygons"] and len(zone_data["polygons"][0]) > 0:
-                    first_point = zone_data["polygons"][0][0]
-                    display_time = get_zone_display_time(zone_name)
-                    time_str = format_time(display_time)
-                    label = f"{zone_name}: {time_str}"
+                            color = (0, 200, 255)  # zone comptage active
+                            zone_overlay = frame.copy()
+                            cv2.fillPoly(zone_overlay, [pts_scaled], color)
+                            cv2.addWeighted(zone_overlay, 0.3, frame, 0.7, 0, frame)
+                            cv2.polylines(frame, [pts_scaled], True, color, 3)
 
-                    (w, _), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
-                    cv2.rectangle(frame,
-                                  (int(first_point[0]) - 5, int(first_point[1]) - 25),
-                                  (int(first_point[0]) + w + 5, int(first_point[1]) + 5),
-                                  (0, 0, 0), -1)
-                    cv2.putText(frame, label, (int(first_point[0]), int(first_point[1])),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                    if zone_data["polygons"] and len(zone_data["polygons"][0]) > 0:
+                        first = zone_data["polygons"][0][0]
+                        fx, fy = int(first[0] * scale_x), int(first[1] * scale_y)
+                        display_time = get_zone_display_time(active_zone_name)
+                        time_str = format_time(display_time)
+                        label = f"{time_str}"
+
+                        (w, _), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
+                        cv2.rectangle(frame, (fx - 5, fy - 25), (fx + w + 5, fy + 5), (0, 0, 0), -1)
+                        cv2.putText(frame, label, (fx, fy), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
             # Draw counting line, overlay, and counter
             active_mode = get_active_zone_mode(video_name)
@@ -2954,14 +2979,19 @@ def generate_frames(video_name: str, draw_overlay: bool = True):
                 r_left, r_top, r_right, r_bottom = line_info["roi_bounds"]
                 line_color = (0, 200, 255) if active_mode == "complex" else (0, 150, 255)
 
-                # --- Complex mode: foreground mask overlay ---
+                # --- Complex mode: heatmap overlay (MOG2 foreground mask) ---
                 if active_mode == "complex":
                     debug_mask = counting_debug_masks.get(video_name)
-                    if debug_mask is not None:
-                        mask_colored = np.zeros_like(frame)
-                        mask_colored[:, :, 1] = debug_mask
+                    if debug_mask is not None and debug_mask.size > 0:
                         mask_bool = debug_mask > 0
-                        frame[mask_bool] = cv2.addWeighted(frame, 0.6, mask_colored, 0.4, 0)[mask_bool]
+                        if np.any(mask_bool):
+                            heatmap = cv2.applyColorMap(debug_mask, cv2.COLORMAP_JET)
+                            blend = frame.copy()
+                            blend[mask_bool] = cv2.addWeighted(
+                                frame[mask_bool], 0.35,
+                                heatmap[mask_bool], 0.65, 0
+                            )
+                            frame[:] = blend
 
                 # --- Get counting data based on mode ---
                 with counting_lock:

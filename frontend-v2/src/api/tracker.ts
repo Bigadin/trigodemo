@@ -101,3 +101,8 @@ export interface DetectionsResponse {
 export async function fetchDetections(videoPath: string): Promise<DetectionsResponse> {
   return apiGet<DetectionsResponse>(`/detections/${encodeURIComponent(videoPath)}`)
 }
+
+/** Réinitialise le timer de présence d'une zone (carte détection) */
+export async function resetZoneTimer(zoneName: string): Promise<{ message: string }> {
+  return apiPost<{ message: string }>(`/zones/reset/${encodeURIComponent(zoneName)}`)
+}

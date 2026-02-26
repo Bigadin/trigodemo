@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Detection } from '@/api/tracker'
+import { getStreamUrl, getFrameUrl } from '@/api/tracker'
 import { computeZoneOccupancy } from '@/utils/zoneOccupancy'
 import styles from './VideoPlayer.module.css'
 
@@ -19,10 +20,10 @@ interface VideoPlayerProps {
 }
 
 const ZONE_COLORS = {
-  includeIdle:   { fill: 'rgba(34,197,94,0.08)',   stroke: 'rgba(34,197,94,0.4)' },
-  includeActive: { fill: 'rgba(34,197,94,0.28)',   stroke: 'rgba(34,197,94,0.9)' },
-  exclude:       { fill: 'rgba(240,131,33,0.18)',  stroke: 'rgba(240,131,33,0.7)' },
-  inactive:      { fill: 'rgba(148,163,184,0.12)', stroke: 'rgba(148,163,184,0.5)' },
+  includeIdle:   { fill: 'rgba(34,197,94,0.22)',   stroke: 'rgba(34,197,94,0.75)' },
+  includeActive: { fill: 'rgba(34,197,94,0.35)',   stroke: 'rgba(34,197,94,0.95)' },
+  exclude:       { fill: 'rgba(240,131,33,0.25)',  stroke: 'rgba(240,131,33,0.8)' },
+  inactive:      { fill: 'rgba(148,163,184,0.22)', stroke: 'rgba(148,163,184,0.7)' },
 } as const
 
 export default function VideoPlayer({ videoPath, isStreaming, resetTrigger, onStreamStart, zonePolygons, zonePolygonTypes, videoWidth, videoHeight, zoneRefWidth, zoneRefHeight, zoneActive = true, detections }: VideoPlayerProps) {
@@ -74,36 +75,76 @@ export default function VideoPlayer({ videoPath, isStreaming, resetTrigger, onSt
     )
   }
 
-  const videoSrc = `/videos/${videoPath}`
+  const streamSrc = getStreamUrl(videoPath, true)
+  const isCamera = videoPath.startsWith('camera:')
+  const videoSrc = isCamera ? getFrameUrl(videoPath) : `/videos/${videoPath}`
   const hasZones = zonePolygons && zonePolygons.length > 0
   const hasDetections = detections && detections.length > 0
 
+  // Pour aligner l'overlay sur le flux/vidéo : viewBox = dimensions vidéo, scaler les polygones zone_ref → vidéo
+  const overlayViewW = vidW
+  const overlayViewH = vidH
+  const refW = (zoneRefWidth != null && zoneRefWidth > 0) ? zoneRefWidth : vidW
+  const refH = (zoneRefHeight != null && zoneRefHeight > 0) ? zoneRefHeight : vidH
+  const scaleToVideoX = overlayViewW / refW
+  const scaleToVideoY = overlayViewH / refH
+
   return (
     <div className={styles.wrapper}>
-      <video
-        ref={videoRef}
-        className={styles.video}
-        src={videoSrc}
-        muted
-        loop
-        playsInline
-        preload="metadata"
-        onError={() => setError('Impossible de charger la vidéo')}
-        onCanPlay={() => setError(null)}
-      />
+      {isStreaming && isCamera ? (
+        <img
+          className={styles.video}
+          src={streamSrc}
+          alt="Stream vidéo"
+          onError={() => setError('Impossible de charger le stream')}
+          onLoad={() => setError(null)}
+        />
+      ) : isStreaming && !isCamera ? (
+        <video
+          ref={videoRef}
+          className={styles.video}
+          src={videoSrc}
+          muted
+          loop
+          playsInline
+          autoPlay
+          onError={() => setError('Impossible de charger la vidéo')}
+          onCanPlay={() => setError(null)}
+        />
+      ) : !isStreaming && isCamera ? (
+        <img
+          className={styles.video}
+          src={videoSrc}
+          alt="Aperçu caméra"
+          onError={() => setError('Impossible de charger l\'aperçu')}
+          onLoad={() => setError(null)}
+        />
+      ) : (
+        <video
+          ref={videoRef}
+          className={styles.video}
+          src={videoSrc}
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          onError={() => setError('Impossible de charger la vidéo')}
+          onCanPlay={() => setError(null)}
+        />
+      )}
 
-      {/* Zone polygons overlay — color changes with occupancy */}
+      {/* Zone polygons overlay — affiché pour le bénéfice sélectionné */}
       {hasZones && (
         <svg
           className={styles.zoneOverlay}
-          viewBox={`0 0 ${viewW} ${viewH}`}
+          viewBox={`0 0 ${overlayViewW} ${overlayViewH}`}
           preserveAspectRatio="xMidYMid meet"
         >
           {zonePolygons!.map((poly, idx) => {
             if (!Array.isArray(poly) || poly.length < 3) return null
             const pts = poly
               .filter((p): p is [number, number] => Array.isArray(p) && typeof p[0] === 'number' && typeof p[1] === 'number')
-              .map((p) => `${p[0]},${p[1]}`)
+              .map((p) => `${p[0] * scaleToVideoX},${p[1] * scaleToVideoY}`)
               .join(' ')
             if (pts.length === 0) return null
 
@@ -127,7 +168,7 @@ export default function VideoPlayer({ videoPath, isStreaming, resetTrigger, onSt
                   points={pts}
                   fill={colors.fill}
                   stroke={colors.stroke}
-                  strokeWidth={2}
+                  strokeWidth={occupied && isInclude && zoneActive ? 3 : 2.5}
                   className={styles.zonePolygon}
                 />
                 {occupied && isInclude && zoneActive && (
@@ -145,8 +186,8 @@ export default function VideoPlayer({ videoPath, isStreaming, resetTrigger, onSt
         </svg>
       )}
 
-      {/* YOLO detection bounding boxes overlay */}
-      {hasDetections && (
+      {/* YOLO detection bounding boxes overlay — hors stream caméra (backend les dessine) ; affiché pour vidéo fichier en stream */}
+      {hasDetections && (!isStreaming || !isCamera) && (
         <svg
           className={styles.zoneOverlay}
           viewBox={`0 0 ${vidW} ${vidH}`}
@@ -181,9 +222,9 @@ export default function VideoPlayer({ videoPath, isStreaming, resetTrigger, onSt
       {error && (
         <div className={styles.error}>
           <span>{error}</span>
-          {!isStreaming && onStreamStart && (
+          {onStreamStart && (
             <button type="button" className={styles.retryBtn} onClick={onStreamStart}>
-              Lancer la vidéo
+              {isStreaming ? 'Réessayer le stream' : 'Lancer la vidéo'}
             </button>
           )}
         </div>

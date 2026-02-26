@@ -10,20 +10,25 @@ import {
   fetchCountingParams,
   updateCountingParams,
 } from '@/api/counting'
+import { resetZoneTimer } from '@/api/tracker'
 import CardMenu from '@/components/ui/CardMenu'
 import { benefitElapsedKey } from '@/context/SessionContext'
 import styles from './DataRoomCards.module.css'
 
 const CAT_ICONS: Record<string, string> = {
   human: '/static/assets_youn/SvIcons/SVGnew/Yhumancat.svg',
+  silhouette: '/static/assets_youn/SvIcons/SVGnew/Yhumancat.svg',
   voiture: '/static/assets_youn/SvIcons/SVGnew/Ycar.svg',
   velo: '/static/assets_youn/SvIcons/SVGnew/Ybike.svg',
+  transport: '/static/assets_youn/SvIcons/SVGnew/Ycar.svg',
 }
 
 const CAT_LABELS: Record<string, string> = {
   human: 'Humain',
+  silhouette: 'Humain',
   voiture: 'Voiture',
   velo: 'Vélo',
+  transport: 'Transport',
 }
 
 const SKILL_ICONS: Record<string, string> = {
@@ -31,7 +36,12 @@ const SKILL_ICONS: Record<string, string> = {
   counting: '/static/assets_youn/SvIcons/SVGnew/Ycounting.svg',
 }
 
-const TRACKED_CATEGORIES = new Set(['human'])
+/**
+ * Catégories ayant un modèle de détection (bbox + .pt) côté backend.
+ * Seules ces classes affichent des données réelles ; les autres affichent "—" / 0.
+ * À étendre quand voiture.pt, velo.pt, etc. seront disponibles.
+ */
+const TRACKED_DETECTION_CATEGORIES = new Set(['human'])
 
 function parseCategories(cats: string[] | undefined): { key: string; category: string; subcategory: string }[] {
   if (!cats?.length) return []
@@ -50,11 +60,14 @@ function formatTimer(totalSeconds: number): string {
 }
 
 interface PresenceRow {
+  key: string
   label: string
   icon: string
   isOccupied: boolean
   presenceTime: number
   pct: number
+  /** True si la classe a un modèle de détection (bbox/.pt) ; sinon affiche "—" */
+  tracked: boolean
 }
 
 function getPresenceRows(
@@ -71,28 +84,31 @@ function getPresenceRows(
   const pct = sessionElapsed > 0 ? Math.min(100, Math.round((presenceTime / sessionElapsed) * 100)) : 0
 
   const cats = parseCategories(benefit.categories)
-  const tracked = cats.filter((c) => TRACKED_CATEGORIES.has(c.category))
-  const rows = tracked.length > 0 ? tracked : cats.slice(0, 1)
+  const rows = cats.length > 0 ? cats : []
 
   if (rows.length === 0) {
     return [{
+      key: 'presence',
       label: 'Présence',
       icon: CAT_ICONS.human,
       isOccupied,
       presenceTime,
       pct,
+      tracked: true,
     }]
   }
 
   return rows.map((c) => {
     const iconKey = c.subcategory || c.category
-    const isTracked = TRACKED_CATEGORIES.has(c.category)
+    const tracked = TRACKED_DETECTION_CATEGORIES.has(c.category)
     return {
-      label: CAT_LABELS[iconKey] ?? CAT_LABELS[c.category] ?? c.category,
+      key: c.key,
+      label: CAT_LABELS[iconKey] ?? CAT_LABELS[c.category] ?? (c.category || c.subcategory || 'Présence'),
       icon: CAT_ICONS[iconKey] ?? CAT_ICONS[c.category] ?? CAT_ICONS.human,
-      isOccupied: isTracked ? isOccupied : false,
-      presenceTime: isTracked ? presenceTime : 0,
-      pct: isTracked ? pct : 0,
+      isOccupied: tracked ? isOccupied : false,
+      presenceTime: tracked ? presenceTime : 0,
+      pct: tracked ? pct : 0,
+      tracked,
     }
   })
 }
@@ -156,10 +172,26 @@ interface PresenceCardProps {
   presenceAtStart: number
   onEditBenefit?: (benefitId: string) => void
   onDeleteBenefit?: (benefitId: string) => void
+  onHideCard?: (benefitId: string) => void
+  onRefresh?: () => void
 }
 
-function PresenceCard({ benefit, zones, sessionElapsed, presenceAtStart, onEditBenefit, onDeleteBenefit }: PresenceCardProps) {
+function PresenceCard({ benefit, zones, sessionElapsed, presenceAtStart, onEditBenefit, onDeleteBenefit, onHideCard, onRefresh }: PresenceCardProps) {
+  const [busy, setBusy] = useState(false)
   const presenceRows = getPresenceRows(benefit, zones, sessionElapsed, presenceAtStart)
+
+  const handleReset = async () => {
+    setBusy(true)
+    try {
+      await resetZoneTimer(benefit.benefit_id)
+      onRefresh?.()
+    } catch (err) {
+      console.warn('Reset détection:', err)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <article className={styles.card}>
       <div className={styles.cardMain}>
@@ -171,6 +203,7 @@ function PresenceCard({ benefit, zones, sessionElapsed, presenceAtStart, onEditB
           <CardMenu
             options={[
               ...(onEditBenefit ? [{ label: 'Modifier', onClick: () => onEditBenefit(benefit.benefit_id) }] : []),
+              ...(onHideCard ? [{ label: 'Supprimer la carte', onClick: () => onHideCard(benefit.benefit_id) }] : []),
               ...(onDeleteBenefit ? [{ label: 'Supprimer le bénéfice', danger: true, onClick: () => confirm('Supprimer ce bénéfice ?') && onDeleteBenefit(benefit.benefit_id) }] : []),
               { label: 'Exporter', onClick: () => console.log('Exporter détection') },
             ]}
@@ -184,27 +217,43 @@ function PresenceCard({ benefit, zones, sessionElapsed, presenceAtStart, onEditB
         </div>
         <div className={styles.presenceRows}>
           {presenceRows.map((row) => (
-            <div key={row.label} className={styles.presenceRow}>
+            <div key={row.key} className={styles.presenceRow}>
               <div className={styles.presenceRowHeader}>
                 <div className={styles.presenceLabel}>
                   <img src={row.icon} className={styles.presenceIco} alt="" />
                   <span>{row.label}</span>
                 </div>
-                <span className={`${styles.presenceBadge} ${row.isOccupied ? styles.presenceBadgeOn : ''}`}>
-                  {row.isOccupied ? 'Présent' : 'Absent'}
+                <span className={`${styles.presenceBadge} ${row.tracked && row.isOccupied ? styles.presenceBadgeOn : ''}`}>
+                  {row.tracked ? (row.isOccupied ? 'Présent' : 'Absent') : '—'}
                 </span>
               </div>
               <div className={styles.presenceBar}>
-                <div className={`${styles.presenceFill} ${row.isOccupied ? styles.presenceFillActive : ''}`} style={{ width: `${row.pct}%` }} />
+                {row.tracked ? (
+                  <div className={`${styles.presenceFill} ${row.isOccupied ? styles.presenceFillActive : ''}`} style={{ width: `${row.pct}%` }} />
+                ) : (
+                  <div className={styles.presenceFillUntracked} title="Modèle de détection non disponible pour cette classe" />
+                )}
               </div>
               <div className={styles.presenceStats}>
-                <span className={styles.presenceTime}>{formatTimer(row.presenceTime)}</span>
-                <span className={styles.presencePct}>{row.pct}%</span>
+                <span className={styles.presenceTime}>{row.tracked ? formatTimer(row.presenceTime) : '—'}</span>
+                <span className={styles.presencePct}>{row.tracked ? `${row.pct}%` : '—'}</span>
               </div>
             </div>
           ))}
           {presenceRows.length === 0 && <div className={styles.emptyRow}>Aucune classe sélectionnée</div>}
         </div>
+        {presenceRows.length > 0 && (
+          <div className={styles.presenceActions}>
+            <button
+              type="button"
+              className={styles.countingBtn}
+              onClick={handleReset}
+              disabled={busy}
+            >
+              ↺ Reset
+            </button>
+          </div>
+        )}
       </div>
     </article>
   )
@@ -219,6 +268,7 @@ interface CountingCardProps {
   onRefresh?: () => void
   onEditBenefit?: (benefitId: string) => void
   onDeleteBenefit?: (benefitId: string) => void
+  onHideCard?: (benefitId: string) => void
 }
 
 function CountingCard({
@@ -230,6 +280,7 @@ function CountingCard({
   onRefresh,
   onEditBenefit,
   onDeleteBenefit,
+  onHideCard,
 }: CountingCardProps) {
   const [paramsOpen, setParamsOpen] = useState(false)
   const [threshold, setThreshold] = useState(30)
@@ -353,6 +404,7 @@ function CountingCard({
           <CardMenu
             options={[
               ...(onEditBenefit ? [{ label: 'Modifier', onClick: () => onEditBenefit(benefit.benefit_id) }] : []),
+              ...(onHideCard ? [{ label: 'Supprimer la carte', onClick: () => onHideCard(benefit.benefit_id) }] : []),
               ...(onDeleteBenefit ? [{ label: 'Supprimer le bénéfice', danger: true, onClick: () => confirm('Supprimer ce bénéfice ?') && onDeleteBenefit(benefit.benefit_id) }] : []),
               { label: 'Exporter', onClick: () => console.log('Exporter comptage') },
             ]}
@@ -486,6 +538,25 @@ function getBenefitColor(benefitId: string): string {
   return colors[Math.abs(h) % colors.length]
 }
 
+const HIDDEN_CARDS_KEY = 'trigodemo-dataRoom-hiddenCards'
+
+function loadHiddenCards(): Set<string> {
+  try {
+    const raw = localStorage.getItem(HIDDEN_CARDS_KEY)
+    if (raw) {
+      const arr = JSON.parse(raw) as string[]
+      return new Set(Array.isArray(arr) ? arr : [])
+    }
+  } catch {
+    /* ignore */
+  }
+  return new Set()
+}
+
+function saveHiddenCards(set: Set<string>) {
+  localStorage.setItem(HIDDEN_CARDS_KEY, JSON.stringify([...set]))
+}
+
 interface DataRoomCardsProps {
   benefits: HierarchyBenefit[]
   zones: Record<string, ZoneData> | null
@@ -499,6 +570,7 @@ interface DataRoomCardsProps {
   onEditBenefit?: (benefitId: string) => void
   onDeleteBenefit?: (benefitId: string) => void
   onRefreshCounting?: () => void
+  onRefreshDetection?: () => void
 }
 
 export default function DataRoomCards({
@@ -514,14 +586,42 @@ export default function DataRoomCards({
   onEditBenefit,
   onDeleteBenefit,
   onRefreshCounting,
+  onRefreshDetection,
 }: DataRoomCardsProps) {
+  const [hiddenCards, setHiddenCards] = useState<Set<string>>(loadHiddenCards)
+
+  useEffect(() => {
+    const benefitIds = new Set(benefits.map((b) => b.benefit_id))
+    setHiddenCards((prev) => {
+      const toRemove = [...prev].filter((id) => !benefitIds.has(id))
+      if (toRemove.length === 0) return prev
+      const next = new Set(prev)
+      toRemove.forEach((id) => next.delete(id))
+      saveHiddenCards(next)
+      return next
+    })
+  }, [benefits])
+
+  const handleHideCard = useCallback((benefitId: string) => {
+    setHiddenCards((prev) => {
+      const next = new Set(prev)
+      next.add(benefitId)
+      saveHiddenCards(next)
+      return next
+    })
+  }, [])
+
   const detectionBenefits = benefits.filter(
     (b) =>
       String(b.skill || '').toLowerCase() === 'detection' &&
-      (b.skill_item === 'detection_presence' || /présence|absence|presence/i.test(b.skill_item || b.name || ''))
+      (b.skill_item === 'detection_presence' || /présence|absence|presence/i.test(b.skill_item || b.name || '')) &&
+      !hiddenCards.has(b.benefit_id)
   )
   const countingBenefits = benefits.filter(
-    (b) => String(b.skill || '').toLowerCase() === 'counting' && (b.zone_polygons?.length ?? 0) > 0
+    (b) =>
+      String(b.skill || '').toLowerCase() === 'counting' &&
+      (b.zone_polygons?.length ?? 0) > 0 &&
+      !hiddenCards.has(b.benefit_id)
   )
 
   return (
@@ -540,6 +640,8 @@ export default function DataRoomCards({
             presenceAtStart={presenceAtStart}
             onEditBenefit={onEditBenefit}
             onDeleteBenefit={onDeleteBenefit}
+            onHideCard={handleHideCard}
+            onRefresh={onRefreshDetection}
           />
         ))}
         {detectionBenefits.length === 0 && onAddBenefit && (
@@ -575,6 +677,7 @@ export default function DataRoomCards({
             onRefresh={onRefreshCounting}
             onEditBenefit={onEditBenefit}
             onDeleteBenefit={onDeleteBenefit}
+            onHideCard={handleHideCard}
           />
         ))}
         {countingBenefits.length === 0 && onAddBenefit && (

@@ -1,10 +1,11 @@
 {
   "ben_detection_entree": {
-    "name": "Détection présence entrée",
+    "name": "Zone A et B",
     "skill": "detection",
     "skill_item": "detection_presence",
     "categories": [
-      "human::silhouette"
+      "human::silhouette",
+      "transport::voiture"
     ],
     "camera_id": "cam_entree",
     "zone_polygons": [
@@ -244,7 +245,7 @@
     "created_at": "2026-02-24T12:00:00+00:00"
   },
   "ben-cam_entree-1772049529251": {
-    "name": "Nouveau bénéfice - Entrée",
+    "name": "Porte Entrée",
     "skill": "counting",
     "skill_item": "counting_zone",
     "categories": [
@@ -254,20 +255,20 @@
     "zone_polygons": [
       [
         [
-          905.8365758754863,
-          468.5603112840467
+          341.78988326848247,
+          733.7743190661479
         ],
         [
-          1006.6926070038911,
-          81.9455252918288
+          328.715953307393,
+          687.0817120622568
         ],
         [
-          1264.4357976653696,
-          152.9182879377432
+          597.6653696498055,
+          625.4474708171206
         ],
         [
-          1126.2256809338521,
-          595.5642023346304
+          623.8132295719845,
+          672.1400778210117
         ]
       ]
     ],

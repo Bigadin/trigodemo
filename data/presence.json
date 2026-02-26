@@ -15,7 +15,7 @@
     "total_time": 51.49583888053894
   },
   "de": {
-    "total_time": 1808.517814874649
+    "total_time": 1880.1840915679932
   },
   "cmp": {
     "total_time": 0
@@ -39,7 +39,7 @@
     "total_time": 0
   },
   "ben_detection_entree": {
-    "total_time": 2296.0718433856964
+    "total_time": 497.7102575302124
   },
   "ben_detection_dock": {
     "total_time": 0
@@ -51,9 +51,9 @@
     "total_time": 0
   },
   "ben-cam_entree-1772049529251": {
-    "total_time": 0
+    "total_time": 13.893261194229126
   },
   "ben-cam_entree-1772049529251:0": {
-    "total_time": 0
+    "total_time": 13.893261194229126
   }
 }

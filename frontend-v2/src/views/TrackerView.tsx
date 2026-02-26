@@ -529,6 +529,7 @@ export default function TrackerView() {
                   camId={effectiveCamId ?? ''}
                   presenceAtStart={presenceAtStartRef.current}
                   onRefreshCounting={loadData}
+                  onRefreshDetection={loadData}
                   onAddBenefit={() => {
                     setBenefitModalBenefitId(null)
                     setBenefitModalMode('create')

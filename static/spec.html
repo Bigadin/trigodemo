@@ -54,6 +54,9 @@
     .tab-btn.active-ddd { color: #1a7f37; border-color: #1a7f37; background: rgba(26,127,55,0.08); }
     .tab-btn.active-archi { color: #cf5820; border-color: #cf5820; background: rgba(207,88,32,0.08); }
     .tab-btn.active-live { color: #f0883e; border-color: #f0883e; background: rgba(240,136,62,0.08); animation: live-pulse 2s ease-in-out infinite; }
+    .tab-btn.tab-btn-weights { color: #3fb950; border-color: rgba(63,185,80,0.5); }
+    .tab-btn.tab-btn-weights:hover { color: #3fb950; border-color: #3fb950; background: rgba(63,185,80,0.1); }
+    .tab-btn.tab-btn-weights.active-weights { color: #3fb950; border-color: #3fb950; background: rgba(63,185,80,0.15); }
     @keyframes live-pulse { 0%,100% { box-shadow: none; } 50% { box-shadow: 0 0 8px rgba(240,136,62,0.3); } }
     .topbar-dropdown { position: relative; display: inline-flex; }
     .topbar-dropdown-content {
@@ -555,6 +558,7 @@
   <span class="sep">│</span>
   <button class="tab-btn" onclick="showTab('feat-video')">Video</button>
   <button class="tab-btn" onclick="showTab('feat-counting')">Counting</button>
+  <button class="tab-btn tab-btn-weights" onclick="showTab('feat-weights')" title="Bibliothèque des poids YOLO">⚖ Poids</button>
   <div class="topbar-dropdown" data-tabs="feat-data-room,feat-blur,feat-metrics">
     <span class="topbar-label" style="cursor:pointer;user-select:none">+ ▾</span>
     <div class="topbar-dropdown-content">
@@ -1632,6 +1636,57 @@
 </div>
 
 <!-- ════════════════════════════════════════════
+     TAB : POIDS (Bibliothèque des modèles YOLO)
+════════════════════════════════════════════ -->
+<div id="tab-feat-weights" class="tab-pane">
+  <h2 style="color:var(--acc)">Bibliothèque des poids</h2>
+  <p style="color:var(--muted);margin-bottom:1rem">Catalogue des modèles YOLO (.pt) par classe — version, date de mise à jour et indicateurs de performance. Permet de suivre l'avancement des poids (voiture, vélo, camion, etc.).</p>
+
+  <div class="sh">Catalogue des poids</div>
+  <div id="weights-registry-loading" style="color:var(--muted);padding:1rem">Chargement…</div>
+  <div id="weights-registry-content" style="display:none">
+    <div class="panel">
+      <div class="panel-head" style="display:flex;align-items:center;justify-content:space-between">
+        <span>Poids associés aux classes</span>
+        <span id="weights-updated-at" style="font-size:10px;color:var(--dim)"></span>
+      </div>
+      <div class="scroll-x">
+        <table class="ftable" id="weights-table">
+          <thead>
+            <tr>
+              <th>Classe</th>
+              <th>Fichier</th>
+              <th>Version</th>
+              <th>Mise à jour</th>
+              <th>Statut</th>
+              <th>mAP50</th>
+              <th>mAP50-95</th>
+              <th>Precision</th>
+              <th>Recall</th>
+              <th>Inference (ms)</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody id="weights-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <p style="color:var(--dim);font-size:11px;margin-top:1rem">Source : <code>weights/registry.json</code> — Voir <code>weights/README.md</code> pour ajouter un nouveau poids.</p>
+  </div>
+  <div id="weights-registry-error" style="display:none;color:var(--red);padding:1rem"></div>
+
+  <div class="sh" style="margin-top:1.5rem">Convention de statut</div>
+  <table class="ftable" style="max-width:400px">
+    <thead><tr><th>Statut</th><th>Signification</th></tr></thead>
+    <tbody>
+      <tr><td><span class="tag-benef" style="background:rgba(63,185,80,0.15);color:#3fb950">active</span></td><td>Modèle disponible et utilisé</td></tr>
+      <tr><td><span class="tag-info">preparation</span></td><td>En cours de développement — bbox et .pt à venir</td></tr>
+      <tr><td><span class="tag-info" style="background:rgba(139,148,158,0.2);color:#8b949e">deprecated</span></td><td>Obsolète, à remplacer</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ════════════════════════════════════════════
      TAB : BLUR
 ════════════════════════════════════════════ -->
 <div id="tab-feat-blur" class="tab-pane">
@@ -1874,7 +1929,7 @@
   var DDD_TABS = ['lov'];
   var ARCHI_TABS = ['archi','archi-ux'];
   var LIVE_TABS = ['listener'];
-  var FEAT_TABS = ['feat-video','feat-counting','feat-data-room','feat-blur','feat-metrics'];
+  var FEAT_TABS = ['feat-video','feat-counting','feat-data-room','feat-blur','feat-metrics','feat-weights'];
   var API_TABS = ['api-ref'];
   function showTab(id) {
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
@@ -1886,7 +1941,8 @@
     var isLive = LIVE_TABS.indexOf(id) !== -1;
     var isFeat = FEAT_TABS.indexOf(id) !== -1;
     var isApi = API_TABS.indexOf(id) !== -1;
-    var cls = isDDD ? 'active-ddd' : isArchi ? 'active-archi' : isLive ? 'active-live' : isFeat ? 'active-archi' : isApi ? 'active-ddd' : 'active';
+    var isWeights = id === 'feat-weights';
+    var cls = isDDD ? 'active-ddd' : isArchi ? 'active-archi' : isLive ? 'active-live' : isWeights ? 'active-weights' : isFeat ? 'active-archi' : isApi ? 'active-ddd' : 'active';
     document.querySelectorAll('.tab-btn').forEach(b => {
       if (b.getAttribute('onclick') === "showTab('" + id + "')") b.classList.add(cls);
     });
@@ -1896,6 +1952,7 @@
     if (isLive) startListener(); else stopListener();
     if (id === 'skills' && !window._skillsLoaded) loadSkills();
     if (id === 'lov' && !window._lovLoaded) loadLOV();
+    if (id === 'feat-weights' && !window._weightsLoaded) loadWeights();
   }
 
   const SVG_BASE = '/static/assets_youn/SvIcons/SVGnew/';
@@ -1918,6 +1975,48 @@
       }
       renderLOV(data.spec || data);
     } catch(e) { /* ignore */ }
+  }
+
+  async function loadWeights() {
+    window._weightsLoaded = true;
+    var loading = document.getElementById('weights-registry-loading');
+    var content = document.getElementById('weights-registry-content');
+    var errorEl = document.getElementById('weights-registry-error');
+    var tbody = document.getElementById('weights-tbody');
+    var updatedAt = document.getElementById('weights-updated-at');
+    var data = null;
+    try {
+      var r = await fetch('/api/weights');
+      if (r.ok) {
+        data = await r.json();
+      } else {
+        r = await fetch('/static/config/weights-registry.json');
+        if (r.ok) data = await r.json();
+        else throw new Error('API 404 et fallback introuvable');
+      }
+      if (!data) throw new Error('Données vides');
+      loading.style.display = 'none';
+      errorEl.style.display = 'none';
+      content.style.display = 'block';
+      updatedAt.textContent = 'Registry mis à jour : ' + (data.updated_at || '—');
+      var weights = data.weights || [];
+      tbody.innerHTML = weights.map(function(w) {
+        var perf = w.performance || {};
+        var mAP50 = perf.mAP50 != null ? (Math.round(perf.mAP50 * 100) + '%') : '—';
+        var mAP5095 = perf['mAP50-95'] != null ? (Math.round(perf['mAP50-95'] * 100) + '%') : '—';
+        var prec = perf.precision != null ? (Math.round(perf.precision * 100) + '%') : '—';
+        var rec = perf.recall != null ? (Math.round(perf.recall * 100) + '%') : '—';
+        var inf = perf.inference_ms != null ? (perf.inference_ms + ' ms') : '—';
+        var statusCls = w.status === 'active' ? 'tag-benef' : (w.status === 'deprecated' ? 'tag-info' : 'tag-info');
+        var statusStyle = w.status === 'active' ? 'background:rgba(63,185,80,0.15);color:#3fb950' : '';
+        return '<tr><td><code>' + (w.class || w.id) + '</code></td><td><code>' + (w.file || '—') + '</code></td><td>' + (w.version || '—') + '</td><td>' + (w.updated_at || '—') + '</td><td><span class="' + statusCls + '" style="' + statusStyle + '">' + (w.status || '—') + '</span></td><td>' + mAP50 + '</td><td>' + mAP5095 + '</td><td>' + prec + '</td><td>' + rec + '</td><td>' + inf + '</td><td style="color:var(--muted);font-size:11px">' + (w.notes || '') + '</td></tr>';
+      }).join('');
+    } catch(e) {
+      loading.style.display = 'none';
+      content.style.display = 'none';
+      errorEl.style.display = 'block';
+      errorEl.textContent = 'Erreur chargement : ' + e.message;
+    }
   }
 
   function renderLOV(spec) {
