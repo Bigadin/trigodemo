@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <rect width="800" height="500" fill="#1e293b"/>
+  <rect x="40" y="40" width="200" height="120" fill="#334155" stroke="#64748b" stroke-width="1"/>
+  <rect x="260" y="40" width="280" height="120" fill="#334155" stroke="#64748b" stroke-width="1"/>
+  <rect x="560" y="40" width="200" height="120" fill="#334155" stroke="#64748b" stroke-width="1"/>
+  <rect x="40" y="180" width="320" height="140" fill="#334155" stroke="#64748b" stroke-width="1"/>
+  <rect x="380" y="180" width="380" height="140" fill="#334155" stroke="#64748b" stroke-width="1"/>
+  <rect x="40" y="340" width="720" height="120" fill="#334155" stroke="#64748b" stroke-width="1"/>
+  <text x="400" y="260" fill="#94a3b8" font-size="14" font-family="sans-serif" text-anchor="middle">Mall Floor Plan (Demo)</text>
+</svg>
