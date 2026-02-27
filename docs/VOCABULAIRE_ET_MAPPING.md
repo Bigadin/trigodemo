@@ -7,15 +7,19 @@
 ## 1. Data Room — Ajouter une carte
 
 La Data Room affiche des **cartes** par type de bénéfice. Les cartes actuelles sont :
-- **Détection présence** (skill `detection`)
-- **Comptage** (skill `counting`)
+- **Rapport d'activité** (agrégée) — une seule carte large avec sous-cartes par zone (Forme 1, Forme 2…), courbes compactes et LOV laps de temps
+- **Détection présence** (skill `detection`) — une carte par bénéfice détection, avec LOV Tri
+- **Comptage** (skill `counting`) — une carte par bénéfice comptage, avec LOV Mode en header
 
 ### Comment le front affiche une carte
 
-| Carte | Condition d'affichage | Clé backend |
-|------|------------------------|-------------|
-| Détection présence | Un bénéfice avec `skill === "detection"` | `benefits.find(b => b.skill === "detection")` |
-| Comptage | Un bénéfice avec `skill === "counting"` | `benefits.find(b => b.skill === "counting")` |
+| Carte | Condition d'affichage | Éléments header |
+|------|------------------------|-----------------|
+| Rapport d'activité | Premier bénéfice `detection` avec `detection_presence` | LOV Laps (2, 5, 10, 15 min), CardMenu |
+| Détection présence | Chaque bénéfice `detection` | LOV Tri (Par temps, Par %, Par nom), CardMenu |
+| Comptage | Chaque bénéfice `counting` avec zones | LOV Mode (Gradient, MOG2), CardMenu |
+
+**Note** : Les chips "Présence / Absence" et "Comptage" ont été supprimés. Chaque carte a une LOV dans le header pour une config liée au type.
 
 ### Pour ajouter une nouvelle carte (ex. Heatmap)
 

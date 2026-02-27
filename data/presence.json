@@ -15,7 +15,7 @@
     "total_time": 51.49583888053894
   },
   "de": {
-    "total_time": 3335.292533636093
+    "total_time": 3625.051128387451
   },
   "cmp": {
     "total_time": 0
@@ -38,12 +38,6 @@
   "Zon1": {
     "total_time": 0
   },
-  "ben_detection_entree": {
-    "total_time": 2114.9388654232025
-  },
-  "ben_detection_dock": {
-    "total_time": 0
-  },
   "ben_counting_convoyeur": {
     "total_time": 1.8925416469573975
   },
@@ -56,22 +50,19 @@
   "ben-cam_entree-1772049529251:0": {
     "total_time": 40.8824257850647
   },
-  "ben_detection_mall1": {
-    "total_time": 1807.9366381168365
-  },
   "ben-cam_mall1-1772103083357": {
     "total_time": 17329.427525281906
   },
-  "ben-cam_mall1-1772103146628": {
-    "total_time": 83.00379180908203
-  },
   "ben_detection_entree:0": {
-    "total_time": 2808.890907764435
+    "total_time": 3698.180973291397
   },
   "ben_detection_entree:1": {
     "total_time": 480.6381471157074
   },
   "ben_detection_convoyeur:0": {
     "total_time": 0
+  },
+  "ben-cam_entree-1772185175907:0": {
+    "total_time": 20.979206085205078
   }
 }

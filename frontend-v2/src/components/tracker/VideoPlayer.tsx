@@ -253,22 +253,32 @@ export default function VideoPlayer({ videoPath, isStreaming, resetTrigger, onSt
           {detections!.map((det, idx) => {
             const w = det.x2 - det.x1
             const h = det.y2 - det.y1
+            const labelX = det.x2 + 6
+            const labelY1 = det.y1
+            const labelH = 18
+            const labelGap = 4
+            const pastilleSize = 6
+            const classLabel = 'Humain'
+            const idConfLabel = det.track_id != null ? `#${det.track_id} ${Math.round(det.conf * 100)}%` : `${Math.round(det.conf * 100)}%`
+            const labelW1 = Math.max(60, classLabel.length * 7)
+            const labelW2 = Math.max(70, idConfLabel.length * 7)
             return (
               <g key={det.track_id ?? idx}>
                 <rect
                   x={det.x1} y={det.y1} width={w} height={h}
-                  fill="none" stroke="#00ff88" strokeWidth={3} rx={2}
+                  fill="none" stroke="#1a1a1a" strokeWidth={2} rx={2}
                 />
-                <rect
-                  x={det.x1} y={det.y1 - 22}
-                  width={det.track_id != null ? 90 : 50} height={20}
-                  fill="rgba(0,0,0,0.7)" rx={2}
-                />
-                <text
-                  x={det.x1 + 4} y={det.y1 - 6}
-                  fill="#00ff88" fontSize={14} fontFamily="monospace" fontWeight="bold"
-                >
-                  {det.track_id != null ? `#${det.track_id} ` : ''}{Math.round(det.conf * 100)}%
+                {/* Label 1 : classe */}
+                <rect x={labelX} y={labelY1} width={labelW1} height={labelH} fill="rgba(0,0,0,0.88)" rx={2} />
+                <rect x={labelX + 5} y={labelY1 + (labelH - pastilleSize) / 2} width={pastilleSize} height={pastilleSize} fill="#fff" rx={1} />
+                <text x={labelX + 5 + pastilleSize + 5} y={labelY1 + labelH / 2} fill="#e5e7eb" fontSize={11} fontFamily="var(--font-sans)" fontWeight="500" dominantBaseline="middle">
+                  {classLabel}
+                </text>
+                {/* Label 2 : ID + conf */}
+                <rect x={labelX} y={labelY1 + labelH + labelGap} width={labelW2} height={labelH} fill="rgba(0,0,0,0.88)" rx={2} />
+                <rect x={labelX + 5} y={labelY1 + labelH + labelGap + (labelH - pastilleSize) / 2} width={pastilleSize} height={pastilleSize} fill="#fff" rx={1} />
+                <text x={labelX + 5 + pastilleSize + 5} y={labelY1 + labelH + labelGap + labelH / 2} fill="#e5e7eb" fontSize={11} fontFamily="var(--font-sans)" fontWeight="500" dominantBaseline="middle">
+                  {idConfLabel}
                 </text>
               </g>
             )

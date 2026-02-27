@@ -1537,32 +1537,69 @@
 ════════════════════════════════════════════ -->
 <div id="tab-feat-data-room" class="tab-pane">
   <h2 style="color:var(--acc)">Data Room — Cartes par skill / sous-skill</h2>
-  <p style="color:var(--muted);margin-bottom:1rem">Chaque bénéfice est associé à une carte Data Room selon son skill et skill_item. Les cartes affichent les métriques temps réel et les contrôles spécifiques.</p>
+  <p style="color:var(--muted);margin-bottom:1rem">Chaque bénéfice est associé à une carte Data Room selon son skill et skill_item. Les cartes affichent les métriques temps réel et les contrôles spécifiques. Les chips "Présence / Absence" et "Comptage" ont été supprimés ; chaque carte a une LOV dans le header.</p>
 
   <div class="sh">Correspondance skill → carte</div>
   <table class="ftable"><thead><tr>
-    <th>Skill</th><th>Sous-skill (skill_item)</th><th>Type de carte</th><th>Description</th>
+    <th>Skill</th><th>Sous-skill (skill_item)</th><th>Type de carte</th><th>LOV header</th><th>Description</th>
   </tr></thead><tbody>
-    <tr><td><code>detection</code></td><td><code>detection_presence</code></td><td><span class="tag-benef">Présence / Absence</span></td><td>Détection de présence dans les zones, temps cumulé, barre de progression</td></tr>
-    <tr><td><code>counting</code></td><td><code>comptage_zone</code></td><td><span class="tag-benef">Comptage zone</span></td><td>Comptage d'objets traversant une ligne, sélecteur de zone, mode simple/complex</td></tr>
+    <tr><td><code>detection</code></td><td><code>detection_presence</code></td><td>Rapport d'activité (1 seule, large)</td><td>Laps (2, 5, 10, 15 min)</td><td>Sous-cartes par zone (Forme 1, 2…), courbes compactes</td></tr>
+    <tr><td><code>detection</code></td><td><code>detection_presence</code></td><td>Détection présence (1 par bénéfice)</td><td>Tri (Par temps, Par %, Par nom)</td><td>Temps cumulé, barre de progression par zone</td></tr>
+    <tr><td><code>counting</code></td><td><code>comptage_zone</code></td><td>Comptage zone (1 par bénéfice)</td><td>Mode (Gradient, MOG2)</td><td>Sélecteur zone, compteur, Démarrer/Flip/Reset</td></tr>
   </tbody></table>
 
-  <div class="sh" style="margin-top:1.5rem">Design des cartes (2 types actuels)</div>
+  <div class="sh" style="margin-top:1.5rem">Design des cartes (3 types actuels)</div>
   <div class="g2">
-    <!-- Carte 1 : Detection + Présence / Absence -->
+    <!-- Carte 1 : Rapport d'activité (large) -->
+    <div class="panel" style="max-width:420px">
+      <div class="panel-head" style="display:flex;align-items:center;justify-content:space-between">
+        <span style="display:flex;align-items:center;gap:8px">
+          <span style="width:8px;height:8px;border-radius:2px;background:#5a8fb8"></span>
+          <span style="font-weight:700;font-size:12px">Rapport d&apos;activité</span>
+        </span>
+        <span style="display:flex;align-items:center;gap:8px">
+          <select style="min-width:100px;padding:4px 8px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text)">Laps</select>
+          <span style="font-size:10px;color:var(--muted)">⋯</span>
+        </span>
+      </div>
+      <div style="padding:1rem;border-top:1px solid var(--border)">
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:0.75rem;margin-bottom:1rem">
+          <div style="padding:0.5rem;border:1px solid var(--border);border-radius:6px;display:flex;gap:8px;align-items:flex-start">
+            <div style="width:32px;height:32px;border-radius:4px;background:rgba(34,197,94,0.3)"></div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11px;font-weight:600">Forme 1</div>
+              <div style="font-size:10px;color:var(--muted)">Temps 00:02:15</div>
+              <div style="font-size:10px;color:var(--muted)">Présence 67%</div>
+              <div style="height:4px;background:rgba(15,23,42,0.1);border-radius:2px;margin-top:4px"><div style="height:100%;width:67%;background:#22c55e;border-radius:2px"></div></div>
+            </div>
+          </div>
+          <div style="padding:0.5rem;border:1px solid var(--border);border-radius:6px;display:flex;gap:8px;align-items:flex-start">
+            <div style="width:32px;height:32px;border-radius:4px;background:rgba(59,130,246,0.3)"></div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11px;font-weight:600">Forme 2</div>
+              <div style="font-size:10px;color:var(--muted)">Temps 00:01:02</div>
+              <div style="font-size:10px;color:var(--muted)">Présence 32%</div>
+              <div style="height:4px;background:rgba(15,23,42,0.1);border-radius:2px;margin-top:4px"><div style="height:100%;width:32%;background:#3b82f6;border-radius:2px"></div></div>
+            </div>
+          </div>
+        </div>
+        <div style="height:80px;background:rgba(15,23,42,0.04);border-radius:4px;border:1px solid var(--border)"><!-- Courbes compactes --></div>
+      </div>
+    </div>
+
+    <!-- Carte 2 : Détection présence (LOV Tri) -->
     <div class="panel" style="max-width:320px">
       <div class="panel-head" style="display:flex;align-items:center;justify-content:space-between">
         <span style="display:flex;align-items:center;gap:8px">
           <span style="width:8px;height:8px;border-radius:2px;background:#5a8fb8"></span>
           <span style="font-weight:700;font-size:12px">DÉTECTION PRÉSENCE</span>
         </span>
-        <span style="font-size:10px;color:var(--muted)">⋯</span>
+        <span style="display:flex;align-items:center;gap:8px">
+          <select style="min-width:100px;padding:4px 8px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text)">Tri</select>
+          <span style="font-size:10px;color:var(--muted)">⋯</span>
+        </span>
       </div>
       <div style="padding:1rem;border-top:1px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:4px;padding:2px 6px;font-size:10px;font-weight:600;background:rgba(15,23,42,0.06);border:1px solid var(--border);border-radius:4px;width:fit-content;margin-bottom:1rem">
-          <img src="/static/assets_youn/SvIcons/SVGnew/Yclassify.svg" alt="" style="width:14px;height:14px;filter:brightness(0) opacity(0.6)">
-          Présence / Absence
-        </div>
         <div style="display:flex;flex-direction:column;gap:1rem">
           <div>
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -1570,7 +1607,6 @@
                 <img src="/static/assets_youn/SvIcons/SVGnew/Yhumancat.svg" alt="" style="width:20px;height:20px;filter:brightness(0) opacity(0.6)">
                 Humain
               </span>
-              <span style="font-size:10px;font-weight:700;padding:1px 8px;border-radius:4px;background:rgba(34,197,94,0.18);color:#22c55e">Présent</span>
             </div>
             <div style="height:5px;background:rgba(15,23,42,0.1);border-radius:4px;overflow:hidden">
               <div style="height:100%;width:67%;background:linear-gradient(90deg,#22c55e,#16a34a);border-radius:4px"></div>
@@ -1584,31 +1620,24 @@
       </div>
     </div>
 
-    <!-- Carte 2 : Counting + Comptage zone -->
+    <!-- Carte 3 : Comptage zone (LOV Mode en header) -->
     <div class="panel" style="max-width:320px">
       <div class="panel-head" style="display:flex;align-items:center;justify-content:space-between">
         <span style="display:flex;align-items:center;gap:8px">
           <span style="width:8px;height:8px;border-radius:2px;background:#4d9d8a"></span>
           <span style="font-weight:700;font-size:12px">COMPTAGE ZONE</span>
         </span>
-        <span style="font-size:10px;color:var(--muted)">⋯</span>
+        <span style="display:flex;align-items:center;gap:8px">
+          <select style="min-width:100px;padding:4px 8px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text)">Mode</select>
+          <span style="font-size:10px;color:var(--muted)">⋯</span>
+        </span>
       </div>
       <div style="padding:1rem;border-top:1px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:4px;padding:2px 6px;font-size:10px;font-weight:600;background:rgba(15,23,42,0.06);border:1px solid var(--border);border-radius:4px;width:fit-content;margin-bottom:1rem">
-          <img src="/static/assets_youn/SvIcons/SVGnew/Ycounting.svg" alt="" style="width:14px;height:14px;filter:brightness(0) opacity(0.6)">
-          Comptage
-        </div>
         <div style="display:flex;flex-direction:column;gap:0.75rem">
           <div style="display:flex;align-items:center;gap:8px">
             <span style="font-size:12px;color:var(--muted);min-width:48px">Zone</span>
             <select style="flex:1;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text)">
               <option>Entrée principale</option>
-            </select>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:12px;color:var(--muted);min-width:48px">Mode</span>
-            <select style="flex:1;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text)">
-              <option>Simple (gradient)</option>
             </select>
           </div>
           <div style="display:flex;align-items:center;gap:10px;padding:0.5rem 0">
@@ -1628,9 +1657,9 @@
 
   <div class="sh" style="margin-top:1.5rem">Règles</div>
   <ul style="color:var(--text);margin:0;padding-left:1.2rem;line-height:1.8">
-    <li>Une carte par bénéfice de type <code>detection</code> (présence) ou <code>counting</code> (comptage zone)</li>
-    <li>La carte Présence affiche : état (Présent/Absent), temps cumulé, % du temps de session</li>
-    <li>La carte Comptage affiche : zone sélectionnée, mode, compteur, boutons Démarrer/Flip/Reset</li>
+    <li><strong>Rapport d&apos;activité</strong> : une seule carte large pour le premier bénéfice detection_presence ; sous-cartes par zone (Forme 1, 2…), courbes compactes, LOV Laps (2, 5, 10, 15 min)</li>
+    <li><strong>Détection présence</strong> : une carte par bénéfice detection ; LOV Tri (Par temps, Par %, Par nom) ; temps cumulé et % par zone</li>
+    <li><strong>Comptage zone</strong> : une carte par bénéfice counting ; LOV Mode (Gradient, MOG2) dans le header ; zone, compteur, Démarrer/Flip/Reset</li>
     <li>Données temps réel via API <code>/api/zones/{video}</code>, <code>/api/counting/{video}</code></li>
   </ul>
 </div>

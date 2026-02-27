@@ -79,15 +79,18 @@
 | **Bloc** | `styles.block` | Conteneur DATA ROOM |
 | **Titre** | `styles.title` | "DATA ROOM" |
 | **Sous-titre** | `styles.subtitle` | "Bénéfices et mesures" |
-| **Carte Détection** | `styles.card` | Titre "DÉTECTION PRÉSENCE", barres de présence |
-| **Carte Comptage** | `styles.card` | Titre "COMPTAGE", compteurs |
+| **Carte Rapport d'activité** | `styles.cardWide` | Carte large : sous-cartes par zone (Forme 1, 2…), courbes compactes, LOV Laps (2/5/10/15 min) |
+| **Carte Détection** | `styles.card` | Titre bénéfice, LOV Tri (Par temps, Par %, Par nom), barres de présence |
+| **Carte Comptage** | `styles.card` | Titre bénéfice, LOV Mode (Gradient, MOG2), zone, compteurs, Démarrer/Flip |
 | **Dot couleur** | `styles.dot` | Pastille couleur par bénéfice |
-| **Menu 3 points** | `CardMenu` | Modifier / Créer / Exporter |
-| **Chips** | `styles.chip` | Badge "Détection" ou "Comptage" |
+| **Menu 3 points** | `CardMenu` | Modifier / Supprimer / Exporter |
+| **LOV** | `LovDropdown` | Laps, Tri ou Mode selon la carte (style compact) |
+| **Sous-cartes zone** | `styles.activityZoneCard` | Forme 1, Forme 2… avec temps, %, barre de progression |
+| **Courbes** | `ActivityChart` | Courbes compactes sous le Rapport d'activité |
 | **Barres présence** | `styles.presenceBar` | Humain, Voiture, Vélo (selon categories) |
 | **Compteurs** | `styles.counterWrap` | Icône + valeur + label |
 
-**Composant** : `DataRoomCards.tsx` — props : `benefits`, `zones`, `counting`, `onAddBenefit`, `onEditBenefit`.
+**Composant** : `DataRoomCards.tsx` — props : `benefits`, `zones`, `counting`, `videoPath`, `presenceAtStart`, `onAddBenefit`, `onEditBenefit`, `onSyncZones`.
 
 ---
 

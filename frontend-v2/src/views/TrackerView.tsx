@@ -636,6 +636,7 @@ export default function TrackerView() {
           cameraId={effectiveCamId ?? ''}
           cameraName={selectedCam.name ?? selectedCam.camera_id}
           videoPath={videoPath ?? ''}
+          isVideoPlaying={isStreaming}
           benefit={
             benefitModalMode === 'edit' && benefitModalBenefitId
               ? benefits.find((b) => b.benefit_id === benefitModalBenefitId) ?? null

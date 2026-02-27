@@ -12,7 +12,10 @@ import {
 } from '@/api/counting'
 import { resetZoneTimer } from '@/api/tracker'
 import CardMenu from '@/components/ui/CardMenu'
+import LovDropdown from '@/components/ui/LovDropdown'
 import { benefitElapsedKey } from '@/context/SessionContext'
+import { ActivityChart } from './DataRoomCardsLibrary'
+import { ACTIVITY_CHART_INTERVAL_OPTIONS } from './DataRoomCardsLibrary'
 import styles from './DataRoomCards.module.css'
 
 const CAT_ICONS: Record<string, string> = {
@@ -279,6 +282,7 @@ function ActivityReportCard({
   onHideCard,
   onSyncZones,
 }: ActivityReportCardProps) {
+  const [intervalMinutes, setIntervalMinutes] = useState(2)
   const zoneItems = useMemo(() => getDetectionZoneKeys(benefit, zones), [benefit, zones])
   const polys = benefit.zone_polygons ?? []
   const types = benefit.zone_polygon_types ?? polys.map(() => 'include' as const)
@@ -324,12 +328,24 @@ function ActivityReportCard({
           <div className={styles.cardTopLeft}>
             <span className={styles.cardTitle}>Rapport d&apos;activité</span>
           </div>
-          <CardMenu
-            options={[
-              ...(onEditBenefit ? [{ label: 'Modifier', onClick: () => onEditBenefit(benefit.benefit_id) }] : []),
-              ...(onHideCard ? [{ label: 'Supprimer la carte', onClick: () => onHideCard(benefit.benefit_id) }] : []),
-            ]}
-          />
+          <div className={styles.chartControls}>
+            <LovDropdown
+              options={ACTIVITY_CHART_INTERVAL_OPTIONS.map((opt) => ({
+                value: String(opt.value),
+                label: opt.label,
+              }))}
+              value={String(intervalMinutes)}
+              onChange={(v) => setIntervalMinutes(Number(v))}
+              placeholder="Laps"
+              className={styles.cardLovCompact}
+            />
+            <CardMenu
+              options={[
+                ...(onEditBenefit ? [{ label: 'Modifier', onClick: () => onEditBenefit(benefit.benefit_id) }] : []),
+                ...(onHideCard ? [{ label: 'Supprimer la carte', onClick: () => onHideCard(benefit.benefit_id) }] : []),
+              ]}
+            />
+          </div>
         </div>
         <div className={styles.activityZoneCards}>
           {zoneStats.map((stat) => (
@@ -370,14 +386,44 @@ function ActivityReportCard({
             </div>
           ))}
         </div>
+        <div className={styles.activityChartCompact}>
+          <ActivityChart
+            zoneItems={zoneItems}
+            zones={zones}
+            sessionElapsed={sessionElapsed}
+            presenceAtStartMap={presenceAtStartMap}
+            intervalMinutes={intervalMinutes}
+            compact
+            className={styles.activityChartCompactWrap}
+          />
+        </div>
       </div>
     </article>
   )
 }
 
+const COUNTING_MODE_OPTIONS = [
+  { value: 'simple', label: 'Gradient' },
+  { value: 'complex', label: 'MOG2' },
+] as const
+
+const PRESENCE_SORT_OPTIONS = [
+  { value: 'time', label: 'Par temps' },
+  { value: 'pct', label: 'Par %' },
+  { value: 'name', label: 'Par nom' },
+] as const
+
 function PresenceCard({ benefit, zones, sessionElapsed, presenceAtStart = 0, onEditBenefit, onDeleteBenefit, onHideCard, onRefresh }: PresenceCardProps) {
   const [busy, setBusy] = useState(false)
-  const presenceRows = getPresenceRows(benefit, zones, sessionElapsed, presenceAtStart)
+  const [sortBy, setSortBy] = useState<'time' | 'pct' | 'name'>('time')
+  const presenceRowsRaw = getPresenceRows(benefit, zones, sessionElapsed, presenceAtStart)
+  const presenceRows = useMemo(() => {
+    const rows = [...presenceRowsRaw]
+    if (sortBy === 'time') rows.sort((a, b) => b.presenceTime - a.presenceTime)
+    else if (sortBy === 'pct') rows.sort((a, b) => b.pct - a.pct)
+    else rows.sort((a, b) => a.label.localeCompare(b.label))
+    return rows
+  }, [presenceRowsRaw, sortBy])
 
   const handleReset = async () => {
     if (busy) return
@@ -403,7 +449,15 @@ function PresenceCard({ benefit, zones, sessionElapsed, presenceAtStart = 0, onE
             <span className={styles.dot} style={{ background: getBenefitColor(benefit.benefit_id) }} />
             <span className={styles.cardTitle}>{benefit.name || 'DÉTECTION PRÉSENCE'}</span>
           </div>
-          <CardMenu
+          <div className={styles.chartControls}>
+            <LovDropdown
+              options={PRESENCE_SORT_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+              value={sortBy}
+              onChange={(v) => setSortBy(v as 'time' | 'pct' | 'name')}
+              placeholder="Tri"
+              className={styles.cardLovCompact}
+            />
+            <CardMenu
             options={[
               ...(onEditBenefit ? [{ label: 'Modifier', onClick: () => onEditBenefit(benefit.benefit_id) }] : []),
               ...(presenceRows.length > 0 ? [{ label: 'Reset', onClick: handleReset }] : []),
@@ -411,13 +465,8 @@ function PresenceCard({ benefit, zones, sessionElapsed, presenceAtStart = 0, onE
               ...(onDeleteBenefit ? [{ label: 'Supprimer le bénéfice', danger: true, onClick: () => confirm('Supprimer ce bénéfice ?') && onDeleteBenefit(benefit.benefit_id) }] : []),
               { label: 'Exporter', onClick: () => console.log('Exporter détection') },
             ]}
-          />
-        </div>
-        <div className={styles.chips}>
-          <span className={styles.chip}>
-            <img src={SKILL_ICONS.detection} className={styles.chipIcon} alt="" />
-            Présence / Absence
-          </span>
+            />
+          </div>
         </div>
         <div className={styles.presenceRows}>
           {presenceRows.map((row) => (
@@ -513,8 +562,7 @@ function CountingCard({
     }
   }
 
-  const handleModeChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newMode = e.target.value as 'simple' | 'complex'
+  const handleModeChange = async (newMode: 'simple' | 'complex') => {
     if (!videoPath || !selectedZone) return
     setBusy(true)
     try {
@@ -593,7 +641,16 @@ function CountingCard({
             />
             <span className={styles.cardTitle}>{benefit.name || 'COMPTAGE ZONE'}</span>
           </div>
-          <CardMenu
+          <div className={styles.chartControls}>
+            <LovDropdown
+              options={COUNTING_MODE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+              value={mode}
+              onChange={(v) => handleModeChange(v as 'simple' | 'complex')}
+              placeholder="Mode"
+              className={styles.cardLovCompact}
+              disabled={!selectedZone || busy}
+            />
+            <CardMenu
             options={[
               ...(onEditBenefit ? [{ label: 'Modifier', onClick: () => onEditBenefit(benefit.benefit_id) }] : []),
               ...(selectedZone ? [{ label: 'Reset', onClick: handleReset }] : []),
@@ -601,15 +658,9 @@ function CountingCard({
               ...(onDeleteBenefit ? [{ label: 'Supprimer le bénéfice', danger: true, onClick: () => confirm('Supprimer ce bénéfice ?') && onDeleteBenefit(benefit.benefit_id) }] : []),
               { label: 'Exporter', onClick: () => console.log('Exporter comptage') },
             ]}
-          />
+            />
+          </div>
         </div>
-        <div className={styles.chips}>
-          <span className={styles.chip}>
-            <img src={SKILL_ICONS.counting} className={styles.chipIcon} alt="" />
-            Comptage
-          </span>
-        </div>
-
         <div className={styles.countingControls}>
           <div className={styles.countingRow}>
             <span className={styles.countingLabel}>Zone</span>
@@ -625,19 +676,6 @@ function CountingCard({
               ))}
             </select>
           </div>
-          <div className={styles.countingRow}>
-            <span className={styles.countingLabel}>Mode</span>
-            <select
-              className={styles.countingSelect}
-              value={mode}
-              onChange={handleModeChange}
-              disabled={!selectedZone || busy}
-            >
-              <option value="simple">Simple (gradient)</option>
-              <option value="complex">Complex (MOG2)</option>
-            </select>
-          </div>
-
           <div className={styles.counters}>
             {countingItems.map((it) => (
               <div key={it.label} className={styles.counterWrap}>
@@ -850,12 +888,6 @@ export default function DataRoomCards({
                 <span className={styles.dot} style={{ background: 'rgba(15,23,42,0.25)' }} />
                 <span className={styles.cardTitle}>DÉTECTION PRÉSENCE</span>
               </div>
-              <div className={styles.chips}>
-                <span className={styles.chip}>
-                  <img src={SKILL_ICONS.detection} className={styles.chipIcon} alt="" />
-                  Présence / Absence
-                </span>
-              </div>
               <div className={styles.emptyRow}>
                 <button type="button" className={styles.countingBtn} onClick={onAddBenefit}>
                   + Créer un bénéfice Détection présence
@@ -885,12 +917,6 @@ export default function DataRoomCards({
               <div className={styles.cardTop}>
                 <span className={styles.dot} style={{ background: 'rgba(15,23,42,0.25)' }} />
                 <span className={styles.cardTitle}>COMPTAGE ZONE</span>
-              </div>
-              <div className={styles.chips}>
-                <span className={styles.chip}>
-                  <img src={SKILL_ICONS.counting} className={styles.chipIcon} alt="" />
-                  Comptage
-                </span>
               </div>
               <div className={styles.emptyRow}>
                 <button type="button" className={styles.countingBtn} onClick={onAddBenefit}>

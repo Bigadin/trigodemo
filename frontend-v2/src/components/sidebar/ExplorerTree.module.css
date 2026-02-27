@@ -200,8 +200,8 @@
 }
 
 .itemBenefit.selected {
-  background: rgba(10, 14, 22, 0.92);
-  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: #1d5bff;
+  border: 1px solid #1d5bff;
 }
 
 .itemBenefit.selected .benefitName,

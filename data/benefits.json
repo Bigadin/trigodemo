@@ -1,6 +1,6 @@
 {
   "ben_detection_entree": {
-    "name": "Zone A et B",
+    "name": "Zone 1 et 2",
     "skill": "detection",
     "skill_item": "detection_presence",
     "categories": [

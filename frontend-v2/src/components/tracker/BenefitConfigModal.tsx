@@ -7,7 +7,7 @@ import {
   getCategoryGroupsBySkill,
 } from '@/api/skills'
 import { createBenefit, updateBenefit, deleteBenefit } from '@/api/benefits'
-import { getFrameUrl, fetchVideoInfo } from '@/api/tracker'
+import { getFrameUrl, getStreamUrl, fetchVideoInfo } from '@/api/tracker'
 import { optimisticMutation } from '@/api/request'
 import { useHierarchy } from '@/context/HierarchyContext'
 import { useBenefitEditorCanvas } from '@/hooks/useBenefitEditorCanvas'
@@ -41,6 +41,8 @@ export interface BenefitConfigModalProps {
   cameraId: string
   cameraName: string
   videoPath: string
+  /** Si la vidéo principale est en lecture (stream ou play), le modal affiche aussi en mode play */
+  isVideoPlaying?: boolean
   benefit?: HierarchyBenefit | null
   /** Appelé après sauvegarde. En création, reçoit le benefit_id du nouveau bénéfice. */
   onSaved: (createdBenefitId?: string) => void
@@ -54,6 +56,7 @@ export default function BenefitConfigModal({
   cameraId,
   cameraName,
   videoPath,
+  isVideoPlaying = false,
   benefit,
   onSaved,
   onSaveError,
@@ -84,7 +87,7 @@ export default function BenefitConfigModal({
   const [localZonePolygons, setLocalZonePolygons] = useState<number[][][]>([])
   const [localZonePolygonTypes, setLocalZonePolygonTypes] = useState<('include' | 'exclude')[]>([])
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const imgRef = useRef<HTMLImageElement>(null)
+  const mediaRef = useRef<HTMLImageElement | HTMLVideoElement>(null)
   const initialZonePolygonsRef = useRef<number[][][]>([])
 
   useEffect(() => {
@@ -288,7 +291,10 @@ export default function BenefitConfigModal({
 
   const zonePolygons = localZonePolygons
   const hasEditorLeft = !!videoPath
+  const isCamera = videoPath?.startsWith('camera:') ?? false
   const frameUrl = videoPath ? getFrameUrl(videoPath) : ''
+  const streamUrl = videoPath ? getStreamUrl(videoPath, true) : ''
+  const videoFileUrl = videoPath && !isCamera ? `/videos/${videoPath}` : ''
   const canvasW = (benefit?.zone_ref_width != null && benefit.zone_ref_width > 0) ? benefit.zone_ref_width : (videoInfo?.width ?? 1280)
   const canvasH = (benefit?.zone_ref_height != null && benefit.zone_ref_height > 0) ? benefit.zone_ref_height : (videoInfo?.height ?? 720)
 
@@ -712,7 +718,20 @@ export default function BenefitConfigModal({
                   className={`editor-canvas-wrap ${editorTool !== 'select' ? 'is-draw-mode' : ''}`}
                   style={canvasW > 0 && canvasH > 0 ? { aspectRatio: `${canvasW} / ${canvasH}` } : undefined}
                 >
-                  <img ref={imgRef} src={frameUrl} alt="Frame" />
+                  {isVideoPlaying && isCamera ? (
+                    <img ref={mediaRef as React.RefObject<HTMLImageElement>} src={streamUrl} alt="Stream" />
+                  ) : isVideoPlaying && videoFileUrl ? (
+                    <video
+                      ref={mediaRef as React.RefObject<HTMLVideoElement>}
+                      src={videoFileUrl}
+                      muted
+                      loop
+                      playsInline
+                      autoPlay
+                    />
+                  ) : (
+                    <img ref={mediaRef as React.RefObject<HTMLImageElement>} src={frameUrl} alt="Frame" />
+                  )}
                   <canvas
                     ref={canvasRef}
                     width={canvasW}

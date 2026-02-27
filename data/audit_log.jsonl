@@ -913,3 +913,16 @@
 {"ts": "2026-02-26T23:27:32.158365+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (2)", "level": "warn", "meta": {"count": 2}}
 {"ts": "2026-02-26T23:27:43.698497+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Zone A et B » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
 {"ts": "2026-02-26T23:31:26.347333+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-27T09:10:17.688049+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-27T09:24:38.032955+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Porte Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1772049529251"}}
+{"ts": "2026-02-27T09:24:38.605146+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Porte Entrée » modifié", "level": "info", "meta": {"benefit_id": "ben-cam_entree-1772049529251"}}
+{"ts": "2026-02-27T09:34:43.874788+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-27T09:34:45.128209+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-27T09:34:45.845468+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-27T09:34:47.154144+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-02-27T09:37:51.211900+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-27T09:37:51.460774+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-02-27T09:39:35.908879+00:00", "entity": "benefit", "action": "created", "detail": "Bénéfice « Personne à l'entrée » créé (skill=detection, camera=cam_entree)", "level": "success", "meta": {"benefit_id": "ben-cam_entree-1772185175907", "skill": "detection", "camera_id": "cam_entree"}}
+{"ts": "2026-02-27T09:39:49.583525+00:00", "entity": "benefit", "action": "deleted", "detail": "Bénéfice « Personne à l'entrée » supprimé", "level": "warn", "meta": {"benefit_id": "ben-cam_entree-1772185175907", "camera_id": "cam_entree"}}
+{"ts": "2026-02-27T09:42:15.363509+00:00", "entity": "benefit", "action": "updated", "detail": "Bénéfice « Zone 1 et 2 » modifié", "level": "info", "meta": {"benefit_id": "ben_detection_entree"}}
+{"ts": "2026-02-27T09:50:58.533169+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}

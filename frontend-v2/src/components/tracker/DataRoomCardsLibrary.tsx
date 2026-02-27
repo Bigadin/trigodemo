@@ -9,12 +9,14 @@ import CardMenu from '@/components/ui/CardMenu'
 import { getDetectionZoneKeys } from './DataRoomCards'
 import styles from './DataRoomCards.module.css'
 
-const TIME_INTERVAL_OPTIONS = [
+export const ACTIVITY_CHART_INTERVAL_OPTIONS = [
   { value: 2, label: '2 min' },
   { value: 5, label: '5 min' },
   { value: 10, label: '10 min' },
   { value: 15, label: '15 min' },
 ] as const
+
+const TIME_INTERVAL_OPTIONS = ACTIVITY_CHART_INTERVAL_OPTIONS
 
 interface ChartPoint {
   t: number
@@ -47,6 +49,12 @@ const CHART_PAD_RIGHT = 20
 const CHART_PAD_TOP = 14
 const CHART_PAD_BOTTOM = 30
 
+/** Paddings réduits pour affichage compact */
+const CHART_PAD_LEFT_COMPACT = 36
+const CHART_PAD_RIGHT_COMPACT = 12
+const CHART_PAD_TOP_COMPACT = 8
+const CHART_PAD_BOTTOM_COMPACT = 18
+
 function getSeriesValueAtTime(s: ActivitySeries, t: number, endT: number): number {
   let pts = s.points.length > 0 ? s.points : [{ t: 0, value: 0 }]
   if (pts.length > 0 && pts[0].t > 0) pts = [{ t: 0, value: 0 }, ...pts]
@@ -77,13 +85,14 @@ function drawExpertActivityChart(
   h: number,
   bgColor: string,
   gridColor: string,
-  tickColor: string
+  tickColor: string,
+  compact = false
 ) {
   if (w <= 0 || h <= 0 || series.length === 0) return
-  const padLeft = CHART_PAD_LEFT
-  const padRight = CHART_PAD_RIGHT
-  const padTop = CHART_PAD_TOP
-  const padBottom = CHART_PAD_BOTTOM
+  const padLeft = compact ? CHART_PAD_LEFT_COMPACT : CHART_PAD_LEFT
+  const padRight = compact ? CHART_PAD_RIGHT_COMPACT : CHART_PAD_RIGHT
+  const padTop = compact ? CHART_PAD_TOP_COMPACT : CHART_PAD_TOP
+  const padBottom = compact ? CHART_PAD_BOTTOM_COMPACT : CHART_PAD_BOTTOM
   const drawW = w - padLeft - padRight
   const drawH = h - padTop - padBottom
   const allValues = series.flatMap((s) => s.points.map((p) => p.value)).concat(series.map((s) => s.displayValue))
@@ -93,17 +102,13 @@ function drawExpertActivityChart(
 
   ctx.fillStyle = bgColor
   ctx.fillRect(0, 0, w, h)
+  const gridLinesH = compact ? 3 : 5
+  const gridLinesV = compact ? 5 : 8
+  /* Traits horizontaux supprimés pour un rendu plus épuré */
+  /* Traits verticaux : très discrets */
   ctx.strokeStyle = gridColor
+  ctx.globalAlpha = compact ? 0.1 : 0.15
   ctx.lineWidth = 1
-  const gridLinesH = 5
-  const gridLinesV = 8
-  for (let i = 1; i < gridLinesH; i++) {
-    const y = padTop + (drawH / gridLinesH) * i + 0.5
-    ctx.beginPath()
-    ctx.moveTo(padLeft, y)
-    ctx.lineTo(w - padRight, y)
-    ctx.stroke()
-  }
   for (let i = 1; i < gridLinesV; i++) {
     const x = padLeft + (drawW / gridLinesV) * i + 0.5
     ctx.beginPath()
@@ -111,12 +116,14 @@ function drawExpertActivityChart(
     ctx.lineTo(x, h - padBottom)
     ctx.stroke()
   }
-  ctx.font = '10px Manrope, system-ui, sans-serif'
+  ctx.globalAlpha = 1
+  ctx.font = compact ? '9px Manrope, system-ui, sans-serif' : '10px Manrope, system-ui, sans-serif'
   ctx.fillStyle = tickColor
   ctx.textAlign = 'center'
+  const tickY = compact ? h - 6 : h - 10
   for (let i = 0; i <= gridLinesV; i++) {
     const t = (i / gridLinesV) * totalDuration
-    ctx.fillText(formatTimeLabel(t), toX(t), h - 10)
+    if (t > 0) ctx.fillText(formatTimeLabel(t), toX(t), tickY)
   }
   ctx.textAlign = 'right'
   for (let i = 0; i <= gridLinesH; i++) {
@@ -189,55 +196,39 @@ function drawExpertActivityChart(
   }
 }
 
-export interface PresenceChartCardProps {
-  benefit: HierarchyBenefit
+export interface ActivityChartProps {
+  zoneItems: { zoneKey: string; label: string }[]
   zones: Record<string, ZoneData> | null
   sessionElapsed: number
-  presenceAtStart?: number | Record<string, number>
-  onEditBenefit?: (benefitId: string) => void
-  onHideCard?: (benefitId: string) => void
-  onSyncZones?: () => Promise<void>
+  presenceAtStartMap: Record<string, number>
+  intervalMinutes?: number
+  compact?: boolean
+  className?: string
 }
 
-/** Carte Rapport d'activité avec courbes — version graphique (bibliothèque, réutilisable plus tard) */
-export function PresenceChartCard({
-  benefit,
+/** Composant courbe d'activité réutilisable (compact ou pleine hauteur) */
+export function ActivityChart({
+  zoneItems,
   zones,
   sessionElapsed,
-  presenceAtStart = 0,
-  onEditBenefit,
-  onHideCard,
-  onSyncZones,
-}: PresenceChartCardProps) {
+  presenceAtStartMap,
+  intervalMinutes = 2,
+  compact = false,
+  className,
+}: ActivityChartProps) {
   interface HoverState {
     x: number
     left: number
     time: number
     rows: { label: string; color: string; value: number }[]
   }
-  const [intervalMinutes, setIntervalMinutes] = useState(2)
   const [hover, setHover] = useState<HoverState | null>(null)
-  const zoneItems = getDetectionZoneKeys(benefit, zones)
-  const polys = benefit.zone_polygons ?? []
-  const types = benefit.zone_polygon_types ?? polys.map(() => 'include' as const)
-  const includeCount = polys.filter((_, i) => types[i] === 'include').length
-  const needsSyncForFormes = includeCount >= 2 && zoneItems.length === 1 && zoneItems[0]?.label === 'Présence' && !!onSyncZones
-  const lastAutoSyncRef = useRef<string | null>(null)
-
-  useEffect(() => {
-    if (!needsSyncForFormes || !onSyncZones || lastAutoSyncRef.current === benefit.benefit_id) return
-    lastAutoSyncRef.current = benefit.benefit_id
-    onSyncZones().catch(() => {})
-  }, [needsSyncForFormes, onSyncZones, benefit.benefit_id])
-
   const [pointsPerZone, setPointsPerZone] = useState<Record<string, ChartPoint[]>>({})
   const lastSampleRef = useRef(0)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
   const displayedValuesRef = useRef<Record<string, number>>({})
   const rafRef = useRef<number>(0)
-
-  const presenceAtStartMap = typeof presenceAtStart === 'object' ? presenceAtStart : { [benefit.benefit_id]: presenceAtStart }
 
   const targetPctPerZone = useMemo(() => {
     const out: Record<string, number> = {}
@@ -306,21 +297,25 @@ export function PresenceChartCard({
       }
     })
     if (series.length === 0) return
-    drawExpertActivityChart(ctx, series, totalDuration, currentTime, w, h, bgColor, gridColor, tickColor)
+    drawExpertActivityChart(ctx, series, totalDuration, currentTime, w, h, bgColor, gridColor, tickColor, compact)
 
     if (!hover) return
-    const drawH = h - CHART_PAD_TOP - CHART_PAD_BOTTOM
+    const drawH = h - (compact ? CHART_PAD_TOP_COMPACT : CHART_PAD_TOP) - (compact ? CHART_PAD_BOTTOM_COMPACT : CHART_PAD_BOTTOM)
     const allValues = series.flatMap((s) => s.points.map((p) => p.value)).concat(series.map((s) => s.displayValue))
     const maxVal = Math.max(1, 100, ...allValues)
-    const toY = (val: number) => h - CHART_PAD_BOTTOM - (val / maxVal) * drawH
-    const lineX = Math.min(Math.max(hover.x, CHART_PAD_LEFT), w - CHART_PAD_RIGHT)
+    const padBottom = compact ? CHART_PAD_BOTTOM_COMPACT : CHART_PAD_BOTTOM
+    const padTop = compact ? CHART_PAD_TOP_COMPACT : CHART_PAD_TOP
+    const toY = (val: number) => h - padBottom - (val / maxVal) * drawH
+    const padLeft = compact ? CHART_PAD_LEFT_COMPACT : CHART_PAD_LEFT
+    const padRight = compact ? CHART_PAD_RIGHT_COMPACT : CHART_PAD_RIGHT
+    const lineX = Math.min(Math.max(hover.x, padLeft), w - padRight)
     ctx.save()
     ctx.strokeStyle = isDark ? 'rgba(148, 163, 184, 0.55)' : 'rgba(100, 116, 139, 0.55)'
     ctx.lineWidth = 1
     ctx.setLineDash([4, 4])
     ctx.beginPath()
-    ctx.moveTo(lineX, CHART_PAD_TOP)
-    ctx.lineTo(lineX, h - CHART_PAD_BOTTOM)
+    ctx.moveTo(lineX, padTop)
+    ctx.lineTo(lineX, h - padBottom)
     ctx.stroke()
     ctx.setLineDash([])
     for (const s of series) {
@@ -331,7 +326,7 @@ export function PresenceChartCard({
       ctx.fill()
     }
     ctx.restore()
-  }, [pointsPerZone, zoneItems, currentTime, totalDuration, hover])
+  }, [pointsPerZone, zoneItems, currentTime, totalDuration, hover, compact])
 
   const drawRef = useRef(draw)
   drawRef.current = draw
@@ -368,12 +363,14 @@ export function PresenceChartCard({
     if (!canvas) return
     const rect = canvas.getBoundingClientRect()
     if (rect.width <= 0) return
+    const padLeft = compact ? CHART_PAD_LEFT_COMPACT : CHART_PAD_LEFT
+    const padRight = compact ? CHART_PAD_RIGHT_COMPACT : CHART_PAD_RIGHT
     const xRaw = event.clientX - rect.left
-    const x = Math.min(Math.max(xRaw, CHART_PAD_LEFT), rect.width - CHART_PAD_RIGHT)
-    const drawW = rect.width - CHART_PAD_LEFT - CHART_PAD_RIGHT
+    const x = Math.min(Math.max(xRaw, padLeft), rect.width - padRight)
+    const drawW = rect.width - padLeft - padRight
     if (drawW <= 0) return
     const endT = Math.min(currentTime, totalDuration)
-    const relative = (x - CHART_PAD_LEFT) / drawW
+    const relative = (x - padLeft) / drawW
     const rawTime = Math.min(totalDuration, Math.max(0, relative * totalDuration))
     const step = 5
     const hoverTime = Math.min(endT, Math.round(rawTime / step) * step)
@@ -390,7 +387,62 @@ export function PresenceChartCard({
     }))
     const left = Math.min(Math.max(x + 10, 8), Math.max(8, rect.width - 170))
     setHover({ x, left, time: hoverTime, rows })
-  }, [zoneItems, pointsPerZone, currentTime, totalDuration])
+  }, [zoneItems, pointsPerZone, currentTime, totalDuration, compact])
+
+  return (
+    <div ref={wrapRef} className={className ?? styles.presenceChartWrap}>
+      <canvas ref={canvasRef} onMouseMove={handleChartHover} onMouseLeave={() => setHover(null)} />
+      {hover && (
+        <div className={styles.chartHoverTip} style={{ left: `${hover.left}px` }}>
+          <div className={styles.chartHoverTime}>{formatTimeLabel(hover.time)}</div>
+          {hover.rows.map((r) => (
+            <div key={r.label} className={styles.chartHoverRow}>
+              <span className={styles.chartHoverDot} style={{ background: r.color }} />
+              <span className={styles.chartHoverLabel}>{r.label}</span>
+              <span className={styles.chartHoverValue}>{Math.round(r.value)}%</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export interface PresenceChartCardProps {
+  benefit: HierarchyBenefit
+  zones: Record<string, ZoneData> | null
+  sessionElapsed: number
+  presenceAtStart?: number | Record<string, number>
+  onEditBenefit?: (benefitId: string) => void
+  onHideCard?: (benefitId: string) => void
+  onSyncZones?: () => Promise<void>
+}
+
+/** Carte Rapport d'activité avec courbes — version graphique (bibliothèque, réutilisable plus tard) */
+export function PresenceChartCard({
+  benefit,
+  zones,
+  sessionElapsed,
+  presenceAtStart = 0,
+  onEditBenefit,
+  onHideCard,
+  onSyncZones,
+}: PresenceChartCardProps) {
+  const [intervalMinutes, setIntervalMinutes] = useState(2)
+  const zoneItems = getDetectionZoneKeys(benefit, zones)
+  const polys = benefit.zone_polygons ?? []
+  const types = benefit.zone_polygon_types ?? polys.map(() => 'include' as const)
+  const includeCount = polys.filter((_, i) => types[i] === 'include').length
+  const needsSyncForFormes = includeCount >= 2 && zoneItems.length === 1 && zoneItems[0]?.label === 'Présence' && !!onSyncZones
+  const lastAutoSyncRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!needsSyncForFormes || !onSyncZones || lastAutoSyncRef.current === benefit.benefit_id) return
+    lastAutoSyncRef.current = benefit.benefit_id
+    onSyncZones().catch(() => {})
+  }, [needsSyncForFormes, onSyncZones, benefit.benefit_id])
+
+  const presenceAtStartMap = typeof presenceAtStart === 'object' ? presenceAtStart : { [benefit.benefit_id]: presenceAtStart }
 
   return (
     <article className={`${styles.card} ${styles.cardWide}`}>
@@ -421,21 +473,15 @@ export function PresenceChartCard({
             />
           </div>
         </div>
-        <div ref={wrapRef} className={styles.presenceChartWrap}>
-          <canvas ref={canvasRef} onMouseMove={handleChartHover} onMouseLeave={() => setHover(null)} />
-          {hover && (
-            <div className={styles.chartHoverTip} style={{ left: `${hover.left}px` }}>
-              <div className={styles.chartHoverTime}>{formatTimeLabel(hover.time)}</div>
-              {hover.rows.map((r) => (
-                <div key={r.label} className={styles.chartHoverRow}>
-                  <span className={styles.chartHoverDot} style={{ background: r.color }} />
-                  <span className={styles.chartHoverLabel}>{r.label}</span>
-                  <span className={styles.chartHoverValue}>{Math.round(r.value)}%</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <ActivityChart
+          zoneItems={zoneItems}
+          zones={zones}
+          sessionElapsed={sessionElapsed}
+          presenceAtStartMap={presenceAtStartMap}
+          intervalMinutes={intervalMinutes}
+          compact={false}
+          className={styles.presenceChartWrap}
+        />
         <div className={styles.chartLegend}>
           {zoneItems.map((z, i) => (
             <div key={z.zoneKey} className={styles.chartLegendItem}>
