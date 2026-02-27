@@ -85,6 +85,8 @@ YOLO_CONFIDENCE = 0.45         # Detection confidence threshold
 
 ### Data Storage (JSON files in `data/`)
 
+Les fichiers `data/*.json` et `data/*.jsonl` sont **ignorés par git** — chaque dev a ses propres données de session. L'app les crée à la volée.
+
 - `zones.json` — zone polygon definitions keyed by video name
 - `presence.json` — accumulated presence times per zone
 - `cameras.json` — configured camera sources (webcam/RTSP)

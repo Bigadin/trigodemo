@@ -141,12 +141,25 @@ COUNTING_PARAMS_DEFAULTS = {
 counting_params = {}
 
 
+def _safe_load_json(path, default=None):
+    """Charge un JSON ou retourne default en cas d'erreur (fichier corrompu, etc.)."""
+    if default is None:
+        default = {} if path.suffix == ".json" else []
+    if not path.exists():
+        return default
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"[WARN] Impossible de charger {path}: {e} — utilisation des valeurs par défaut")
+        return default
+
+
 def load_counting_params():
     global counting_params
     counting_params = COUNTING_PARAMS_DEFAULTS.copy()
-    if COUNTING_PARAMS_FILE.exists():
-        with open(COUNTING_PARAMS_FILE, "r", encoding="utf-8") as f:
-            user = json.load(f)
+    user = _safe_load_json(COUNTING_PARAMS_FILE, {})
+    if user:
         counting_params.update(user)
     print(f"[COUNTING] Params loaded: {counting_params}")
 
@@ -156,31 +169,19 @@ load_counting_params()
 
 def load_data():
     global zones_by_video, zone_timers, cameras, lieux, sites, benefits
-    if ZONES_FILE.exists():
-        with open(ZONES_FILE, "r", encoding="utf-8") as f:
-            zones_by_video = json.load(f)
-    if PRESENCE_FILE.exists():
-        with open(PRESENCE_FILE, "r", encoding="utf-8") as f:
-            loaded = json.load(f)
-            for zone_name, value in loaded.items():
-                if isinstance(value, (int, float)):
-                    zone_timers[zone_name] = {"total_time": value, "last_occupied": None}
-                else:
-                    zone_timers[zone_name] = value
-                    if "last_occupied" not in zone_timers[zone_name]:
-                        zone_timers[zone_name]["last_occupied"] = None
-    if CAMERAS_FILE.exists():
-        with open(CAMERAS_FILE, "r", encoding="utf-8") as f:
-            cameras = json.load(f)
-    if LIEUX_FILE.exists():
-        with open(LIEUX_FILE, "r", encoding="utf-8") as f:
-            lieux = json.load(f)
-    if SITES_FILE.exists():
-        with open(SITES_FILE, "r", encoding="utf-8") as f:
-            sites = json.load(f)
-    if BENEFITS_FILE.exists():
-        with open(BENEFITS_FILE, "r", encoding="utf-8") as f:
-            benefits = json.load(f)
+    zones_by_video = _safe_load_json(ZONES_FILE, {})
+    loaded = _safe_load_json(PRESENCE_FILE, {})
+    for zone_name, value in loaded.items():
+        if isinstance(value, (int, float)):
+            zone_timers[zone_name] = {"total_time": value, "last_occupied": None}
+        elif isinstance(value, dict):
+            zone_timers[zone_name] = value
+            if "last_occupied" not in zone_timers[zone_name]:
+                zone_timers[zone_name]["last_occupied"] = None
+    cameras = _safe_load_json(CAMERAS_FILE, {})
+    lieux = _safe_load_json(LIEUX_FILE, {})
+    sites = _safe_load_json(SITES_FILE, {})
+    benefits = _safe_load_json(BENEFITS_FILE, {})
 
 
 def save_zones():
@@ -327,9 +328,7 @@ def cleanup_zones_data():
 
 def load_counting_config():
     global counting_config
-    if COUNTING_FILE.exists():
-        with open(COUNTING_FILE, "r", encoding="utf-8") as f:
-            counting_config = json.load(f)
+    counting_config = _safe_load_json(COUNTING_FILE, {})
     # Migrate old format: {video: {"zone_name", "flip_count"}} → new format with zone_settings
     for video_name, cfg in counting_config.items():
         if "zone_settings" not in cfg:

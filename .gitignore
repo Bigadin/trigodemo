@@ -206,7 +206,8 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# App runtime data — CRUD / données locales (chaque dev a ses propres données)
+# App runtime data — générés par session, chaque dev a ses propres données
+# (presence.json, counting.json, zones.json, benefits.json, audit_log.jsonl, etc.)
 data/*.json
 data/*.jsonl
 
