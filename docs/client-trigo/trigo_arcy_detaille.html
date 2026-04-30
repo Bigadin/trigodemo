@@ -1,0 +1,1028 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TRIGO · Vision sur flux caméras (document détaillé)</title>
+  <style>
+    :root {
+      --bg: #fffaeb;
+      --bg-alt: #fff6da;
+      --surface: #ffffff;
+      --cream: #fff0c2;
+      --ink: #1f1f1f;
+      --muted: #5c5c5c;
+      --line: #ebe0bd;
+      --brand: #fa520f;
+      --brand-2: #ffa110;
+      --gold: #ffd900;
+      --rail: #1f1f1f;
+      --rail-text: #fff0c2;
+      --shadow: 0 18px 60px rgba(127, 99, 21, 0.13);
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(255, 217, 0, 0.18), transparent 34rem),
+        linear-gradient(180deg, var(--bg), var(--bg-alt));
+      color: var(--ink);
+      font-family: Arial, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.48;
+    }
+    a { color: inherit; }
+    .layout {
+      display: grid;
+      grid-template-columns: 18rem minmax(0, 1fr);
+      min-height: 100vh;
+    }
+    .toc {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      padding: 1.25rem;
+      background: var(--rail);
+      color: var(--rail-text);
+      border-right: 1px solid #2b2b2b;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.75rem;
+    }
+    .brand-emblem {
+      flex-shrink: 0;
+      display: block;
+      width: auto;
+      object-fit: contain;
+    }
+    .brand-emblem-sidebar { height: 1.35rem; min-width: 2.1rem; }
+    .brand-emblem-on-light { height: 1rem; min-width: 1.55rem; }
+    .brand-title { font-size: 1.02rem; letter-spacing: -0.02em; line-height: 1.2; }
+    .toc nav { display: grid; gap: 0.25rem; }
+    .toc a {
+      display: block;
+      padding: 0.5rem 0.55rem;
+      border-radius: 0.4rem;
+      text-decoration: none;
+      color: rgba(255, 240, 194, 0.72);
+      font-size: 0.86rem;
+    }
+    .toc a:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--rail-text);
+    }
+    .toc .nav-hr {
+      height: 1px;
+      margin: 0.75rem 0;
+      background: rgba(255, 240, 194, 0.16);
+    }
+    .content {
+      min-width: 0;
+      padding: 2.75rem clamp(1.25rem, 4vw, 4rem) 5rem;
+    }
+    .content > .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.85rem 0;
+      padding-left: clamp(1.25rem, 4vw, 4rem);
+      padding-right: clamp(1.25rem, 4vw, 4rem);
+      background: var(--rail);
+      color: var(--rail-text);
+      margin: -2.75rem calc(-1 * clamp(1.25rem, 4vw, 4rem)) 1.75rem;
+    }
+    .brand-mini {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      font-size: 0.92rem;
+      letter-spacing: -0.02em;
+    }
+    .brand-mark {
+      flex-shrink: 0;
+      display: block;
+      width: 0.72rem;
+      height: 0.72rem;
+      border-radius: 2px;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold) 42%, var(--brand) 42%, var(--brand) 100%);
+      box-shadow: 0 0 0 1px rgba(255, 240, 194, 0.25);
+    }
+    .topbar small { opacity: 0.75; font-size: 0.72rem; }
+    .topbar small a {
+      color: var(--rail-text);
+      text-decoration: underline;
+      opacity: 1;
+    }
+    .topbar small a:hover { opacity: 0.9; }
+    .hero { max-width: 72rem; margin-bottom: 2rem; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.9rem;
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    h1 {
+      margin: 0;
+      max-width: 64rem;
+      font-size: clamp(2.2rem, 5vw, 3.6rem);
+      line-height: 0.98;
+      letter-spacing: -0.05em;
+      font-weight: 400;
+    }
+    .subtitle {
+      max-width: 50rem;
+      margin: 1rem 0 0;
+      color: var(--muted);
+      font-size: 1.06rem;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.42rem 0.68rem;
+      background: rgba(255, 240, 194, 0.82);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: 0.8rem;
+    }
+    .pill a {
+      color: var(--brand);
+      text-decoration: underline;
+    }
+    .section {
+      max-width: 72rem;
+      margin-top: 1.75rem;
+      padding: 1.45rem;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+    .section h2 {
+      margin: 0 0 0.65rem;
+      font-size: clamp(1.45rem, 2.8vw, 2.1rem);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+      font-weight: 400;
+    }
+    .section h3 {
+      margin: 1.2rem 0 0.45rem;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+    }
+    .section p, .section li { color: var(--muted); margin: 0.55rem 0; }
+    .section ul { padding-left: 1.15rem; }
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      margin-top: 0.85rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      min-width: 36rem;
+    }
+    th, td {
+      padding: 0.72rem;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: var(--cream);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .callout {
+      border-left: 4px solid var(--brand);
+      background: var(--cream);
+      padding: 1rem;
+      margin: 1rem 0 0;
+    }
+    .callout p { margin: 0.35rem 0; color: var(--ink); }
+    pre, code { font-family: var(--mono); font-size: 0.84rem; }
+    pre {
+      margin: 0.85rem 0 0;
+      padding: 1rem;
+      overflow: auto;
+      background: #1f1f1f;
+      color: #fff0c2;
+      line-height: 1.5;
+    }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+      gap: 0.75rem;
+      margin-top: 0.85rem;
+    }
+    .feature {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      padding: 0.85rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .feature strong { display: block; color: var(--ink); margin-bottom: 0.3rem; }
+    .doll-list {
+      list-style: none;
+      padding: 0;
+      margin: 1rem 0 0;
+      max-width: 48rem;
+    }
+    .doll-list li {
+      margin: 0 0 0.5rem;
+      padding: 0.8rem 1rem;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .doll-list li strong { color: var(--ink); }
+    .doll-list .nest-1 { margin-left: 0; border-left: 4px solid var(--brand); }
+    .doll-list .nest-2 { margin-left: 1rem; border-left: 4px solid var(--brand-2); }
+    .doll-list .nest-3 { margin-left: 2rem; border-left: 4px solid #c9a227; }
+    .doll-list .nest-4 { margin-left: 3rem; border-left: 4px solid var(--line); }
+    .doll-list .nest-5 {
+      margin-left: 4rem;
+      font-size: 0.9rem;
+      background: rgba(255, 246, 218, 0.85);
+      border: 1px dotted rgba(250, 82, 15, 0.55);
+      border-left: 4px solid var(--brand);
+    }
+    @media (hover: hover) and (pointer: fine) {
+      .doll-list li {
+        transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      }
+      .doll-list li:hover {
+        background: rgba(255, 248, 230, 0.95);
+        border-color: #d8c896;
+        box-shadow: 0 0 0 1px rgba(250, 82, 15, 0.12);
+      }
+      .doll-list .nest-1:hover { background: rgba(255, 236, 220, 0.95); }
+      .doll-list .nest-2:hover { background: rgba(255, 241, 214, 0.95); }
+      .doll-list .nest-3:hover { background: rgba(255, 244, 224, 0.95); }
+      .doll-list .nest-4:hover { background: rgba(252, 250, 244, 0.98); }
+      .doll-list .nest-5:hover {
+        background: rgba(255, 235, 210, 0.92);
+        border-style: dotted;
+        border-color: rgba(250, 82, 15, 0.65);
+        box-shadow: 0 0 0 1px rgba(250, 82, 15, 0.18);
+      }
+    }
+    .diagram {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      padding: 1rem 0.75rem;
+      margin-top: 0.85rem;
+      overflow-x: auto;
+    }
+    .diagram .diagram-img {
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+    .diagram.pipe-diagram {
+      padding: 0.85rem 0.65rem;
+    }
+    .pipe-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-top: 0.35rem;
+    }
+    .pipe-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+      gap: 0.35rem 0.25rem;
+      align-items: stretch;
+    }
+    .pipe-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      padding: 0.38rem 0.45rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .pipe-card strong {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--ink);
+      line-height: 1.25;
+    }
+    .pipe-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-weight: 400;
+      font-size: 0.85rem;
+      user-select: none;
+    }
+    @media (max-width: 768px) {
+      .pipe-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+      .pipe-arrow {
+        display: none;
+      }
+    }
+    .diagram-caption {
+      margin: 0.5rem 0 0;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .shot-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      margin-top: 1.25rem;
+    }
+    .shot-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      align-items: start;
+    }
+    @media (min-width: 768px) {
+      .shot-row {
+        grid-template-columns: minmax(0, 1.42fr) minmax(10rem, 0.32fr);
+        gap: 1.5rem;
+      }
+    }
+    .shot-media {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .shot-media img { width: 100%; height: auto; display: block; }
+    .shot-aside {
+      font-size: 0.9rem;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    .shot-aside h3 {
+      margin: 0 0 0.5rem;
+      font-size: 1.02rem;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+    }
+    .shot-aside p { margin: 0 0 0.65rem; }
+    .shot-aside p:last-child { margin-bottom: 0; }
+    .small { font-size: 0.82rem; color: var(--muted); }
+    footer.doc-foot {
+      max-width: 72rem;
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--line);
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    footer.doc-foot a {
+      color: var(--brand);
+      text-decoration: underline;
+    }
+    footer.doc-foot a:hover { color: var(--ink); }
+    @media (max-width: 960px) {
+      .layout { display: block; }
+      .toc { position: relative; height: auto; }
+    }
+
+    /* Impression / PDF A4 : pleine largeur, sans colonne sommaire */
+    @page {
+      size: A4 portrait;
+      margin: 7mm 10mm 9mm 10mm;
+    }
+    @media print {
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      html {
+        font-size: 10.2pt;
+        background: #ffffff !important;
+      }
+      body {
+        background: #ffffff !important;
+        background-image: none !important;
+        padding: 0 !important;
+      }
+      .layout {
+        display: block !important;
+        min-height: 0 !important;
+        background: transparent !important;
+      }
+      .toc {
+        display: none !important;
+      }
+      .content {
+        max-width: 100% !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: transparent !important;
+      }
+      .content > .topbar {
+        display: flex !important;
+        margin: 0 0 4mm 0 !important;
+        padding: 3mm 4mm !important;
+        background: var(--rail) !important;
+        color: var(--rail-text) !important;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        page-break-after: avoid !important;
+      }
+      .content > .topbar small a {
+        color: var(--rail-text) !important;
+      }
+      .hero { max-width: 100% !important; margin-bottom: 5mm !important; }
+      .eyebrow { margin-bottom: 3mm !important; }
+      h1 { font-size: 1.45rem !important; line-height: 1.08 !important; max-width: 100% !important; }
+      .subtitle { max-width: 100% !important; font-size: 0.95rem !important; }
+      .section {
+        margin-top: 3mm !important;
+        padding: 3mm 4mm !important;
+        max-width: 100% !important;
+        box-shadow: none !important;
+        break-inside: auto;
+        page-break-inside: auto;
+        background: rgba(255, 250, 240, 0.95) !important;
+        border: 1px solid var(--line) !important;
+      }
+      .section h2 { font-size: 1.12rem !important; }
+      .section h3 { font-size: 0.98rem !important; }
+      .doll-list { max-width: 100% !important; }
+      .doll-list li {
+        padding: 5mm 5mm !important;
+        margin-bottom: 2mm !important;
+        background: var(--surface) !important;
+        border-top: 1px solid var(--line) !important;
+        border-right: 1px solid var(--line) !important;
+        border-bottom: 1px solid var(--line) !important;
+        border-left: 4px solid var(--line) !important;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+      }
+      .doll-list .nest-1 {
+        margin-left: 0 !important;
+        border-left: 4px solid var(--brand) !important;
+        background: rgba(255, 252, 248, 0.98) !important;
+      }
+      .doll-list .nest-2 {
+        margin-left: 1rem !important;
+        border-left: 4px solid var(--brand-2) !important;
+        background: rgba(255, 253, 248, 0.98) !important;
+      }
+      .doll-list .nest-3 {
+        margin-left: 2rem !important;
+        border-left: 4px solid #c9a227 !important;
+        background: rgba(255, 254, 250, 0.98) !important;
+      }
+      .doll-list .nest-4 {
+        margin-left: 3rem !important;
+        border-left: 4px solid var(--line) !important;
+        background: var(--surface) !important;
+      }
+      .doll-list .nest-5 {
+        margin-left: 4rem !important;
+        font-size: 0.9rem !important;
+        background: rgba(255, 246, 218, 0.92) !important;
+        border-top: 1px dotted rgba(250, 82, 15, 0.5) !important;
+        border-right: 1px dotted rgba(250, 82, 15, 0.5) !important;
+        border-bottom: 1px dotted rgba(250, 82, 15, 0.5) !important;
+        border-left: 4px solid var(--brand) !important;
+      }
+      .feature {
+        background: var(--surface) !important;
+        border: 1px solid var(--line) !important;
+      }
+      .table-wrap {
+        margin-top: 2mm !important;
+        background: var(--surface) !important;
+        border: 1px solid var(--line) !important;
+      }
+      thead th {
+        background: var(--cream) !important;
+      }
+      table { min-width: 0 !important; font-size: 0.8rem !important; }
+      th, td { padding: 2mm 2.5mm !important; }
+      .diagram {
+        padding: 3mm !important;
+        margin-top: 2mm !important;
+        overflow: visible !important;
+        background: var(--surface) !important;
+        border: 1px solid var(--line) !important;
+      }
+      .diagram svg,
+      .diagram .diagram-img {
+        max-width: 100% !important;
+        height: auto !important;
+      }
+      .pipe-diagram {
+        padding: 2.5mm 2mm !important;
+      }
+      .pipe-rows {
+        gap: 1.5mm !important;
+        margin-top: 1mm !important;
+      }
+      .pipe-row {
+        gap: 1mm 0.8mm !important;
+      }
+      .pipe-card {
+        padding: 2mm 2.5mm !important;
+        min-height: 0 !important;
+      }
+      .pipe-card strong {
+        font-size: 9.2pt !important;
+      }
+      .pipe-arrow {
+        font-size: 9pt !important;
+      }
+      .shot-stack { gap: 3mm !important; }
+      .shot-row {
+        grid-template-columns: 1fr !important;
+        gap: 2mm !important;
+      }
+      .shot-media {
+        background: var(--surface) !important;
+        border: 1px solid var(--line) !important;
+      }
+      .pill {
+        background: rgba(255, 240, 194, 0.88) !important;
+        border: 1px solid var(--line) !important;
+      }
+      .callout {
+        background: var(--cream) !important;
+        border-left: 4px solid var(--brand) !important;
+      }
+      pre {
+        font-size: 0.75rem !important;
+        padding: 3mm !important;
+        white-space: pre-wrap !important;
+        word-break: break-word;
+      }
+      footer.doc-foot {
+        max-width: 100% !important;
+        margin-top: 5mm !important;
+        padding-top: 3mm !important;
+        font-size: 0.78rem !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="toc">
+      <div class="brand">
+        <img src="assets/emblem-arcy-white.svg" alt="" class="brand-emblem brand-emblem-sidebar" width="34" height="17" />
+        <span class="brand-title">ARCY<br />Document client</span>
+      </div>
+      <nav aria-label="Sommaire">
+        <a href="trigo_arcy_court.html">← Synthèse courte</a>
+        <div class="nav-hr"></div>
+        <a href="#objet">Objet &amp; lecteurs</a>
+        <a href="#contexte">Contexte &amp; promesse</a>
+        <a href="#cas-usage">Cas d’usage &amp; couverture</a>
+        <a href="#parcours">Parcours dans l’interface</a>
+        <a href="#schemas">Schémas bénéfice &amp; pipeline</a>
+        <a href="#skills">Familles d’analyse et sous-types</a>
+        <a href="#categories">Catégories cibles</a>
+        <a href="#benefice">Création d’un bénéfice</a>
+        <a href="#zones">Zones sur la vidéo</a>
+        <a href="#data-room">Data Room &amp; analytics</a>
+        <a href="#donnees">Modèle de données (aperçu)</a>
+        <a href="#captures">Captures d’écran</a>
+        <a href="#questions">Questions de cadrage</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <header class="topbar">
+        <div class="brand-mini">
+          <span class="brand-mark" aria-hidden="true"></span>
+          ARCY · document client
+        </div>
+        <small>Document détaillé · confidentiel TRIGO · <a href="https://arcy.app" rel="noopener noreferrer">arcy.app</a></small>
+      </header>
+      <header class="hero">
+        <div class="eyebrow">
+          <img src="assets/emblem-arcy-colored.svg" alt="" class="brand-emblem brand-emblem-on-light" width="28" height="14" />
+          Document visualisable · version détaillée
+        </div>
+        <h1>Vision sur flux caméras pour TRIGO</h1>
+        <p class="subtitle">
+          Présentation fonctionnelle du dispositif : organisation multi-sites, paramétrage des analyses sur flux
+          caméras, catalogue des types de bénéfices, lecture opérationnelle dans la Data Room, et articulation possible
+          avec vos indicateurs de ligne (OEE, scrap, traçabilité). Rédaction <strong>ARCY</strong>.
+        </p>
+      </header>
+
+      <section class="section" id="objet">
+        <h2>1. Objet du document &amp; lecteurs</h2>
+        <p>
+          Ce document s’adresse aux <strong>décideurs</strong> et <strong>responsables opérationnels</strong> TRIGO
+          qui doivent comprendre ce que permet le logiciel sans parcourir l’ensemble des spécifications techniques
+          du projet. La <a href="trigo_arcy_court.html">synthèse une page</a> reste le point d’entrée rapide.
+        </p>
+        <p>
+          Les écrans illustrés proviennent de l’interface de démonstration (identité visuelle produit sur les captures).
+        </p>
+      </section>
+
+      <section class="section" id="contexte">
+        <h2>2. Contexte &amp; promesse produit</h2>
+        <p>
+          L’idée centrale, dans une logique de « capteurs virtuels » sur site, consiste à
+          <strong>réutiliser le flux vidéo</strong> déjà disponible sur un site (entrepôt, hall, ligne, quai, etc.),
+          à y définir des <strong>zones logicielles</strong>, puis à produire des <strong>indicateurs</strong>
+          (présence, comptages, densités, signaux qualité) exploitables dans des cartes et tableaux de bord.
+        </p>
+        <div class="feature-grid">
+          <div class="feature">
+            <strong>Lieu et site : le parc se lit en couches</strong>
+            D’abord le grand cadre (lieu), puis chaque établissement physique (site). On sait toujours <em>où</em> on se situe avant d’ouvrir une caméra.
+          </div>
+          <div class="feature">
+            <strong>Caméra et bénéfice : une fenêtre, plusieurs questions</strong>
+            Chaque flux porte un ou plusieurs bénéfices : autant de « questions » posées à la même image, sans les confondre (présence ici, comptage là…).
+          </div>
+          <div class="feature">
+            <strong>Canvas : le dessin qui fixe le « où »</strong>
+            Les zones se tracent sur la vidéo ; elles donnent le périmètre utile au bénéfice. Les tableaux de bord et la Data Room ne font que refléter ce que ces couches produisent.
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="cas-usage">
+        <h2>3. Cas d’usage « industrie 4.0 » &amp; couverture fonctionnelle</h2>
+        <p>
+          Les familles de cas présentées côté marché (présence poste, remplissage / état machine, flux et congestion,
+          zones sous-utilisées, contrôle qualité visuel, zones à risque) se traduisent côté logiciel par la
+          combinaison d’une <strong>famille d’analyse</strong> (détection, comptage, heatmap, qualité) et d’une
+          <strong>catégorie</strong> (ce que l’on cherche à détecter : humain, transport, objet).
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Intention métier (exemples)</th>
+                <th>Famille d’analyse principale</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Suivi présence / absence, temps dans la zone</td>
+                <td>Détection : présence, zone, ligne</td>
+                <td>Data Room : cartes présence, rapport d’activité agrégé.</td>
+              </tr>
+              <tr>
+                <td>Comptage de passages, cadence, objets</td>
+                <td>Comptage : personnes, objets, zone</td>
+                <td>Modes d’analyse côté comptage (ex. gradient / MOG2) selon configuration.</td>
+              </tr>
+              <tr>
+                <td>Densité, heatmap, trajectoires</td>
+                <td>Heatmap : densité, présence, trajectoires</td>
+                <td>Famille dédiée aux représentations spatiales d’usage.</td>
+              </tr>
+              <tr>
+                <td>Signaux « qualité » ou anomalies visuelles</td>
+                <td>Qualité : fissure, humidité, contrôle général</td>
+                <td>Catégorie objet ; le détail des modèles dépend du déploiement.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" id="parcours">
+        <h2>4. Parcours dans l’interface</h2>
+        <h3>4.0 La même logique qu’en spec : poupées russes, pas trois écrans au hasard</h3>
+        <p>
+          La documentation produit décrit une <strong>hiérarchie unique</strong> : un lieu contient des sites, un site
+          des caméras, une caméra des bénéfices ; les polygones d’analyse sont <strong>portés par le bénéfice</strong>
+          et se dessinent sur le flux (canvas). Les vues « accueil », « lieu », « tracker » ne sont que la traduction
+          écran par écran de cette emboîture. Utile à retenir pour une proposition commerciale : on vend une
+          organisation claire du parc, puis la finesse du dessin sur l’image.
+        </p>
+        <ul class="doll-list">
+          <li class="nest-1">
+            <strong>Lieu</strong> : le plus grand cadre (pays, région, campus ou bassin logistique).<br />
+            Il regroupe vos sites sans<br />
+            encore parler de caméras.
+          </li>
+          <li class="nest-2">
+            <strong>Site</strong> : un établissement concret (entrepôt, agence, galerie…) où des caméras sont installées.
+          </li>
+          <li class="nest-3">
+            <strong>Caméra</strong> : un flux vidéo rattaché à ce site, la « fenêtre » sur laquelle toutes les analyses<br />
+            s’appuient.
+          </li>
+          <li class="nest-4">
+            <strong>Bénéfice</strong> : ce que vous voulez en tirer sur ce flux (présence, comptage, densité, signal qualité…)<br />
+            avec le contexte métier (qui ou quoi observer). Une même caméra peut porter plusieurs bénéfices indépendants.
+          </li>
+          <li class="nest-5">
+            <strong>Canvas et zones sur l’image</strong> : ce n’est pas un dossier de plus dans l’arborescence.<br />
+            C’est le dessin sur la vidéo qui dit <em>où</em> le bénéfice s’applique (lignes, polygones, zones à inclure ou à ignorer). Les résultats<br />
+            remontent ensuite vers les tableaux de bord et la Data Room.
+          </li>
+        </ul>
+        <p class="small">
+          Détail d’implémentation : spec YRYS, onglet <em>overview</em> (« hiérarchie des objets »), même ordre que ci-dessus.
+        </p>
+        <h3>4.1 Vue d’ensemble : ce que vous voyez au niveau « lieu »</h3>
+        <p>
+          Cartes par <strong>lieu</strong> : visuel, miniatures des caméras représentatives, rappel des bénéfices.
+          C’est la couche la plus large de la poupée russe ; les actions (créer, modifier, exporter) restent attachées à ce niveau.
+        </p>
+        <h3>4.2 Vue lieu : descente vers les sites</h3>
+        <p>
+          Cartes par <strong>site</strong> du lieu : caméras et bénéfices visibles sur chaque carte. Un clic ouvre
+          le suivi vidéo : on passe du cadre « site » au cadre « caméra ».
+        </p>
+        <h3>4.3 Tracker : caméra, bénéfice actif, canvas et Data Room</h3>
+        <p>
+          Lecteur vidéo + <strong>canvas</strong> pour les zones du <strong>bénéfice sélectionné</strong> ; à côté,
+          la liste des bénéfices de la caméra et la <strong>Data Room</strong> (cartes alignées sur ce que vous avez
+          configuré). Onglets habituels : aperçu, source, paramètres, toujours dans le même fil du plus large au plus fin.
+        </p>
+        <h3>4.4 Navigation globale</h3>
+        <p class="small">
+          Barre latérale : exploration (lieux, sites, caméras, bénéfices) ; en-tête : liens vers Tracker, Analytics, Logs selon le périmètre déployé.
+        </p>
+      </section>
+
+      <section class="section" id="schemas">
+        <h2>Schémas : vue bénéfice &amp; chaîne de traitement d’image</h2>
+        <p>
+          La <strong>vue bénéfice</strong> n’est pas un écran isolé : dans le Tracker, le bénéfice sélectionné pilote à la fois
+          le <strong>canvas</strong> sur la vidéo et les <strong>cartes</strong> affichées dans la Data Room. Le traitement
+          côté serveur enchaîne décodage, détection, géométrie des zones et agrégation métier avant l’API consommée par l’interface.
+        </p>
+        <h3>Vue synthétique : bénéfice dans le Tracker</h3>
+        <div class="diagram">
+          <img
+            class="diagram-img"
+            src="assets/diagram-trigo-tracker.svg"
+            alt="Vue Tracker : caméra, liste des bénéfices, vidéo avec canvas, Data Room."
+            width="540"
+            height="287"
+          />
+        </div>
+        <p class="diagram-caption">
+          En amont, la <strong>création</strong> du bénéfice suit l’assistant (type d’analyse, catégorie, infos). Les polygones sont
+          stockés sur le bénéfice et réaffichés ici à la bonne échelle.
+        </p>
+        <h3>Pipeline de traitement d’image (logique serveur)</h3>
+        <div class="diagram pipe-diagram" role="img" aria-label="Chaîne : source, décodage, détection, suivi, zones bénéfice, métriques, API, interface.">
+          <div class="pipe-rows">
+            <div class="pipe-row">
+              <div class="pipe-card"><strong>Source vidéo</strong></div>
+              <span class="pipe-arrow" aria-hidden="true">→</span>
+              <div class="pipe-card"><strong>Décodage</strong></div>
+              <span class="pipe-arrow" aria-hidden="true">→</span>
+              <div class="pipe-card"><strong>Détection YOLO</strong></div>
+              <span class="pipe-arrow" aria-hidden="true">→</span>
+              <div class="pipe-card"><strong>Suivi</strong></div>
+            </div>
+            <div class="pipe-row">
+              <div class="pipe-card"><strong>Zones bénéfice</strong></div>
+              <span class="pipe-arrow" aria-hidden="true">→</span>
+              <div class="pipe-card"><strong>Métriques</strong></div>
+              <span class="pipe-arrow" aria-hidden="true">→</span>
+              <div class="pipe-card"><strong>API</strong></div>
+              <span class="pipe-arrow" aria-hidden="true">→</span>
+              <div class="pipe-card"><strong>Interface</strong></div>
+            </div>
+          </div>
+        </div>
+        <p class="diagram-caption">
+          Selon le <strong>type d’analyse</strong>, les étapes après l’intersection géométrique diffèrent (ex. cumul temps de présence,
+          passage de ligne, masque MOG2 pour comptage). Le floutage visage, lorsqu’il est activé, s’applique sur le flux servi à l’affichage.
+        </p>
+      </section>
+
+      <section class="section" id="skills">
+        <h2>5. Familles d’analyse et sous-types</h2>
+        <p>
+          Le catalogue ci-dessous reprend les familles et identifiants tels que portés par la spécification produit
+          (libellés et regroupement dans les assistants de création de bénéfices).
+        </p>
+        <h3>5.1 Détection</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Identifiant</th><th>Libellé</th></tr></thead>
+            <tbody>
+              <tr><td><code>detection_presence</code></td><td>Présence / absence</td></tr>
+              <tr><td><code>detection_linecross</code></td><td>Franchissement ligne</td></tr>
+              <tr><td><code>detection_zone</code></td><td>Détection zone</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>5.2 Comptage</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Identifiant</th><th>Libellé</th></tr></thead>
+            <tbody>
+              <tr><td><code>counting_people</code></td><td>Comptage personnes</td></tr>
+              <tr><td><code>counting_objects</code></td><td>Comptage objets</td></tr>
+              <tr><td><code>counting_zone</code></td><td>Comptage zone</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>5.3 Heatmap</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Identifiant</th><th>Libellé</th></tr></thead>
+            <tbody>
+              <tr><td><code>heatmap_density</code></td><td>Densité de flux</td></tr>
+              <tr><td><code>heatmap_presence</code></td><td>Heatmap présence</td></tr>
+              <tr><td><code>heatmap_trajectory</code></td><td>Heatmap trajectoires</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>5.4 Qualité</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Identifiant</th><th>Libellé</th></tr></thead>
+            <tbody>
+              <tr><td><code>quality_fissure</code></td><td>Fissure</td></tr>
+              <tr><td><code>quality_humidity</code></td><td>Humidité</td></tr>
+              <tr><td><code>quality_check</code></td><td>Qualité générale</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" id="categories">
+        <h2>6. Catégories cibles et correspondance avec les familles d’analyse</h2>
+        <p>
+          Chaque bénéfice précise <strong>ce qui est observé</strong> via des couples
+          <code>catégorie::sous-catégorie</code> (ex. <code>human::silhouette</code>, <code>transport::voiture</code>).
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Catégorie</th>
+                <th>Sous-types (extraits)</th>
+                <th>Familles prévues par la spec</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Humain</td>
+                <td>Silhouette, visage, foule</td>
+                <td>Détection, comptage, heatmap</td>
+              </tr>
+              <tr>
+                <td>Transport</td>
+                <td>Voiture, vélo, transport public, avion, moto</td>
+                <td>Détection, comptage</td>
+              </tr>
+              <tr>
+                <td>Objet</td>
+                <td>Encombrement, zone encombrée, fissure, humidité, qualité générale</td>
+                <td>Heatmap, qualité</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" id="benefice">
+        <h2>7. Création / édition d’un bénéfice (wizard)</h2>
+        <p>Le flux utilisateur standard comporte trois étapes :</p>
+        <ol>
+          <li><strong>Type d’analyse</strong> : choix de la famille (détection, comptage, heatmap, qualité) puis du sous-type.</li>
+          <li><strong>Catégorie</strong> : filtrage des groupes autorisés pour ce type d’analyse, sélection des cibles.</li>
+          <li><strong>Infos</strong> : nom du bénéfice, activation, champs métier (les champs avancés peuvent être étendus selon cadrage projet).</li>
+        </ol>
+        <p class="small">
+          Référence détaillée des champs API : documentation interne « Modal bénéfice » et schémas backend.
+        </p>
+      </section>
+
+      <section class="section" id="zones">
+        <h2>8. Zones sur la vidéo (canvas bénéfices)</h2>
+        <p>
+          Les polygones sont <strong>attachés au bénéfice</strong>. Chaque polygone est typé
+          <strong>include</strong> (zone d’analyse) ou <strong>exclude</strong> (masquage). Les coordonnées sont
+          stockées dans l’espace de référence de la vidéo au moment du dessin (<code>zone_ref_width</code>,
+          <code>zone_ref_height</code>) puis rééchantillonnées à l’affichage si la résolution change.
+        </p>
+        <div class="callout">
+          <p><strong>Règle produit.</strong> Plusieurs zones d’inclusion ou d’exclusion peuvent coexister sur un même bénéfice ; la logique métier d’agrégation dépend du type d’analyse (présence, comptage, etc.).</p>
+        </div>
+      </section>
+
+      <section class="section" id="data-room">
+        <h2>9. Data Room &amp; cartes analytics</h2>
+        <p>
+          Les cartes affichées dans la Data Room s’adaptent aux bénéfices présents sur la caméra sélectionnée, par exemple :
+        </p>
+        <ul>
+          <li><strong>Rapport d’activité</strong> (agrégat) : vue synthétique avec sous-cartes par zone et contrôle du laps de temps.</li>
+          <li><strong>Détection présence</strong> : une carte par bénéfice de détection, avec options de tri.</li>
+          <li><strong>Comptage</strong> : une carte par bénéfice de comptage avec zones, sélection de mode d’analyse en en-tête.</li>
+        </ul>
+        <p class="small">
+          L’ajout de cartes dédiées (ex. heatmap) suit le même principe : exposition des données côté API + branchement UI.
+        </p>
+      </section>
+
+      <section class="section" id="donnees">
+        <h2>10. Modèle de données : aperçu architecture</h2>
+        <p>
+          Objets métier principaux : <strong>Site</strong> (regroupe des caméras), <strong>Camera</strong> (source vidéo,
+          liste de bénéfices), <strong>Benefit</strong> (type d’analyse, catégories, polygones), zones de présence et configuration
+          de comptage associées au flux. Les détails de persistance dépendent du mode déploiement (démonstration,
+          fichier, base).
+        </p>
+        <pre>Lieu, site, caméra, bénéfice (du plus englobant au plus fin)
+Flux vidéo : zones dessinées, présence, comptage</pre>
+      </section>
+
+      <section class="section" id="captures">
+        <h2>11. Captures d’écran fournies</h2>
+        <p class="small">Présentation agrandie avec commentaire court à droite (vue bureau).</p>
+        <div class="shot-stack">
+          <div class="shot-row">
+            <div class="shot-media">
+              <img src="../../frontend-v2/public/static/assets_youn/YrysUIPackage/UI_Jatin/CamYrys.jpg" alt="Vue entrepôt" width="1200" height="675" loading="lazy" />
+            </div>
+            <div class="shot-aside">
+              <h3>Vue multi-lieux</h3>
+              <p>Point d’entrée opérationnel : cartes par lieu, miniatures caméras et bénéfices visibles pour prioriser les sites à suivre.</p>
+            </div>
+          </div>
+          <div class="shot-row">
+            <div class="shot-media">
+              <img src="../../frontend-v2/public/static/assets_youn/YrysUIPackage/UI_Jatin/ConfiYrys.jpg" alt="Configuration bénéfice" width="1200" height="675" loading="lazy" />
+            </div>
+            <div class="shot-aside">
+              <h3>Configuration bénéfice</h3>
+              <p>Assistant sur caméra : type d’analyse, catégories cibles, identité du bénéfice, aligné sur la spec centrale.</p>
+            </div>
+          </div>
+          <div class="shot-row">
+            <div class="shot-media">
+              <img src="../../frontend-v2/public/static/assets_youn/YrysUIPackage/UI_Jatin/AnalyticsYrys.jpg" alt="Analytics" width="1200" height="675" loading="lazy" />
+            </div>
+            <div class="shot-aside">
+              <h3>Analytics &amp; Data Room</h3>
+              <p>Blocs indicateurs rattachés aux bénéfices actifs ; les en-têtes de carte exposent les options utiles (laps de temps, tri, mode de comptage).</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="questions">
+        <h2>12. Questions de cadrage (à valider avec TRIGO)</h2>
+        <ul>
+          <li><strong>Périmètre déploiement</strong> : souhaitez-vous une cible exclusivement on-premise, cloud privé, ou hybride (inférence sur site, pilotage central) ?</li>
+          <li><strong>Volumétrie</strong> : ordre de grandeur de caméras et de sites pour dimensionner latence, stockage et rétention des indicateurs ?</li>
+          <li><strong>Gouvernance</strong> : exigences RGPD / floutage visages, durée de conservation des séquences, intégration IAM (SSO) ?</li>
+          <li><strong>Intégrations</strong> : envoi des compteurs et événements vers ERP, MES, SCADA ou files messages (Kafka, MQTT) ?</li>
+          <li><strong>Branding</strong> : faut-il livrer l’interface sous marque TRIGO uniquement (co-branding ARCY en pied de page) ?</li>
+        </ul>
+        <div class="callout">
+          <p>Si vous nous confirmez ces points, une itération du document pourra inclure schéma d’architecture cible,
+          planning type (audit, phase pilote, industrialisation) et matrice KPI par site.</p>
+        </div>
+      </section>
+
+      <footer class="doc-foot">
+        ARCY · document de travail pour TRIGO · ne pas diffuser sans accord.
+        <a href="https://arcy.app" rel="noopener noreferrer">https://arcy.app</a>
+        <br />
+        Spécifications techniques complètes : dépôt projet (<code>docs/</code>, <code>static/spec.html</code>).
+      </footer>
+    </main>
+  </div>
+</body>
+</html>
