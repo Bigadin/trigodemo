@@ -102,3 +102,46 @@
 {"ts": "2026-02-16T19:31:38.205633+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : w1.mp4", "level": "success", "meta": {"source": "w1.mp4"}}
 {"ts": "2026-02-16T19:42:20.127549+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_01.mp4", "level": "success", "meta": {"source": "video_01.mp4"}}
 {"ts": "2026-02-16T19:43:16.049669+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : w1.mp4", "level": "success", "meta": {"source": "w1.mp4"}}
+{"ts": "2026-05-01T07:01:13.235197+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : entr1.mp4", "level": "success", "meta": {"source": "entr1.mp4"}}
+{"ts": "2026-05-01T07:01:31.097491+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-05-01T07:01:37.640065+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_01.mp4", "level": "success", "meta": {"source": "video_01.mp4"}}
+{"ts": "2026-05-01T07:02:24.266129+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : w1.mp4", "level": "success", "meta": {"source": "w1.mp4"}}
+{"ts": "2026-05-01T07:02:39.399314+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : entr1.mp4", "level": "success", "meta": {"source": "entr1.mp4"}}
+{"ts": "2026-05-01T07:02:49.016210+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (3)", "level": "warn", "meta": {"count": 3}}
+{"ts": "2026-05-01T07:48:47.446569+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_04.mp4", "level": "success", "meta": {"source": "video_04.mp4"}}
+{"ts": "2026-05-01T07:49:07.301915+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : entr1.mp4", "level": "success", "meta": {"source": "entr1.mp4"}}
+{"ts": "2026-05-01T07:49:23.865487+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : entr1.mp4", "level": "info", "meta": {"source": "entr1.mp4"}}
+{"ts": "2026-05-01T07:49:25.687121+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (2)", "level": "warn", "meta": {"count": 2}}
+{"ts": "2026-05-01T07:51:41.194998+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : entr1.mp4", "level": "success", "meta": {"source": "entr1.mp4"}}
+{"ts": "2026-05-01T07:51:58.428869+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (2)", "level": "warn", "meta": {"count": 2}}
+{"ts": "2026-05-01T07:52:22.062108+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : entr1.mp4", "level": "success", "meta": {"source": "entr1.mp4"}}
+{"ts": "2026-05-01T07:52:46.406875+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : w1.mp4", "level": "success", "meta": {"source": "w1.mp4"}}
+{"ts": "2026-05-01T07:53:12.048995+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (3)", "level": "warn", "meta": {"count": 3}}
+{"ts": "2026-05-02T06:35:57.089194+00:00", "category": "zone", "action": "created", "detail": "Zone « cmp2 » créée sur w1.mp4 (0 forme(s))", "level": "success", "meta": {"zone": "cmp2", "video": "w1.mp4", "polygons": 0}}
+{"ts": "2026-05-02T06:36:35.081424+00:00", "category": "zone", "action": "created", "detail": "Zone « cmp3 » créée sur w1.mp4 (0 forme(s))", "level": "success", "meta": {"zone": "cmp3", "video": "w1.mp4", "polygons": 0}}
+{"ts": "2026-05-02T06:36:42.217636+00:00", "category": "zone", "action": "deleted", "detail": "Zone « cmp3 » supprimée de w1.mp4", "level": "warn", "meta": {"zone": "cmp3", "video": "w1.mp4"}}
+{"ts": "2026-05-02T06:36:45.169420+00:00", "category": "zone", "action": "deleted", "detail": "Zone « cmp2 » supprimée de w1.mp4", "level": "warn", "meta": {"zone": "cmp2", "video": "w1.mp4"}}
+{"ts": "2026-05-02T06:36:53.585233+00:00", "category": "zone", "action": "created", "detail": "Zone « cmp2 » créée sur w1.mp4 (0 forme(s))", "level": "success", "meta": {"zone": "cmp2", "video": "w1.mp4", "polygons": 0}}
+{"ts": "2026-05-02T06:37:01.612270+00:00", "category": "zone", "action": "created", "detail": "Zone « cmp2 » créée sur w1.mp4 (1 forme(s))", "level": "success", "meta": {"zone": "cmp2", "video": "w1.mp4", "polygons": 1}}
+{"ts": "2026-05-02T06:37:02.714958+00:00", "category": "zone", "action": "edited", "detail": "Zone « cmp2 » éditée sur w1.mp4 (1 forme(s))", "level": "info", "meta": {"zone": "cmp2", "video": "w1.mp4", "polygons": 1}}
+{"ts": "2026-05-02T06:37:11.924328+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : w1.mp4", "level": "success", "meta": {"source": "w1.mp4"}}
+{"ts": "2026-05-02T06:38:05.219571+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-05-02T06:38:11.099829+00:00", "category": "zone", "action": "edited", "detail": "Zone « cmp2 » éditée sur w1.mp4 (0 forme(s))", "level": "info", "meta": {"zone": "cmp2", "video": "w1.mp4", "polygons": 0}}
+{"ts": "2026-05-02T06:38:42.816297+00:00", "category": "zone", "action": "edited", "detail": "Zone « cmp2 » éditée sur w1.mp4 (0 forme(s))", "level": "info", "meta": {"zone": "cmp2", "video": "w1.mp4", "polygons": 0}}
+{"ts": "2026-05-02T06:39:39.450111+00:00", "category": "zone", "action": "created", "detail": "Zone « cmp2 » créée sur w1.mp4 (1 forme(s))", "level": "success", "meta": {"zone": "cmp2", "video": "w1.mp4", "polygons": 1}}
+{"ts": "2026-05-02T06:39:40.672492+00:00", "category": "zone", "action": "edited", "detail": "Zone « cmp2 » éditée sur w1.mp4 (1 forme(s))", "level": "info", "meta": {"zone": "cmp2", "video": "w1.mp4", "polygons": 1}}
+{"ts": "2026-05-02T06:39:44.098404+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : w1.mp4", "level": "success", "meta": {"source": "w1.mp4"}}
+{"ts": "2026-05-02T06:39:55.890359+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-05-02T06:40:03.229400+00:00", "category": "zone", "action": "edited", "detail": "Zone « cmp2 » éditée sur w1.mp4 (1 forme(s))", "level": "info", "meta": {"zone": "cmp2", "video": "w1.mp4", "polygons": 1}}
+{"ts": "2026-05-02T06:40:05.531921+00:00", "category": "zone", "action": "edited", "detail": "Zone « cmp » éditée sur w1.mp4 (1 forme(s))", "level": "info", "meta": {"zone": "cmp", "video": "w1.mp4", "polygons": 1}}
+{"ts": "2026-05-02T06:40:07.600488+00:00", "category": "zone", "action": "edited", "detail": "Zone « cmp » éditée sur w1.mp4 (1 forme(s))", "level": "info", "meta": {"zone": "cmp", "video": "w1.mp4", "polygons": 1}}
+{"ts": "2026-05-02T06:40:08.691292+00:00", "category": "zone", "action": "edited", "detail": "Zone « cmp » éditée sur w1.mp4 (1 forme(s))", "level": "info", "meta": {"zone": "cmp", "video": "w1.mp4", "polygons": 1}}
+{"ts": "2026-05-02T06:40:11.274284+00:00", "category": "zone", "action": "edited", "detail": "Zone « cmp » éditée sur w1.mp4 (1 forme(s))", "level": "info", "meta": {"zone": "cmp", "video": "w1.mp4", "polygons": 1}}
+{"ts": "2026-05-02T06:40:12.544466+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : w1.mp4", "level": "success", "meta": {"source": "w1.mp4"}}
+{"ts": "2026-05-02T06:40:33.620832+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (1)", "level": "warn", "meta": {"count": 1}}
+{"ts": "2026-05-02T06:40:36.989854+00:00", "category": "zone", "action": "edited", "detail": "Zone « cmp » éditée sur w1.mp4 (1 forme(s))", "level": "info", "meta": {"zone": "cmp", "video": "w1.mp4", "polygons": 1}}
+{"ts": "2026-05-02T06:40:44.334683+00:00", "category": "zone", "action": "edited", "detail": "Zone « cmp2 » éditée sur w1.mp4 (0 forme(s))", "level": "info", "meta": {"zone": "cmp2", "video": "w1.mp4", "polygons": 0}}
+{"ts": "2026-05-02T06:41:01.616414+00:00", "category": "zone", "action": "edited", "detail": "Zone « cmp2 » éditée sur w1.mp4 (0 forme(s))", "level": "info", "meta": {"zone": "cmp2", "video": "w1.mp4", "polygons": 0}}
+{"ts": "2026-05-02T06:41:14.937814+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : entr1.mp4", "level": "success", "meta": {"source": "entr1.mp4"}}
+{"ts": "2026-05-02T06:41:39.996049+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : w2.mp4", "level": "success", "meta": {"source": "w2.mp4"}}
+{"ts": "2026-05-02T06:45:42.374660+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : w1.mp4", "level": "success", "meta": {"source": "w1.mp4"}}

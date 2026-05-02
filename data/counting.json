@@ -1,6 +1,6 @@
 {
   "video_01.mp4": {
-    "zone_name": "cmp1",
+    "zone_name": "cmp2",
     "flip_count": 0,
     "zone_settings": {
       "cmp2": {
@@ -23,7 +23,11 @@
     "zone_settings": {
       "cmp": {
         "mode": "simple",
-        "flip_count": 0
+        "flip_count": 2
+      },
+      "cmp2": {
+        "mode": "simple",
+        "flip_count": 1
       }
     }
   },
@@ -32,7 +36,16 @@
     "flip_count": 0,
     "zone_settings": {
       "cmp": {
-        "mode": "complex",
+        "mode": "simple",
+        "flip_count": 0
+      }
+    }
+  },
+  "entr1.mp4": {
+    "zone_name": "Zone A",
+    "zone_settings": {
+      "Zone A": {
+        "mode": "simple",
         "flip_count": 0
       }
     }
