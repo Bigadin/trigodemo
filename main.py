@@ -2449,7 +2449,15 @@ def format_time(seconds: float) -> str:
     return f"{hours:02d}:{mins:02d}:{secs:02d}"
 
 
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+class CachedStaticFiles(StaticFiles):
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        if response.status_code == 200:
+            response.headers["Cache-Control"] = "public, max-age=604800"
+        return response
+
+
+app.mount("/static", CachedStaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 if __name__ == "__main__":

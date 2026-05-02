@@ -1,6 +1,6 @@
 {
   "Zone A": {
-    "total_time": 1261.286206483841
+    "total_time": 1373.4197583198547
   },
   "Contr\u00f4le Pi\u00e8ces": {
     "total_time": 0
@@ -9,7 +9,7 @@
     "total_time": 405.26007413864136
   },
   "Zone B": {
-    "total_time": 1236.0562028884888
+    "total_time": 2071.076956987381
   },
   "Z2": {
     "total_time": 51.49583888053894
@@ -27,6 +27,6 @@
     "total_time": 0
   },
   "cmp1": {
-    "total_time": 0.541391134262085
+    "total_time": 1.520956039428711
   }
 }

@@ -145,3 +145,7 @@
 {"ts": "2026-05-02T06:41:14.937814+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : entr1.mp4", "level": "success", "meta": {"source": "entr1.mp4"}}
 {"ts": "2026-05-02T06:41:39.996049+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : w2.mp4", "level": "success", "meta": {"source": "w2.mp4"}}
 {"ts": "2026-05-02T06:45:42.374660+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : w1.mp4", "level": "success", "meta": {"source": "w1.mp4"}}
+{"ts": "2026-05-02T06:55:11.086330+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_01.mp4", "level": "success", "meta": {"source": "video_01.mp4"}}
+{"ts": "2026-05-02T07:17:01.803978+00:00", "category": "stream", "action": "stopped_all", "detail": "Tous les streams arrêtés (4)", "level": "warn", "meta": {"count": 4}}
+{"ts": "2026-05-02T07:22:59.579655+00:00", "category": "stream", "action": "started", "detail": "Stream démarré : video_01.mp4", "level": "success", "meta": {"source": "video_01.mp4"}}
+{"ts": "2026-05-02T07:23:16.735984+00:00", "category": "stream", "action": "stopped", "detail": "Stream arrêté : video_01.mp4", "level": "info", "meta": {"source": "video_01.mp4"}}
