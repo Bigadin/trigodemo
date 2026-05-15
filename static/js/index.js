@@ -10,7 +10,7 @@
                 cameras: [
                     { id: 'cam1', name: 'Entrepôt', hint: 'Déchargement & présence', video: 'entr1.mp4' },
                     { id: 'cam2', name: 'Comptage A', hint: 'Ligne de comptage', video: 'w1.mp4' },
-                    { id: 'cam3', name: 'Comptage B', hint: 'Ligne de comptage', video: 'w2.mp4' }
+                    { id: 'cam6', name: 'Comptage B', hint: 'Ligne de comptage', video: 'w2.mp4' }
                 ]
             },
             {
