@@ -22,6 +22,7 @@ var/
 wheels/
 share/python-wheels/
 *.egg-info/
+data/
 .installed.cfg
 *.egg
 MANIFEST
@@ -211,3 +212,5 @@ data/presence.json
 
 # Build output
 dist/
+data/audit_log.jsonl
+data/presence.json

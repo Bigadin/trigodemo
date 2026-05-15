@@ -9,7 +9,8 @@
                 location: 'Lyon',
                 cameras: [
                     { id: 'cam1', name: 'Entrepôt', hint: 'Déchargement & présence', video: 'entr1.mp4' },
-                    { id: 'cam2', name: 'Convoyeur', hint: 'Tapis roulant & contrôle', video: 'video_01.mp4' }
+                    { id: 'cam2', name: 'Comptage A', hint: 'Ligne de comptage', video: 'w1.mp4' },
+                    { id: 'cam3', name: 'Comptage B', hint: 'Ligne de comptage', video: 'w2.mp4' }
                 ]
             },
             {
@@ -3222,10 +3223,16 @@
                 video: 'entr1.mp4'
             },
             {
-                id: 'convoyeur',
-                name: 'Convoyeur / Ligne',
-                hint: 'Tapis roulant & contrôle',
-                video: 'video_01.mp4'
+                id: 'w1',
+                name: 'Comptage A',
+                hint: 'Ligne de comptage',
+                video: 'w1.mp4'
+            },
+            {
+                id: 'w2',
+                name: 'Comptage B',
+                hint: 'Ligne de comptage',
+                video: 'w2.mp4'
             }
         ];
 

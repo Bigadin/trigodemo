@@ -682,7 +682,8 @@ def _seed_demo_events():
         # Day -6: videos uploaded
         (-6, 10, 0, "video", "upload", "Vidéo « entr1.mp4 » uploadée", "success", {"filename": "entr1.mp4"}),
         (-6, 10, 12, "video", "upload", "Vidéo « videoplayback.mp4 » uploadée", "success", {"filename": "videoplayback.mp4"}),
-        (-6, 10, 30, "video", "upload", "Vidéo « video_01.mp4 » uploadée", "success", {"filename": "video_01.mp4"}),
+        (-6, 10, 30, "video", "upload", "Vidéo « w1.mp4 » uploadée", "success", {"filename": "w1.mp4"}),
+        (-6, 10, 35, "video", "upload", "Vidéo « w2.mp4 » uploadée", "success", {"filename": "w2.mp4"}),
         (-6, 10, 45, "video", "upload", "Vidéo « video_04.mp4 » uploadée", "success", {"filename": "video_04.mp4"}),
         # Day -5: zones created on entr1.mp4
         (-5, 8, 30, "zone", "created", "Zone « Zone A » créée sur entr1.mp4 (2 forme(s))", "success",
@@ -702,8 +703,10 @@ def _seed_demo_events():
         # Day -4: zone edits
         (-4, 14, 0, "zone", "edited", "Zone « Zone A » éditée sur entr1.mp4 (2 forme(s))", "info",
          {"zone": "Zone A", "video": "entr1.mp4", "polygons": 2}),
-        (-4, 14, 5, "zone", "created", "Zone « T2 » créée sur video_01.mp4 (1 forme(s))", "success",
-         {"zone": "T2", "video": "video_01.mp4", "polygons": 1}),
+        (-4, 14, 5, "zone", "created", "Zone « cmp » créée sur w1.mp4 (1 forme(s))", "success",
+         {"zone": "cmp", "video": "w1.mp4", "polygons": 1}),
+        (-4, 14, 8, "zone", "created", "Zone « cmp » créée sur w2.mp4 (1 forme(s))", "success",
+         {"zone": "cmp", "video": "w2.mp4", "polygons": 1}),
         # Day -4: detection session
         (-4, 14, 20, "stream", "started", "Stream démarré : videoplayback.mp4", "success", {"source": "videoplayback.mp4"}),
         (-4, 14, 22, "detection", "occupancy", "Zone A (videoplayback.mp4) — présence détectée", "info",
